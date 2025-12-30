@@ -27,3 +27,21 @@
     }
     .nav__links a { padding: 0; }
 }
+
+.nav__signout {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border: 1px solid #eee;
+    background: white;
+    border-radius: 10px;
+    text-align: left;
+}
+
+@media (min-width: 720px) {
+    .nav__signout {
+        width: auto;
+        margin-top: 0;
+        text-align: center;
+    }
+}
