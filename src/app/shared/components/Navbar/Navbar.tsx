@@ -48,7 +48,7 @@ export default function Navbar() {
 
         // Signed in
         if (!rolesLoading) {
-            if (hasRole("rower")) base.push({ to: "/rower/signup", label: "Event Sign-Up" });
+            if (hasRole("rower")) base.push({ to: "/rower/events", label: "Events" });
             if (hasRole("host")) base.push({ to: "/host/events/new", label: "Create Event" });
             if (hasRole("admin")) base.push({ to: "/admin/timing", label: "Timing" });
             if (hasRole("host")) base.push({ to: "/host/events/manage", label: "Manage Event" });

@@ -1,4 +1,5 @@
 import type { EventDoc } from "./types";
+import { buildDefaultCategories } from "./lib/categories";
 
 export const MOCK_EVENTS: EventDoc[] = [
     {
@@ -11,8 +12,12 @@ export const MOCK_EVENTS: EventDoc[] = [
         endDate: "2026-12-31",
         closingDate: "2025-09-20",
         lengthMeters: 5000,
-        categories: ["1x Men Open", "1x Women Open", "2x Open"],
+
+        // ✅ everything enabled by default
+        categories: buildDefaultCategories(),
+
         status: "open",
         createdAt: Date.now(),
     },
 ];
+

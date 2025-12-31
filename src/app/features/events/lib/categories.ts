@@ -85,3 +85,45 @@ export function buildDefaultCategories(): string[] {
     }
     return out;
 }
+
+export type BoatClass = "1x" | "2x" | "2-" | "4x+";
+
+/**
+ * Extract the boat class from a category string like:
+ * "Men • Senior Open • 1x"
+ */
+export function parseBoatClassFromCategory(cat: string): BoatClass | null {
+    if (!cat) return null;
+
+    const parts = cat.split("•").map((s) => s.trim());
+    if (parts.length !== 3) return null;
+
+    const boat = parts[2];
+
+    if (boat === "1x" || boat === "2x" || boat === "2-" || boat === "4x+") {
+        return boat;
+    }
+
+    return null;
+}
+
+export type BoatSize = 1 | 2 | 4;
+
+/**
+ * Convert a boat class into crew size
+ */
+export function boatSizeFromBoatClass(bc: BoatClass): BoatSize {
+    switch (bc) {
+        case "1x":
+            return 1;
+        case "2x":
+        case "2-":
+            return 2;
+        case "4x+":
+            return 4;
+        default:
+            // Exhaustive safety for future changes
+            throw new Error(`Unknown boat class: ${bc}`);
+    }
+}
+

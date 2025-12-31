@@ -1,86 +1,176 @@
 import { useEffect, useMemo, useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import type { EventDoc } from "../../events/types";
 import { listEvents } from "../../events/api/events";
 import { useMockAuth } from "../../../providers/MockAuthProvider";
 import type { BoatSize } from "../types";
 import { createBoat, listBoatsForEvent } from "../api/boats";
+import {
+    parseBoatClassFromCategory,
+    boatSizeFromBoatClass,
+    type Gender,
+} from "../../events/lib/categories";
+
+type GroupKey = "All" | "Junior" | "U19" | "U21" | "U23" | "Senior" | "Masters" | "Para";
+type GenderFilter = "All" | Gender;
+
+function groupFromDivisionString(division: string): GroupKey {
+    if (division.startsWith("Junior")) return "Junior";
+    if (division.startsWith("U19")) return "U19";
+    if (division.startsWith("U21")) return "U21";
+    if (division.startsWith("U23")) return "U23";
+    if (division.startsWith("Senior")) return "Senior";
+    if (division.startsWith("Masters")) return "Masters";
+    if (division === "Para") return "Para";
+    return "All";
+}
+
+function parseCategoryParts(cat: string): { gender: string; division: string; boatClass: string } | null {
+    const parts = cat.split("•").map((s) => s.trim());
+    if (parts.length !== 3) return null;
+    return { gender: parts[0], division: parts[1], boatClass: parts[2] };
+}
+
+function boatSizeLabel(size: number) {
+    if (size === 1) return "Single";
+    if (size === 2) return "Double";
+    if (size === 4) return "Quad";
+    if (size === 8) return "Eight";
+    return String(size);
+}
 
 export default function EventSignupPage() {
-    const { user } = useMockAuth(); // DEV_MODE rower will use this
+    const { eventId } = useParams<{ eventId: string }>();
+    const { user } = useMockAuth();
+
     const [events, setEvents] = useState<EventDoc[]>([]);
-    const [selectedEventId, setSelectedEventId] = useState<string>("");
     const [boats, setBoats] = useState<any[]>([]);
 
     const [clubName, setClubName] = useState("Z12 RC");
-    const [boatSize, setBoatSize] = useState<BoatSize>(1);
     const [category, setCategory] = useState("");
     const [inviteEmail, setInviteEmail] = useState("");
 
-    const [loadingEvents, setLoadingEvents] = useState(true);
+    // Category filters
+    const [catGender, setCatGender] = useState<GenderFilter>("All");
+    const [catGroup, setCatGroup] = useState<GroupKey>("All");
+    const [catQuery, setCatQuery] = useState("");
+
+    const [loadingEvent, setLoadingEvent] = useState(true);
     const [loadingBoats, setLoadingBoats] = useState(false);
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
-    // Load events
+    // Load events list (or replace with getEvent(eventId) if you have it)
     useEffect(() => {
         (async () => {
-            setLoadingEvents(true);
-            const e = await listEvents();
-            // only open events for sign-up
-            const open = e.filter((x) => x.status === "open");
-            setEvents(open);
-            setSelectedEventId(open[0]?.id ?? "");
-            setLoadingEvents(false);
+            setLoadingEvent(true);
+            setErr(null);
+            try {
+                const e = await listEvents();
+                setEvents(e);
+            } catch (e: any) {
+                setErr(e?.message ?? "Failed to load event");
+            } finally {
+                setLoadingEvent(false);
+            }
         })();
     }, []);
 
-    const selectedEvent = useMemo(
-        () => events.find((e) => e.id === selectedEventId) ?? null,
-        [events, selectedEventId]
-    );
+    const selectedEvent = useMemo(() => {
+        if (!eventId) return null;
+        return events.find((e) => e.id === eventId) ?? null;
+    }, [events, eventId]);
 
-    // When event changes, load boats already registered
+    // Load boats for this event
     useEffect(() => {
-        if (!selectedEventId) return;
+        if (!eventId) return;
         (async () => {
             setLoadingBoats(true);
-            const b = await listBoatsForEvent(selectedEventId);
-            setBoats(b);
-            setLoadingBoats(false);
+            try {
+                const b = await listBoatsForEvent(eventId);
+                setBoats(b);
+            } finally {
+                setLoadingBoats(false);
+            }
         })();
-    }, [selectedEventId]);
+    }, [eventId]);
 
-    // default category when event changes
+    // Default category when event loads/changes
     useEffect(() => {
         if (selectedEvent && selectedEvent.categories.length > 0) {
             setCategory(selectedEvent.categories[0]);
+            setCatGender("All");
+            setCatGroup("All");
+            setCatQuery("");
         }
-    }, [selectedEventId]);
+    }, [eventId, selectedEvent?.categories?.length]);
 
-    const canCreate = !!user && !!selectedEvent && clubName.trim().length > 1 && category;
+    const filteredCategories = useMemo(() => {
+        if (!selectedEvent) return [];
+        const q = catQuery.trim().toLowerCase();
+
+        return selectedEvent.categories.filter((c) => {
+            const p = parseCategoryParts(c);
+            if (!p) return false;
+
+            if (catGender !== "All" && p.gender !== catGender) return false;
+
+            const group = groupFromDivisionString(p.division);
+            if (catGroup !== "All" && group !== catGroup) return false;
+
+            if (q) {
+                const hay = `${p.gender} ${p.division} ${p.boatClass}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+    }, [selectedEvent, catGender, catGroup, catQuery]);
+
+    // Ensure selected category stays valid under filters
+    useEffect(() => {
+        if (!selectedEvent) return;
+        if (!category) return;
+        if (filteredCategories.length === 0) return;
+
+        if (!filteredCategories.includes(category)) {
+            setCategory(filteredCategories[0]);
+        }
+    }, [filteredCategories, selectedEvent, category]);
+
+    // Derived boat size from category
+    const derivedBoatSize: BoatSize | null = useMemo(() => {
+        const bc = parseBoatClassFromCategory(category);
+        if (!bc) return null;
+        return boatSizeFromBoatClass(bc) as BoatSize;
+    }, [category]);
+
+    const canCreate =
+        !!user &&
+        !!selectedEvent &&
+        clubName.trim().length > 1 &&
+        !!category &&
+        derivedBoatSize !== null &&
+        selectedEvent.status === "open";
 
     async function onCreateBoat() {
-        if (!user || !selectedEvent) return;
+        if (!user || !selectedEvent || !eventId || derivedBoatSize === null) return;
 
         setErr(null);
         setBusy(true);
         try {
-            // invite support for future: for now just store email if boat > 1
-            const invites =
-                boatSize === 1 ? [] : inviteEmail.trim() ? [inviteEmail.trim()] : [];
+            const invites = derivedBoatSize === 1 ? [] : inviteEmail.trim() ? [inviteEmail.trim()] : [];
 
             await createBoat({
-                eventId: selectedEvent.id!,
+                eventId,
                 category,
                 clubName,
-                boatSize,
+                boatSize: derivedBoatSize,
                 rowerUids: [user.uid],
                 invitedEmails: invites,
             });
 
-            // refresh list
-            const b = await listBoatsForEvent(selectedEvent.id!);
+            const b = await listBoatsForEvent(eventId);
             setBoats(b);
 
             setInviteEmail("");
@@ -96,102 +186,161 @@ export default function EventSignupPage() {
         <>
             <Navbar />
             <main>
-                <h1>Event Sign-Up</h1>
-                <p>Choose an event, select your category, and register your boat.</p>
+                <div className="row" style={{ marginBottom: 10 }}>
+                    <Link to="/rower/events">
+                        <button type="button" className="btn-ghost">
+                            ← Back to events
+                        </button>
+                    </Link>
+                </div>
 
-                {loadingEvents ? (
-                    <p>Loading events…</p>
-                ) : events.length === 0 ? (
-                    <p>No open events available right now.</p>
+                {loadingEvent ? (
+                    <p>Loading event…</p>
+                ) : err ? (
+                    <p style={{ color: "crimson" }}>{err}</p>
+                ) : !eventId ? (
+                    <p>Missing event id.</p>
+                ) : !selectedEvent ? (
+                    <div className="card">
+                        <h2>Event not found</h2>
+                        <p className="muted">This event may have been removed or you may not have access.</p>
+                        <Link to="/rower/events">
+                            <button type="button" className="btn-primary">
+                                Return to events
+                            </button>
+                        </Link>
+                    </div>
                 ) : (
                     <>
+                        <h1>{selectedEvent.name}</h1>
+                        <p>
+                            {selectedEvent.location} • {selectedEvent.startDate} → {selectedEvent.endDate}
+                        </p>
+
+                        {selectedEvent.description && <p className="muted">{selectedEvent.description}</p>}
+
+                        {selectedEvent.status !== "open" && (
+                            <div className="card" style={{ marginTop: 12 }}>
+                                <div className="space-between">
+                                    <h3>Sign up closed</h3>
+                                    <span className="badge">Status: {selectedEvent.status}</span>
+                                </div>
+                                <p className="muted">You can still view registered boats below.</p>
+                            </div>
+                        )}
+
+                        {/* Category filters */}
+                        <div className="card" style={{ marginTop: 12 }}>
+                            <div className="space-between">
+                                <h3>Category</h3>
+                                <span className="badge">
+                  {filteredCategories.length}/{selectedEvent.categories.length}
+                </span>
+                            </div>
+
+                            <div className="row" style={{ marginTop: 10 }}>
+                                <select value={catGender} onChange={(e) => setCatGender(e.target.value as GenderFilter)}>
+                                    <option value="All">All genders</option>
+                                    <option value="Men">Men</option>
+                                    <option value="Women">Women</option>
+                                    <option value="Mixed">Mixed</option>
+                                </select>
+
+                                <select value={catGroup} onChange={(e) => setCatGroup(e.target.value as GroupKey)}>
+                                    <option value="All">All groups</option>
+                                    <option value="Junior">Junior</option>
+                                    <option value="U19">U19</option>
+                                    <option value="U21">U21</option>
+                                    <option value="U23">U23</option>
+                                    <option value="Senior">Senior</option>
+                                    <option value="Masters">Masters</option>
+                                    <option value="Para">Para</option>
+                                </select>
+
+                                <input
+                                    value={catQuery}
+                                    onChange={(e) => setCatQuery(e.target.value)}
+                                    placeholder="Search (e.g. Masters A, 2x, Open)"
+                                />
+                            </div>
+
+                            <label style={{ marginTop: 10 }}>
+                                Pick a category
+                                <select
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    disabled={filteredCategories.length === 0 || selectedEvent.status !== "open"}
+                                >
+                                    {filteredCategories.map((c) => (
+                                        <option key={c} value={c}>
+                                            {c}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <div className="row" style={{ marginTop: 10 }}>
+                <span className="badge badge--brand">
+                  Boat: {derivedBoatSize ? boatSizeLabel(derivedBoatSize) : "—"}
+                </span>
+                                <span className="muted">Boat size is derived from the boat class in the category.</span>
+                            </div>
+
+                            {filteredCategories.length === 0 && <p className="muted">No categories match your filters.</p>}
+                        </div>
+
                         <label>
-                            Event
-                            <select
-                                value={selectedEventId}
-                                onChange={(e) => setSelectedEventId(e.target.value)}
-                            >
-                                {events.map((e) => (
-                                    <option key={e.id} value={e.id}>
-                                        {e.name} ({e.location})
-                                    </option>
-                                ))}
-                            </select>
+                            Club Name
+                            <input value={clubName} onChange={(e) => setClubName(e.target.value)} />
                         </label>
 
-                        {selectedEvent && (
-                            <>
-                                <label>
-                                    Category
-                                    <select value={category} onChange={(e) => setCategory(e.target.value)}>
-                                        {selectedEvent.categories.map((c) => (
-                                            <option key={c} value={c}>
-                                                {c}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                        {derivedBoatSize !== 1 && selectedEvent.status === "open" && (
+                            <label>
+                                Invite teammate email (optional for now)
+                                <input
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                    placeholder="friend@email.com"
+                                />
+                            </label>
+                        )}
 
-                                <label>
-                                    Club Name
-                                    <input value={clubName} onChange={(e) => setClubName(e.target.value)} />
-                                </label>
+                        {err && <p style={{ color: "crimson" }}>{err}</p>}
 
-                                <label>
-                                    Boat Size
-                                    <select
-                                        value={boatSize}
-                                        onChange={(e) => setBoatSize(Number(e.target.value) as BoatSize)}
-                                    >
-                                        <option value={1}>Single (1x)</option>
-                                        <option value={2}>Double (2x)</option>
-                                        <option value={4}>Quad (4x)</option>
-                                        <option value={8}>Eight (8+)</option>
-                                    </select>
-                                </label>
+                        <button disabled={!canCreate || busy} onClick={onCreateBoat} style={{ marginTop: 12 }}>
+                            {busy ? "Signing up..." : "Register Boat"}
+                        </button>
 
-                                {boatSize !== 1 && (
-                                    <label>
-                                        Invite teammate email (optional for now)
-                                        <input
-                                            value={inviteEmail}
-                                            onChange={(e) => setInviteEmail(e.target.value)}
-                                            placeholder="friend@email.com"
-                                        />
-                                    </label>
-                                )}
+                        <hr />
 
-                                {err && <p style={{ color: "crimson" }}>{err}</p>}
+                        <h2>Registered Boats</h2>
 
-                                <button disabled={!canCreate || busy} onClick={onCreateBoat} style={{ marginTop: 12 }}>
-                                    {busy ? "Signing up..." : "Register Boat"}
-                                </button>
+                        {loadingBoats ? (
+                            <p>Loading boats…</p>
+                        ) : boats.length === 0 ? (
+                            <p>No boats registered yet.</p>
+                        ) : (
+                            <ul style={{ display: "grid", gap: 10, padding: 0, listStyle: "none" }}>
+                                {boats.map((b) => {
+                                    const bc = parseBoatClassFromCategory(b.category);
+                                    const derived = bc ? boatSizeFromBoatClass(bc) : null;
 
-                                <hr style={{ margin: "18px 0" }} />
-
-                                <h2>Registered Boats (this event)</h2>
-                                {loadingBoats ? (
-                                    <p>Loading boats…</p>
-                                ) : boats.length === 0 ? (
-                                    <p>No boats registered yet.</p>
-                                ) : (
-                                    <ul style={{ display: "grid", gap: 10, padding: 0, listStyle: "none" }}>
-                                        {boats.map((b) => (
-                                            <li
-                                                key={b.id}
-                                                style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}
-                                            >
-                                                <b>
-                                                    {b.clubName} • {b.category}
-                                                </b>
-                                                <div>Boat size: {b.boatSize}</div>
-                                                <div>Invites: {b.invitedEmails?.length ? b.invitedEmails.join(", ") : "None"}</div>
-                                                <div>Bow: {b.bowNumber ?? "Not assigned yet"}</div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </>
+                                    return (
+                                        <li key={b.id} className="card card--tight">
+                                            <b>
+                                                {b.clubName} • {b.category}
+                                            </b>
+                                            <div className="muted" style={{ marginTop: 6 }}>
+                                                Boat: {derived ? boatSizeLabel(derived) : b.boatSize ?? "—"}
+                                            </div>
+                                            <div className="muted">
+                                                Invites: {b.invitedEmails?.length ? b.invitedEmails.join(", ") : "None"}
+                                            </div>
+                                            <div className="muted">Bow: {b.bowNumber ?? "Not assigned yet"}</div>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
                         )}
                     </>
                 )}
