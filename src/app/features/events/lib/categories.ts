@@ -86,8 +86,6 @@ export function buildDefaultCategories(): string[] {
     return out;
 }
 
-export type BoatClass = "1x" | "2x" | "2-" | "4x+";
-
 /**
  * Extract the boat class from a category string like:
  * "Men • Senior Open • 1x"
