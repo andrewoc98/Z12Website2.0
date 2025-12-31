@@ -103,3 +103,16 @@ export function __debugClearBoats() {
     mockBoats = [];
     saveMockBoats(mockBoats);
 }
+
+export async function startBoat(boatId: string): Promise<void> {
+    return updateBoat(boatId, { startedAt: Date.now() });
+}
+
+export async function finishBoat(boatId: string): Promise<void> {
+    return updateBoat(boatId, { finishedAt: Date.now() });
+}
+
+export function getElapsedMs(b: { startedAt?: number; finishedAt?: number }) {
+    if (!b.startedAt || !b.finishedAt) return null;
+    return Math.max(0, b.finishedAt - b.startedAt);
+}

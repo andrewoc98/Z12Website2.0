@@ -13,4 +13,8 @@ export type BoatDoc = {
 
     bowNumber?: number;        // assigned when registration closes
     createdAt?: number;
+
+    startedAt?: number;   // ms since epoch
+    finishedAt?: number;  // ms since epoch
+
 };
