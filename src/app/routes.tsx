@@ -10,6 +10,7 @@ import TimingPage from "../app/features/timing/pages/TimingPage";
 import HostEventManagePage from "../app/features/events/pages/HostEventManagePage";
 import RowerEventListPage from "./features/signup/pages/RowerEventListPage.tsx";
 import EventResultsPage from "./features/signup/pages/EventResultsPage.tsx";
+import AuthPage from "./features/auth/pages/AuthPage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -71,4 +72,5 @@ export const router = createBrowserRouter([
     { path: "/signin", element: <SignInPage /> },
     { path: "/register", element: <RegisterPage /> },
     { path: "/leaderboard", element: <LeaderboardPage /> },
+    { path: "/auth", element: <AuthPage /> },
 ]);

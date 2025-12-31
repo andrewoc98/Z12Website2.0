@@ -40,9 +40,9 @@ export default function Navbar() {
             { to: "/leaderboard", label: "Leaderboard" },
         ];
 
+        // Not signed in → single entry point
         if (!user) {
-            base.push({ to: "/signin", label: "Sign In" });
-            base.push({ to: "/register", label: "Register" });
+            base.push({ to: "/auth", label: "Sign in" });
             return base;
         }
 
@@ -50,20 +50,29 @@ export default function Navbar() {
         if (!rolesLoading) {
             if (hasRole("rower")) base.push({ to: "/rower/events", label: "Events" });
             if (hasRole("host")) base.push({ to: "/host/events/new", label: "Create Event" });
-            if (hasRole("admin")) base.push({ to: "/admin/timing", label: "Timing" });
             if (hasRole("host")) base.push({ to: "/host/events/manage", label: "Manage Event" });
+            if (hasRole("admin")) base.push({ to: "/admin/timing", label: "Timing" });
         }
 
         return base;
-    }, [user, rolesLoading]);
+    }, [
+        user,
+        rolesLoading,
+        // include these so the memo updates when roles change
+        mockRoles,
+        fbRoles,
+    ]);
 
     async function onSignOut() {
-        if (DEV_MODE) {
-            mockAuth?.logout();
-        } else {
-            await signOut(auth);
+        try {
+            if (DEV_MODE) {
+                mockAuth?.logout();
+            } else {
+                await signOut(auth);
+            }
+        } finally {
+            setOpen(false);
         }
-        setOpen(false);
     }
 
     return (
@@ -73,11 +82,7 @@ export default function Navbar() {
                     Z12
                 </Link>
 
-                <button
-                    className="nav__burger"
-                    onClick={() => setOpen(!open)}
-                    aria-label="Menu"
-                >
+                <button className="nav__burger" onClick={() => setOpen(!open)} aria-label="Menu">
                     ☰
                 </button>
 
