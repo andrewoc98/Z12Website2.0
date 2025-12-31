@@ -7,12 +7,21 @@ import RequireRole from "../app/guards/RequireRole";
 import EventCreatePage from "../app/features/events/pages/EventCreatePage";
 import EventSignupPage from "../app/features/signup/pages/EventSignupPage";
 import TimingPage from "../app/features/timing/pages/TimingPage";
+import HostEventManagePage from "../app/features/events/pages/HostEventManagePage";
 
 
 export const router = createBrowserRouter([
     {path: "/host/events/new", element: (
             <RequireRole role="host">
                 <EventCreatePage />
+            </RequireRole>
+        ),
+    },
+    {
+        path: "/host/events/manage",
+        element: (
+            <RequireRole role="host">
+                <HostEventManagePage />
             </RequireRole>
         ),
     },

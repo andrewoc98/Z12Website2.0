@@ -1,5 +1,8 @@
+export type EventStatus = "draft" | "open" | "closed" | "running" | "finished";
+
 export type EventDoc = {
-    hostId: string; // for now: use uid as hostId
+    id?: string;
+    hostId: string;
     name: string;
     description: string;
     location: string;
@@ -8,6 +11,6 @@ export type EventDoc = {
     closingDate: string; // YYYY-MM-DD
     lengthMeters: number;
     categories: string[];
-    status: "draft" | "open" | "closed" | "running" | "finished";
-    createdAt?: any;
+    status: EventStatus;
+    createdAt?: number;
 };
