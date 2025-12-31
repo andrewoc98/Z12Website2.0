@@ -1,5 +1,180 @@
-:root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-* { box-sizing: border-box; }
-body { margin: 0; background: #fff; color: #111; }
-a { color: inherit; text-decoration: none; }
-main { padding: 16px; max-width: 960px; margin: 0 auto; }
+/* --- Reset-ish --- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+html, body { height: 100%; }
+body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* --- Z12 tokens (light sporty) --- */
+:root{
+    --bg: #f6f7f9;             /* soft light gray */
+    --surface: #ffffff;        /* cards */
+    --surface-2: #fbfbfc;      /* subtle alt */
+    --border: rgba(15, 23, 42, 0.12);
+
+    --text: #0f172a;           /* slate/near-black */
+    --muted: rgba(15, 23, 42, 0.72);
+
+    --brand: #ffd400;          /* Z12 yellow */
+    --brand-ink: #141414;      /* black text on yellow */
+    --brand-soft: rgba(255, 212, 0, 0.18);
+
+    --danger: #e11d48;
+
+    --radius: 16px;
+    --radius-sm: 12px;
+    --shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
+    --shadow-soft: 0 6px 16px rgba(2, 6, 23, 0.06);
+}
+
+/* --- Layout --- */
+main {
+    width: min(980px, 100%);
+    margin: 0 auto;
+    padding: 16px 16px 44px;
+}
+
+h1 {
+    margin: 14px 0 6px;
+    letter-spacing: -0.02em;
+    font-size: clamp(28px, 5vw, 38px);
+}
+h2 {
+    margin: 18px 0 10px;
+    letter-spacing: -0.02em;
+    font-size: clamp(18px, 3.5vw, 22px);
+}
+h3 { margin: 0; font-size: 16px; }
+
+p {
+    margin: 8px 0;
+    color: var(--muted);
+    line-height: 1.55;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 18px 0;
+}
+
+/* --- Card system --- */
+.card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    padding: 14px;
+}
+.card--tight { padding: 12px; }
+
+/* --- Buttons --- */
+button{
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+button:hover{
+    box-shadow: var(--shadow-soft);
+    background: var(--surface-2);
+}
+
+button:active{ transform: translateY(1px); }
+button:disabled{ opacity: 0.55; cursor: not-allowed; }
+
+.btn-primary{
+    background: var(--brand);
+    color: var(--brand-ink);
+    border-color: rgba(0,0,0,0.10);
+}
+.btn-primary:hover{
+    filter: brightness(0.98);
+}
+
+.btn-ghost{
+    background: transparent;
+}
+
+.btn-danger{
+    background: rgba(225, 29, 72, 0.10);
+    border-color: rgba(225, 29, 72, 0.22);
+    color: #9f1239;
+}
+
+/* --- Inputs --- */
+label{
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+input, select, textarea{
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 10px 12px;
+    outline: none;
+}
+
+input:focus, select:focus, textarea:focus{
+    border-color: rgba(255, 212, 0, 0.65);
+    box-shadow: 0 0 0 4px var(--brand-soft);
+}
+
+/* --- Small utilities --- */
+.row{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.space-between{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.muted{ color: var(--muted); }
+.badge{
+    font-size: 12px;
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: var(--muted);
+    background: rgba(15, 23, 42, 0.03);
+}
+.badge--brand{
+    background: var(--brand-soft);
+    border-color: rgba(255, 212, 0, 0.35);
+    color: #6b4f00;
+    font-weight: 700;
+}
+
+/* Mobile comfort */
+@media (max-width: 420px){
+    main{ padding: 14px 12px 40px; }
+    button{ padding: 10px 12px; }
+}
+
+/* Optional CategoryPicker polish */
+.cp-sticky { position: sticky; bottom: 12px; }
+.cp-wrap { display: grid; gap: 12px; }

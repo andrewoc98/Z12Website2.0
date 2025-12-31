@@ -135,13 +135,13 @@ export default function TimingPage() {
                         )}
 
                         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                            <button onClick={() => setTab("starter")} disabled={tab === "starter"}>
+                            <button className="btn-primary" onClick={() => setTab("starter")} disabled={tab === "starter"}>
                                 Starter ({starterList.length})
                             </button>
-                            <button onClick={() => setTab("finisher")} disabled={tab === "finisher"}>
+                            <button className="btn-primary" onClick={() => setTab("finisher")} disabled={tab === "finisher"}>
                                 Finisher ({finisherList.length})
                             </button>
-                            <button onClick={() => refresh(selectedEventId)}>Refresh</button>
+                            <button className="btn-primary" onClick={() => refresh(selectedEventId)}>Refresh</button>
                         </div>
 
                         {msg && <p>{msg}</p>}
