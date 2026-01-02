@@ -9,6 +9,8 @@ import HostEventManagePage from "../app/features/events/pages/HostEventManagePag
 import RowerEventListPage from "./features/signup/pages/RowerEventListPage.tsx";
 import EventResultsPage from "./features/signup/pages/EventResultsPage.tsx";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
+import RequireAuth from "./guards/RequiredAuth.tsx";
+import ProfilePage from "./features/profile/pages/ProfilePage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -64,6 +66,14 @@ export const router = createBrowserRouter([
             <RequireRole role="admin">
                 <TimingPage />
             </RequireRole>
+        ),
+    },
+    {
+        path: "/profile",
+        element: (
+            <RequireAuth>
+                <ProfilePage />
+            </RequireAuth>
         ),
     },
     { path: "/", element: <HomePage /> },

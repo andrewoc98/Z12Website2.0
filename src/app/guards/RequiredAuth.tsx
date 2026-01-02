@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { Navigate } from "react-router-dom";
 import { DEV_MODE } from "../shared/lib/config";
 
@@ -6,13 +7,8 @@ import { useAuth } from "../providers/AuthProvider";
 
 // Mock auth (used when DEV_MODE = true)
 import { useMockAuth } from "../providers/MockAuthProvider";
-import type {JSX} from "react";
 
-export default function RequireAuth({
-                                        children,
-                                    }: {
-    children: JSX.Element;
-}) {
+export default function RequireAuth({ children }: { children: JSX.Element }) {
     // DEV MODE (mock users)
     if (DEV_MODE) {
         const { user } = useMockAuth();
@@ -23,8 +19,18 @@ export default function RequireAuth({
     const { user, loading } = useAuth();
 
     if (loading) {
-        return <div style={{ padding: 16 }}>Loading...</div>;
+        return (
+            <main>
+                <div className="card auth-guard-loading">
+                    <div className="space-between">
+                        <h3>Loading</h3>
+                        <span className="badge">Auth</span>
+                    </div>
+                    <p>Checking your session…</p>
+                </div>
+            </main>
+        );
     }
 
-    return user ? children : <Navigate to="/signin" replace />;
+    return user ? children : <Navigate to="/auth" replace />;
 }

@@ -34,6 +34,14 @@ export default function Navbar() {
         return !!fbRoles?.hasRole(r);
     };
 
+    // 🔹 derive display initial for avatar
+    const displayName =
+        (DEV_MODE ? mockAuth?.user?.displayName : fbAuth?.user?.displayName) ||
+        (DEV_MODE ? mockAuth?.user?.email : fbAuth?.user?.email)?.split("@")[0] ||
+        "";
+
+    const avatarInitial = displayName ? displayName[0].toUpperCase() : "U";
+
     const items: NavItem[] = useMemo(() => {
         const base: NavItem[] = [
             { to: "/", label: "Home" },
@@ -55,13 +63,7 @@ export default function Navbar() {
         }
 
         return base;
-    }, [
-        user,
-        rolesLoading,
-        // include these so the memo updates when roles change
-        mockRoles,
-        fbRoles,
-    ]);
+    }, [user, rolesLoading, mockRoles, fbRoles]);
 
     async function onSignOut() {
         try {
@@ -92,6 +94,14 @@ export default function Navbar() {
                             {x.label}
                         </Link>
                     ))}
+
+                    {/* ✅ NEW: Profile link with avatar (signed-in only) */}
+                    {user && (
+                        <Link to="/profile" className="nav__profile" onClick={() => setOpen(false)}>
+                            <span className="nav__avatar">{avatarInitial}</span>
+                            <span>Profile</span>
+                        </Link>
+                    )}
 
                     {user && (
                         <button className="nav__signout" onClick={onSignOut}>
