@@ -5,18 +5,25 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../../../shared/lib/firebase";
 import { upsertUserProfile } from "../api/users";
 import { signInEmail, signInGoogle } from "../api/auth";
+import type { UserProfile } from "../types";
 
 type Mode = "signin" | "register";
 type RoleChoice = "rower" | "host";
 
 function friendlyError(message: string) {
-    const m = message.toLowerCase();
+    const m = (message || "").toLowerCase();
     if (m.includes("auth/invalid-credential") || m.includes("auth/wrong-password")) return "Incorrect email or password.";
     if (m.includes("auth/user-not-found")) return "No account found for that email.";
     if (m.includes("auth/email-already-in-use")) return "That email is already in use. Try signing in instead.";
     if (m.includes("auth/weak-password")) return "Password is too weak. Please use at least 6 characters.";
     if (m.includes("auth/invalid-email")) return "Please enter a valid email address.";
+    if (m.includes("auth/configuration-not-found"))
+        return "Firebase Auth isn’t enabled for this project. In Firebase Console → Authentication → Sign-in method, enable Email/Password.";
     return message || "Something went wrong.";
+}
+
+function normalizeFullName(name: string) {
+    return name.trim().replace(/\s+/g, " ");
 }
 
 export default function AuthPage() {
@@ -24,12 +31,12 @@ export default function AuthPage() {
 
     const [mode, setMode] = useState<Mode>("signin");
 
-    // shared fields
+    // shared
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    // register-only fields
-    const [displayName, setDisplayName] = useState("");
+    // register-only
+    const [fullName, setFullName] = useState("");
     const [role, setRole] = useState<RoleChoice>("rower");
 
     // rower fields
@@ -42,25 +49,39 @@ export default function AuthPage() {
     const [err, setErr] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
-    const canSignIn = useMemo(() => email.trim() && password.trim().length >= 1, [email, password]);
+    const canSignIn = useMemo(() => email.trim().length > 0 && password.trim().length > 0, [email, password]);
 
     const canRegister = useMemo(() => {
-        if (!email.trim() || password.trim().length < 6) return false;
-        if (!displayName.trim()) return false;
+        const cleanEmail = email.trim();
+        const name = normalizeFullName(fullName);
 
-        if (role === "rower") {
-            // allow blanks if you want, but this keeps it cleaner
-            return club.trim().length >= 2;
-        }
-        // host
+        if (!cleanEmail) return false;
+        if (password.trim().length < 6) return false;
+        if (name.length < 2) return false;
+
+        if (role === "rower") return club.trim().length >= 2; // coach optional
         return location.trim().length >= 2;
-    }, [email, password, displayName, role, club, location]);
+    }, [email, password, fullName, role, club, location]);
+
+    function clearForm() {
+        setEmail("");
+        setPassword("");
+        setFullName("");
+        setRole("rower");
+        setClub("");
+        setCoach("");
+        setLocation("");
+        setErr(null);
+    }
 
     async function onGoogle() {
         setErr(null);
         setBusy(true);
         try {
             await signInGoogle();
+            // AuthProvider ensures base profile exists for any provider.
+            // If you want Google users to pick role, redirect to onboarding:
+            // navigate("/onboarding");
             navigate("/");
         } catch (e: any) {
             setErr(friendlyError(e?.message ?? "Google sign-in failed"));
@@ -85,28 +106,29 @@ export default function AuthPage() {
     async function onRegister() {
         setErr(null);
         setBusy(true);
+
         try {
-            const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+            const cleanEmail = email.trim();
+            const name = normalizeFullName(fullName);
 
-            const name = displayName.trim();
-            if (name) {
-                await updateProfile(cred.user, { displayName: name });
-            }
+            const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
 
-            const base = {
-                email: cred.user.email ?? email.trim(),
-                displayName: name || cred.user.displayName || "",
-                roles: {} as any,
+            // Use full name as auth displayName
+            await updateProfile(cred.user, { displayName: name });
+
+            const profile: UserProfile = {
+                uid: cred.user.uid,
+                email: cred.user.email ?? cleanEmail,
+                fullName: name,
+                displayName: name,
+                primaryRole: role,
+                roles:
+                    role === "rower"
+                        ? { rower: { club: club.trim(), coach: coach.trim() ? coach.trim() : undefined } }
+                        : { host: { location: location.trim() } },
             };
 
-            if (role === "rower") {
-                base.roles.rower = { club: club.trim(), coach: coach.trim() };
-            } else {
-                base.roles.host = { name: base.displayName, email: base.email, location: location.trim() };
-            }
-
-            await upsertUserProfile(cred.user.uid, base);
-
+            await upsertUserProfile(cred.user.uid, profile);
             navigate("/");
         } catch (e: any) {
             setErr(friendlyError(e?.message ?? "Registration failed"));
@@ -119,11 +141,11 @@ export default function AuthPage() {
         <>
             <Navbar />
             <main>
-                <div className="card" style={{ maxWidth: 560, margin: "0 auto" }}>
+                <div className="card auth-card">
                     <div className="space-between">
                         <div>
-                            <h1 style={{ margin: 0 }}>{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
-                            <p style={{ marginTop: 6 }}>
+                            <h1 className="auth-title">{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
+                            <p className="auth-subtitle">
                                 {mode === "signin"
                                     ? "Sign in to register boats, manage events, and view results."
                                     : "Join Z12 to sign up for events or host your own races."}
@@ -164,17 +186,15 @@ export default function AuthPage() {
                             <span className="badge">Fastest</span>
                         </div>
 
-                        <div className="row" style={{ marginTop: 10 }}>
+                        <div className="row auth-actions">
                             <button type="button" className="btn-primary" onClick={onGoogle} disabled={busy}>
                                 {busy ? "Working…" : "Continue with Google"}
                             </button>
-                            <span className="muted">Recommended</span>
+                            <span className="muted auth-hint">Recommended</span>
                         </div>
                     </div>
 
-                    <div className="muted" style={{ marginTop: 12, fontWeight: 700 }}>
-                        Or use email
-                    </div>
+                    <div className="muted auth-or">Or use email</div>
 
                     <label>
                         Email
@@ -201,22 +221,22 @@ export default function AuthPage() {
                     {mode === "register" && (
                         <>
                             <label>
-                                Name
+                                Full name
                                 <input
-                                    value={displayName}
-                                    onChange={(e) => setDisplayName(e.target.value)}
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
                                     placeholder="e.g. Andrew O'Connor"
                                     autoComplete="name"
                                 />
                             </label>
 
-                            <div className="card card--tight" style={{ marginTop: 12 }}>
+                            <div className="card card--tight auth-role-card">
                                 <div className="space-between">
                                     <h3>Role</h3>
-                                    <span className="badge">You can add more later</span>
+                                    <span className="badge badge--brand">You can add more later</span>
                                 </div>
 
-                                <div className="row" style={{ marginTop: 10 }}>
+                                <div className="row auth-role-actions">
                                     <button
                                         type="button"
                                         className={role === "rower" ? "btn-primary" : "btn-ghost"}
@@ -236,7 +256,7 @@ export default function AuthPage() {
                                 </div>
 
                                 {role === "rower" ? (
-                                    <div style={{ marginTop: 10 }}>
+                                    <div className="auth-role-fields">
                                         <label>
                                             Club
                                             <input value={club} onChange={(e) => setClub(e.target.value)} placeholder="e.g. Z12 RC" />
@@ -248,7 +268,7 @@ export default function AuthPage() {
                                         </label>
                                     </div>
                                 ) : (
-                                    <div style={{ marginTop: 10 }}>
+                                    <div className="auth-role-fields">
                                         <label>
                                             Host location
                                             <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Dublin" />
@@ -260,15 +280,13 @@ export default function AuthPage() {
                     )}
 
                     {err && (
-                        <div className="card card--tight" style={{ marginTop: 12, borderColor: "rgba(225, 29, 72, 0.35)" }}>
-                            <div style={{ color: "#9f1239", fontWeight: 800 }}>Oops</div>
-                            <div className="muted" style={{ marginTop: 6 }}>
-                                {err}
-                            </div>
+                        <div className="card card--tight auth-error">
+                            <div className="auth-error-title">Oops</div>
+                            <div className="muted auth-error-msg">{err}</div>
                         </div>
                     )}
 
-                    <div className="row" style={{ marginTop: 14 }}>
+                    <div className="row auth-footer-actions">
                         {mode === "signin" ? (
                             <button type="button" className="btn-primary" onClick={onSignIn} disabled={!canSignIn || busy}>
                                 {busy ? "Signing in…" : "Sign in"}
@@ -279,20 +297,11 @@ export default function AuthPage() {
                             </button>
                         )}
 
-                        <button
-                            type="button"
-                            className="btn-ghost"
-                            onClick={() => {
-                                setEmail("");
-                                setPassword("");
-                                setErr(null);
-                            }}
-                            disabled={busy}
-                        >
+                        <button type="button" className="btn-ghost" onClick={clearForm} disabled={busy}>
                             Clear
                         </button>
 
-                        <span className="muted" style={{ fontWeight: 700 }}>
+                        <span className="muted auth-switch">
               {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
                             <button
                                 type="button"
@@ -308,12 +317,10 @@ export default function AuthPage() {
             </span>
                     </div>
 
-                    <div className="muted" style={{ marginTop: 12, fontSize: 13, fontWeight: 700 }}>
-                        By continuing, you agree to our terms. (Placeholder copy.)
-                    </div>
+                    <div className="muted auth-terms">By continuing, you agree to our terms. (Placeholder copy.)</div>
                 </div>
 
-                <div className="muted" style={{ marginTop: 12, textAlign: "center" }}>
+                <div className="muted auth-help">
                     <span>Need help?</span>{" "}
                     <Link to="/" className="muted">
                         Go home

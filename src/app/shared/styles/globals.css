@@ -178,3 +178,76 @@ input:focus, select:focus, textarea:focus{
 /* Optional CategoryPicker polish */
 .cp-sticky { position: sticky; bottom: 12px; }
 .cp-wrap { display: grid; gap: 12px; }
+/* --- Auth page layout hooks --- */
+.auth-card{
+    max-width: 560px;
+    margin: 0 auto;
+}
+
+.auth-title{
+    margin: 0;
+}
+
+.auth-subtitle{
+    margin-top: 6px;
+}
+
+.auth-actions{
+    margin-top: 10px;
+}
+
+.auth-hint{
+    font-weight: 700;
+}
+
+.auth-or{
+    margin-top: 12px;
+    font-weight: 700;
+}
+
+.auth-role-card{
+    margin-top: 12px;
+}
+
+.auth-role-actions{
+    margin-top: 10px;
+}
+
+.auth-role-fields{
+    margin-top: 10px;
+    display: grid;
+    gap: 12px;
+}
+
+.auth-error{
+    margin-top: 12px;
+    border-color: rgba(225, 29, 72, 0.35);
+}
+
+.auth-error-title{
+    color: #9f1239;
+    font-weight: 800;
+}
+
+.auth-error-msg{
+    margin-top: 6px;
+}
+
+.auth-footer-actions{
+    margin-top: 14px;
+}
+
+.auth-switch{
+    font-weight: 700;
+}
+
+.auth-terms{
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.auth-help{
+    margin-top: 12px;
+    text-align: center;
+}
