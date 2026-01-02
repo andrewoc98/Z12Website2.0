@@ -7,19 +7,46 @@ import type { EventDoc } from "../../events/types";
 type Mode = "upcoming" | "past";
 const PAGE_SIZE = 10;
 
-function toDate(s: string) {
-    const d = new Date(s + "T00:00:00");
-    return Number.isNaN(d.getTime()) ? null : d;
+function ymdFromDate(d: Date) {
+    return d.toISOString().slice(0, 10);
+}
+function todayYMD() {
+    return ymdFromDate(new Date());
+}
+function tsToDate(ts: any): Date | null {
+    if (!ts) return null;
+    if (ts instanceof Date) return ts;
+    if (typeof ts.toDate === "function") return ts.toDate();
+    return null;
+}
+function tsToYMD(ts: any) {
+    const d = tsToDate(ts);
+    return d ? ymdFromDate(d) : "";
 }
 
-function isPastEvent(e: EventDoc, now: Date) {
-    const end = toDate(e.endDate);
+function isPastEvent(e: EventDoc) {
+    const end = tsToDate(e.endAt);
     if (!end) return false;
-    return end.getTime() < now.getTime();
+    // day-based
+    return ymdFromDate(end) < todayYMD();
+}
+
+function statusBadge(e: EventDoc, past: boolean) {
+    // Your meanings:
+    // draft = not open yet, open = signup open, closed = signup closed not started,
+    // running = event on, finished = ended
+    if (e.status === "open") return { label: "Open", cls: "badge badge--brand" };
+    if (e.status === "draft") return { label: "Draft", cls: "badge" };
+    if (e.status === "closed") return { label: "Closed", cls: "badge" };
+    if (e.status === "running") return { label: "Running", cls: "badge badge--brand" };
+    if (e.status === "finished") return { label: "Finished", cls: "badge" };
+
+    // fallback: if status missing, use past
+    return past ? { label: "Finished", cls: "badge" } : { label: "Closed", cls: "badge" };
 }
 
 export default function RowerEventListPage() {
-    const [events, setEvents] = useState<EventDoc[]>([]);
+    const [events, setEvents] = useState<(EventDoc & { id: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
 
@@ -32,7 +59,7 @@ export default function RowerEventListPage() {
             setErr(null);
             try {
                 const all = await listEvents();
-                setEvents(all);
+                setEvents(all as any);
             } catch (e: any) {
                 setErr(e?.message ?? "Failed to load events");
             } finally {
@@ -41,28 +68,23 @@ export default function RowerEventListPage() {
         })();
     }, []);
 
-    // Reset page when switching tabs
     useEffect(() => setPage(1), [mode]);
 
-    const now = useMemo(() => new Date(), []);
-
     const visible = useMemo(() => {
-        // rowers only care about open signup for upcoming,
-        // but still want to see past events for results.
         const filtered =
             mode === "past"
-                ? events.filter((e) => isPastEvent(e, now))
-                : events.filter((e) => !isPastEvent(e, now));
+                ? events.filter((e) => isPastEvent(e) || e.status === "finished")
+                : events.filter((e) => !isPastEvent(e) && e.status !== "finished");
 
         const sorted = [...filtered].sort((a, b) => {
-            const aStart = toDate(a.startDate)?.getTime() ?? 0;
-            const bStart = toDate(b.startDate)?.getTime() ?? 0;
+            const aStart = tsToDate(a.startAt)?.getTime() ?? 0;
+            const bStart = tsToDate(b.startAt)?.getTime() ?? 0;
             if (mode === "past") return bStart - aStart; // most recent first
             return aStart - bStart; // soonest first
         });
 
         return sorted;
-    }, [events, mode, now]);
+    }, [events, mode]);
 
     const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
     const clampedPage = Math.min(page, totalPages);
@@ -119,8 +141,15 @@ export default function RowerEventListPage() {
 
                         <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
                             {pageItems.map((e) => {
-                                const past = isPastEvent(e, now);
-                                const canSignup = !past && e.status === "open";
+                                const past = isPastEvent(e);
+                                const startYMD = tsToYMD(e.startAt);
+                                const endYMD = tsToYMD(e.endAt);
+                                const closeYMD = tsToYMD(e.closeAt);
+
+                                const canSignup = e.status === "open" && !past;
+                                const canViewResults = mode === "past" || e.status === "finished" || past;
+
+                                const badge = statusBadge(e, past);
 
                                 return (
                                     <div key={e.id} className="card">
@@ -128,17 +157,11 @@ export default function RowerEventListPage() {
                                             <div>
                                                 <h2 style={{ margin: 0 }}>{e.name}</h2>
                                                 <div className="muted">
-                                                    {e.location} • {e.startDate} → {e.endDate}
+                                                    {e.location} • {startYMD || "—"} → {endYMD || "—"}
                                                 </div>
                                             </div>
 
-                                            {canSignup ? (
-                                                <span className="badge badge--brand">Open</span>
-                                            ) : past ? (
-                                                <span className="badge">Finished</span>
-                                            ) : (
-                                                <span className="badge">Closed</span>
-                                            )}
+                                            <span className={badge.cls}>{badge.label}</span>
                                         </div>
 
                                         {e.description && <p>{e.description}</p>}
@@ -150,16 +173,20 @@ export default function RowerEventListPage() {
                                                         Sign up
                                                     </button>
                                                 </Link>
-                                            ) : (
+                                            ) : canViewResults ? (
                                                 <Link to={`/rower/events/${e.id}/results`}>
                                                     <button type="button" className="btn-primary">
                                                         View results
                                                     </button>
                                                 </Link>
+                                            ) : (
+                                                <button type="button" className="btn-primary" disabled>
+                                                    Sign up closed
+                                                </button>
                                             )}
 
                                             <span className="badge">Distance: {e.lengthMeters}m</span>
-                                            <span className="badge">Closes: {e.closingDate}</span>
+                                            <span className="badge">Closes: {closeYMD || "—"}</span>
                                         </div>
                                     </div>
                                 );

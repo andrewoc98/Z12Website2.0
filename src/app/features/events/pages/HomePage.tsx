@@ -64,10 +64,6 @@ export default function HomePage() {
 
                                     {/* lightweight CTA row (optional, but feels more complete) */}
                                     <div className="row">
-                                        <Link to="/leaderboard">
-                                            <button>View Leaderboard</button>
-                                        </Link>
-
                                         {user?.roles?.rower ? (
                                             <Link to="/rower/signup">
                                                 <button className="btn-primary">Sign Up</button>

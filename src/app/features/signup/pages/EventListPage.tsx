@@ -5,23 +5,57 @@ import { listEvents } from "../../events/api/events";
 import type { EventDoc } from "../../events/types";
 
 type Mode = "upcoming" | "past";
-
 const PAGE_SIZE = 10;
 
-function toDate(s: string) {
-    // s like "2025-10-01"
-    const d = new Date(s + "T00:00:00");
-    return Number.isNaN(d.getTime()) ? null : d;
+// ---------- helpers ----------
+function ymdFromDate(d: Date) {
+    return d.toISOString().slice(0, 10);
 }
 
-function isPastEvent(e: EventDoc, now: Date) {
-    const end = toDate(e.endDate);
+function todayYMD() {
+    return ymdFromDate(new Date());
+}
+
+function tsToDate(ts: any): Date | null {
+    if (!ts) return null;
+    if (ts instanceof Date) return ts;
+    if (typeof ts.toDate === "function") return ts.toDate(); // Firestore Timestamp
+    return null;
+}
+
+function tsToYMD(ts: any): string {
+    const d = tsToDate(ts);
+    return d ? ymdFromDate(d) : "";
+}
+
+function isPastEvent(e: EventDoc) {
+    const end = tsToDate((e as any).endAt);
     if (!end) return false;
-    return end.getTime() < now.getTime();
+    // day-based
+    return ymdFromDate(end) < todayYMD();
+}
+
+function statusBadge(e: EventDoc, past: boolean) {
+    // Your meanings:
+    // draft = before registration open
+    // open = registration open
+    // closed = registration closed (event not started)
+    // running = event on
+    // finished = event ended
+    const st = (e as any).status as string | undefined;
+
+    if (st === "open") return { label: "Open", cls: "badge badge--brand" };
+    if (st === "draft") return { label: "Draft", cls: "badge" };
+    if (st === "closed") return { label: "Closed", cls: "badge" };
+    if (st === "running") return { label: "Running", cls: "badge badge--brand" };
+    if (st === "finished") return { label: "Finished", cls: "badge" };
+
+    // fallback if status missing
+    return past ? { label: "Finished", cls: "badge" } : { label: "Closed", cls: "badge" };
 }
 
 export default function EventListPage() {
-    const [events, setEvents] = useState<EventDoc[]>([]);
+    const [events, setEvents] = useState<(EventDoc & { id: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
 
@@ -34,7 +68,7 @@ export default function EventListPage() {
             setErr(null);
             try {
                 const all = await listEvents();
-                setEvents(all);
+                setEvents(all as any); // listEvents should return ids
             } catch (e: any) {
                 setErr(e?.message ?? "Failed to load events");
             } finally {
@@ -44,29 +78,23 @@ export default function EventListPage() {
     }, []);
 
     // Reset pagination when switching modes
-    useEffect(() => {
-        setPage(1);
-    }, [mode]);
-
-    const now = useMemo(() => new Date(), []);
+    useEffect(() => setPage(1), [mode]);
 
     const visible = useMemo(() => {
-        const openOrClosed = events; // keep all; mode controls past/upcoming
         const filtered =
             mode === "past"
-                ? openOrClosed.filter((e) => isPastEvent(e, now))
-                : openOrClosed.filter((e) => !isPastEvent(e, now));
+                ? events.filter((e) => isPastEvent(e) || (e as any).status === "finished")
+                : events.filter((e) => !isPastEvent(e) && (e as any).status !== "finished");
 
-        // Sort: upcoming soonest first, past most recent first
         const sorted = [...filtered].sort((a, b) => {
-            const ad = toDate(a.startDate)?.getTime() ?? 0;
-            const bd = toDate(b.startDate)?.getTime() ?? 0;
-            if (mode === "past") return bd - ad;
-            return ad - bd;
+            const ad = tsToDate((a as any).startAt)?.getTime() ?? 0;
+            const bd = tsToDate((b as any).startAt)?.getTime() ?? 0;
+            if (mode === "past") return bd - ad; // most recent first
+            return ad - bd; // soonest first
         });
 
         return sorted;
-    }, [events, mode, now]);
+    }, [events, mode]);
 
     const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
     const clampedPage = Math.min(page, totalPages);
@@ -123,15 +151,18 @@ export default function EventListPage() {
 
                         <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
                             {pageItems.map((e) => {
-                                const past = isPastEvent(e, now);
-                                const statusBadge =
-                                    e.status === "open" && !past ? (
-                                        <span className="badge badge--brand">Open</span>
-                                    ) : past ? (
-                                        <span className="badge">Finished</span>
-                                    ) : (
-                                        <span className="badge">Closed</span>
-                                    );
+                                const past = isPastEvent(e);
+
+                                const startYMD = tsToYMD((e as any).startAt);
+                                const endYMD = tsToYMD((e as any).endAt);
+                                const closeYMD = tsToYMD((e as any).closeAt);
+
+                                const st = (e as any).status as string | undefined;
+
+                                const canSignup = st === "open" && !past;
+                                const canViewResults = mode === "past" || st === "finished" || past;
+
+                                const badge = statusBadge(e, past);
 
                                 return (
                                     <div key={e.id} className="card">
@@ -139,37 +170,35 @@ export default function EventListPage() {
                                             <div>
                                                 <h2 style={{ margin: 0 }}>{e.name}</h2>
                                                 <div className="muted">
-                                                    {e.location} • {e.startDate} → {e.endDate}
+                                                    {e.location} • {startYMD || "—"} → {endYMD || "—"}
                                                 </div>
                                             </div>
-                                            {statusBadge}
+                                            <span className={badge.cls}>{badge.label}</span>
                                         </div>
 
                                         {e.description && <p>{e.description}</p>}
 
                                         <div className="row" style={{ marginTop: 10 }}>
-                                            {!past && e.status === "open" ? (
+                                            {canSignup ? (
                                                 <Link to={`/events/${e.id}/signup`}>
                                                     <button type="button" className="btn-primary">
                                                         Sign up
                                                     </button>
                                                 </Link>
-                                            ) : (
+                                            ) : canViewResults ? (
                                                 <Link to={`/events/${e.id}/results`}>
                                                     <button type="button" className="btn-primary">
                                                         View results
                                                     </button>
                                                 </Link>
-                                            )}
-
-                                            {!past && e.status !== "open" && (
+                                            ) : (
                                                 <button type="button" disabled className="btn-ghost">
                                                     Sign up closed
                                                 </button>
                                             )}
 
                                             <span className="badge">Distance: {e.lengthMeters}m</span>
-                                            <span className="badge">Closes: {e.closingDate}</span>
+                                            <span className="badge">Closes: {closeYMD || "—"}</span>
                                         </div>
                                     </div>
                                 );

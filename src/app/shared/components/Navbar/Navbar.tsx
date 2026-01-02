@@ -45,7 +45,7 @@ export default function Navbar() {
     const items: NavItem[] = useMemo(() => {
         const base: NavItem[] = [
             { to: "/", label: "Home" },
-            { to: "/leaderboard", label: "Leaderboard" },
+            // { to: "/leaderboard", label: "Leaderboard" },
         ];
 
         // Not signed in → single entry point
@@ -95,7 +95,6 @@ export default function Navbar() {
                         </Link>
                     ))}
 
-                    {/* ✅ NEW: Profile link with avatar (signed-in only) */}
                     {user && (
                         <Link to="/profile" className="nav__profile" onClick={() => setOpen(false)}>
                             <span className="nav__avatar">{avatarInitial}</span>
