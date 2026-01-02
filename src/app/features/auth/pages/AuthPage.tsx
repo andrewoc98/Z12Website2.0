@@ -5,7 +5,6 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../../../shared/lib/firebase";
 import { upsertUserProfile } from "../api/users";
 import { signInEmail, signInGoogle } from "../api/auth";
-import type { UserProfile } from "../types";
 
 type Mode = "signin" | "register";
 type RoleChoice = "rower" | "host";
@@ -34,6 +33,8 @@ export default function AuthPage() {
     // shared
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [gender, setGender] = useState<"male" | "female">("male");
+    const [dateOfBirth, setDateOfBirth] = useState(""); // YYYY-MM-DD
 
     // register-only
     const [fullName, setFullName] = useState("");
@@ -58,6 +59,7 @@ export default function AuthPage() {
         if (!cleanEmail) return false;
         if (password.trim().length < 6) return false;
         if (name.length < 2) return false;
+        if (!dateOfBirth && role == "rower") return false;
 
         if (role === "rower") return club.trim().length >= 2; // coach optional
         return location.trim().length >= 2;
@@ -108,27 +110,54 @@ export default function AuthPage() {
         setBusy(true);
 
         try {
-            const cleanEmail = email.trim();
+            const cleanEmail = email.trim().toLowerCase();
             const name = normalizeFullName(fullName);
+
+            if (!cleanEmail) throw new Error("Email is required.");
+            if (!name) throw new Error("Full name is required.");
+            if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+
+            // ✅ Only enforce rower constraints
+            if (role === "rower") {
+                if (!gender) throw new Error("Gender is required for rowers.");
+                if (!dateOfBirth) throw new Error("Date of birth is required for rowers.");
+                if (club.trim().length < 2) throw new Error("Club is required.");
+            } else {
+                if (location.trim().length < 2) throw new Error("Host location is required.");
+            }
 
             const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
 
             // Use full name as auth displayName
             await updateProfile(cred.user, { displayName: name });
 
-            const profile: UserProfile = {
+            // Base fields everyone has
+            const profileBase: any = {
                 uid: cred.user.uid,
                 email: cred.user.email ?? cleanEmail,
                 fullName: name,
                 displayName: name,
                 primaryRole: role,
-                roles:
-                    role === "rower"
-                        ? { rower: { club: club.trim(), coach: coach.trim() ? coach.trim() : undefined } }
-                        : { host: { location: location.trim() } },
+                roles: {},
             };
 
-            await upsertUserProfile(cred.user.uid, profile);
+            // ✅ Role-specific profile fields + roles payload
+            if (role === "rower") {
+                profileBase.gender = gender;                 // from state
+                profileBase.dateOfBirth = dateOfBirth;       // "YYYY-MM-DD" from state
+                profileBase.birthYear = Number(dateOfBirth.slice(0, 4));
+
+                profileBase.roles.rower = {
+                    club: club.trim(),
+                    coach: coach.trim() ? coach.trim() : undefined,
+                };
+            } else {
+                profileBase.roles.host = {
+                    location: location.trim(),
+                };
+            }
+
+            await upsertUserProfile(cred.user.uid, profileBase);
             navigate("/");
         } catch (e: any) {
             setErr(friendlyError(e?.message ?? "Registration failed"));
@@ -136,6 +165,8 @@ export default function AuthPage() {
             setBusy(false);
         }
     }
+
+
 
     return (
         <>
@@ -256,7 +287,26 @@ export default function AuthPage() {
                                 </div>
 
                                 {role === "rower" ? (
+
                                     <div className="auth-role-fields">
+
+                                        <label>
+                                            Gender
+                                            <select value={gender} onChange={(e) => setGender(e.target.value as any)}>
+                                                <option value="female">Female</option>
+                                                <option value="male">Male</option>
+                                            </select>
+                                        </label>
+
+                                        <label>
+                                            Date of birth
+                                            <input
+                                                type="date"
+                                                value={dateOfBirth}
+                                                onChange={(e) => setDateOfBirth(e.target.value)}
+                                            />
+                                        </label>
+
                                         <label>
                                             Club
                                             <input value={club} onChange={(e) => setClub(e.target.value)} placeholder="e.g. Z12 RC" />

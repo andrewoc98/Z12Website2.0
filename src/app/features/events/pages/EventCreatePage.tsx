@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import Navbar from "../../../shared/components/Navbar/Navbar";
-import { useAuth } from "../../../providers/AuthProvider.tsx";
+import { useAuth } from "../../../providers/AuthProvider";
 import CategoryPicker from "../components/CategoryPicker";
 import { buildDefaultCategories } from "../lib/categories";
-// import type { EventDoc } from "../types";
-// import { createEvent } from "../api/events";
+import { categoriesFromIds, createEvent, dateInputToTimestampLocalMidday } from "../api/events";
+import type { EventStatus } from "../types";
 
 export default function EventCreatePage() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth() as any; // remove `as any` if your hook is typed
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -17,8 +17,10 @@ export default function EventCreatePage() {
     const [closingDate, setClosingDate] = useState("");
     const [lengthMeters, setLengthMeters] = useState<number>(2000);
 
-    // ✅ Official categories enabled by default; host can omit
     const [categories, setCategories] = useState<string[]>(() => buildDefaultCategories());
+
+    // optional: allow host to choose initial status
+    const [status, setStatus] = useState<EventStatus>("open"); // or "draft"
 
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
@@ -42,20 +44,26 @@ export default function EventCreatePage() {
         setBusy(true);
         setErr(null);
         try {
-            // ✅ When you re-enable persistence, use this:
-            // const doc: EventDoc = {
-            //   hostId: user.uid,
-            //   name,
-            //   description,
-            //   location,
-            //   startDate,
-            //   endDate,
-            //   closingDate,
-            //   lengthMeters,
-            //   categories,
-            //   status: "open",
-            // };
-            // await createEvent(doc);
+            const startAt = dateInputToTimestampLocalMidday(startDate);
+            const endAt = dateInputToTimestampLocalMidday(endDate);
+            const closeAt = dateInputToTimestampLocalMidday(closingDate);
+
+            // basic validation
+            if (endAt.toMillis() < startAt.toMillis()) throw new Error("End date must be on/after start date.");
+
+            const eventId = await createEvent({
+                name: name.trim(),
+                description: description.trim(),
+                location: location.trim(),
+                startAt,
+                endAt,
+                closeAt,
+                lengthMeters: Number(lengthMeters),
+                categories: categoriesFromIds(categories),
+                status, // "open" or "draft"
+                createdByUid: user.uid,
+                createdByName: profile?.displayName || user.displayName || user.email || "Host",
+            });
 
             // reset
             setName("");
@@ -66,7 +74,9 @@ export default function EventCreatePage() {
             setClosingDate("");
             setLengthMeters(2000);
             setCategories(buildDefaultCategories());
-            alert("Event created!");
+            setStatus("open");
+
+            alert(`Event created! (${eventId})`);
         } catch (e: any) {
             setErr(e?.message ?? "Failed to create event");
         } finally {
@@ -114,16 +124,23 @@ export default function EventCreatePage() {
 
                         <label>
                             Length (meters)
-                            <input
-                                type="number"
-                                value={lengthMeters}
-                                onChange={(e) => setLengthMeters(Number(e.target.value))}
-                            />
+                            <input type="number" value={lengthMeters} onChange={(e) => setLengthMeters(Number(e.target.value))} />
                         </label>
                     </div>
+
+                    {/* Optional: initial status selector */}
+                    <label>
+                        Status
+                        <select value={status} onChange={(e) => setStatus(e.target.value as EventStatus)}>
+                            <option value="draft">Draft</option>
+                            <option value="open">Open</option>
+                            <option value="closed">Closed</option>
+                            <option value="running">Running</option>
+                            <option value="finished">Finished</option>
+                        </select>
+                    </label>
                 </div>
 
-                {/* ✅ Modern category selection */}
                 <CategoryPicker value={categories} onChange={setCategories} />
 
                 <div className="card" style={{ marginTop: 14 }}>
@@ -135,36 +152,24 @@ export default function EventCreatePage() {
                             </p>
                         </div>
 
-                        <button
-                            type="button"
-                            className="btn-ghost"
-                            onClick={() => setCategories(buildDefaultCategories())}
-                        >
+                        <button type="button" className="btn-ghost" onClick={() => setCategories(buildDefaultCategories())}>
                             Reset to All
                         </button>
                     </div>
 
-                    {/* Optional: show a compact preview list */}
                     <ul style={{ marginTop: 10, paddingLeft: 18 }}>
                         {categories.slice(0, 12).map((c) => (
                             <li key={c} className="muted" style={{ marginBottom: 6 }}>
                                 {c}
                             </li>
                         ))}
-                        {categories.length > 12 && (
-                            <li className="muted">…and {categories.length - 12} more</li>
-                        )}
+                        {categories.length > 12 && <li className="muted">…and {categories.length - 12} more</li>}
                     </ul>
                 </div>
 
                 {err && <p style={{ color: "crimson" }}>{err}</p>}
 
-                <button
-                    className="btn-primary"
-                    disabled={!canSubmit || busy}
-                    onClick={onCreate}
-                    style={{ marginTop: 16 }}
-                >
+                <button className="btn-primary" disabled={!canSubmit || busy} onClick={onCreate} style={{ marginTop: 16 }}>
                     {busy ? "Creating..." : "Create Event"}
                 </button>
             </main>

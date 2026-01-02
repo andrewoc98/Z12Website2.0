@@ -1,16 +1,28 @@
 export type EventStatus = "draft" | "open" | "closed" | "running" | "finished";
 
+export type EventCategory = {
+    id: string;
+    name: string;
+};
+
 export type EventDoc = {
-    id?: string;
-    hostId: string;
     name: string;
     description: string;
     location: string;
-    startDate: string;   // YYYY-MM-DD
-    endDate: string;     // YYYY-MM-DD
-    closingDate: string; // YYYY-MM-DD
+
+    startAt: unknown;
+    endAt: unknown;
+    closeAt: unknown;
+
     lengthMeters: number;
-    categories: string[];
+
+    categories: EventCategory[];
+
     status: EventStatus;
-    createdAt?: number;
+
+    createdByUid: string;
+    createdByName: string;
+
+    createdAt?: unknown;
+    updatedAt?: unknown;
 };

@@ -31,7 +31,7 @@ function prettyGender(g: Gender) {
 
 // Avoid "M" ambiguity (Men vs Mixed) in compact UI
 function genderShort(g: Gender) {
-    if (g === "Men") return "Men";
+    if (g === "Men") return "M";
     if (g === "Women") return "W";
     return "Mix";
 }
@@ -287,7 +287,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
                                                                                 onClick={() => toggle(cat)}
                                                                                 aria-pressed={on}
                                                                             >
-                                                                                {genderShort(gen)} {bc}
+                                                                                {genderShort(gen)}{bc}
                                                                             </button>
                                                                         );
                                                                     })}
