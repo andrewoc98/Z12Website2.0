@@ -11,6 +11,7 @@ import EventResultsPage from "./features/signup/pages/EventResultsPage.tsx";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
 import RequireAuth from "./guards/RequiredAuth.tsx";
 import ProfilePage from "./features/profile/pages/ProfilePage.tsx";
+import InviteJoinPage from "./features/signup/pages/InviteJoinPage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -76,6 +77,15 @@ export const router = createBrowserRouter([
             </RequireAuth>
         ),
     },
+    {
+        path: "/invite/:eventId/:code",
+        element: (
+            <RequireRole role="rower">
+                <InviteJoinPage />
+            </RequireRole>
+        ),
+    },
+
     { path: "/", element: <HomePage /> },
     { path: "/leaderboard", element: <LeaderboardPage /> },
     { path: "/auth", element: <AuthPage /> },

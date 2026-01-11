@@ -1,26 +1,41 @@
-import { DEV_MODE } from "../../../shared/lib/config";
 import type { BoatDoc } from "../types";
-import {collection, doc, getDocs, orderBy, query, runTransaction, serverTimestamp, updateDoc, writeBatch,} from "firebase/firestore";
+import {
+    collection,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    runTransaction,
+    serverTimestamp,
+    updateDoc,
+    writeBatch,
+    where,
+    documentId,
+    getDoc,
+} from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 
-const LS_KEY = "z12_mock_boats_v1";
-
-function loadMockBoats(): BoatDoc[] {
-    if (!DEV_MODE) return [];
-    try {
-        const raw = localStorage.getItem(LS_KEY);
-        return raw ? (JSON.parse(raw) as BoatDoc[]) : [];
-    } catch {
-        return [];
-    }
+/**
+ * Single-source-of-truth paths to avoid "events/boats" mistakes.
+ */
+function boatsCol(eventId: string) {
+    if (!eventId) throw new Error("Missing eventId");
+    return collection(db, "events", eventId, "boats");
 }
 
-function saveMockBoats(boats: BoatDoc[]) {
-    if (!DEV_MODE) return;
-    localStorage.setItem(LS_KEY, JSON.stringify(boats));
+function boatRef(eventId: string, boatId: string) {
+    if (!eventId) throw new Error("Missing eventId");
+    if (!boatId) throw new Error("Missing boatId");
+    return doc(db, "events", eventId, "boats", boatId);
 }
 
-let mockBoats: BoatDoc[] = DEV_MODE ? loadMockBoats() : [];
+function signupGuardRef(eventId: string, uid: string, categoryId: string) {
+    if (!eventId) throw new Error("Missing eventId");
+    if (!uid) throw new Error("Missing uid");
+    if (!categoryId) throw new Error("Missing categoryId");
+    // Guard doc that makes "category once per rower" atomic
+    return doc(db, "events", eventId, "rowerCategorySignups", `${uid}__${categoryId}`);
+}
 
 function randomCode(len = 12) {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -29,33 +44,23 @@ function randomCode(len = 12) {
     return out;
 }
 
-function ensureInviteCodes(boatSize: number, currentMembers: number, existing?: string[]) {
-    if (existing?.length) return existing;
-    const remaining = Math.max(0, boatSize - currentMembers);
-    const codes: string[] = [];
-    for (let i = 0; i < remaining; i++) codes.push(randomCode());
-    return codes;
-}
-
-function boatCol(eventId: string) {
-    return collection(db, "events", eventId, "boats");
-}
-
-function signupGuardDoc(eventId: string, uid: string, categoryId: string) {
-    // Guard doc that makes "category once per rower" atomic
-    return doc(db, "events", eventId, "rowerCategorySignups", `${uid}__${categoryId}`);
+function cleanPatch(patch: any) {
+    const clean: any = {};
+    for (const [k, v] of Object.entries(patch ?? {})) {
+        if (k === "id" || k === "eventId") continue;
+        if (v !== undefined) clean[k] = v;
+    }
+    clean.updatedAt = serverTimestamp();
+    return clean;
 }
 
 export async function listBoatsForEvent(eventId: string): Promise<BoatDoc[]> {
-    if (DEV_MODE) {
-        return Promise.resolve(mockBoats.filter((b) => b.eventId === eventId));
-    }
-
-    const q = query(boatCol(eventId), orderBy("createdAt", "desc"));
+    const q = query(boatsCol(eventId), orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
 
     return snap.docs.map((d) => {
         const data = d.data() as any;
+
         return {
             id: d.id,
             eventId,
@@ -65,120 +70,128 @@ export async function listBoatsForEvent(eventId: string): Promise<BoatDoc[]> {
             clubName: data.clubName,
             boatSize: data.boatSize,
             rowerUids: data.rowerUids ?? [],
-            invitedEmails: data.invitedEmails ?? [],
-            inviteCodes: data.inviteCodes ?? [],
+            invitedEmails: data.invitedEmails ?? [], // optional, can stay
+            // ✅ new single invite
+            inviteCode: data.inviteCode ?? null,
+            // ✅ status
+            status: data.status ?? "registered",
             bowNumber: data.bowNumber,
             createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt ?? undefined,
             startedAt: data.startedAt ?? undefined,
             finishedAt: data.finishedAt ?? undefined,
-        } satisfies BoatDoc;
+        } as any satisfies BoatDoc;
     });
 }
 
-export async function createBoat(boat: BoatDoc): Promise<void> {
-    if (DEV_MODE) {
-        // keep your existing localStorage mock behavior
-        throw new Error("DEV_MODE mock createBoat not shown here");
-    }
+/**
+ * Create boat with category-once-per-rower guard.
+ * Returns boatId.
+ */
+export async function createBoat(boat: BoatDoc): Promise<string> {
+    const { eventId, categoryId, rowerUids } = boat as any;
 
-    const { eventId, categoryId, rowerUids } = boat;
     if (!eventId) throw new Error("Missing eventId");
     if (!categoryId) throw new Error("Missing categoryId");
     if (!rowerUids?.length) throw new Error("Missing rowerUids");
 
     const creatorUid = rowerUids[0];
-    const signupId = `${creatorUid}__${categoryId}`;
+    const guard = signupGuardRef(eventId, creatorUid, categoryId);
 
-    const boatsCol = collection(db, "events", eventId, "boats");
-    const signupRef = doc(db, "events", eventId, "rowerCategorySignups", signupId);
-    const newBoatRef = doc(boatsCol); // auto id
+    const col = boatsCol(eventId);
+    const newBoat = doc(col); // auto-id
+    const newBoatId = newBoat.id;
 
     await runTransaction(db, async (tx) => {
-        const existing = await tx.get(signupRef);
-        if (existing.exists()) {
-            throw new Error("You’ve already signed up for this category.");
-        }
+        const existing = await tx.get(guard);
+        if (existing.exists()) throw new Error("You’ve already signed up for this category.");
 
-        // 1) Create guard doc (prevents duplicates)
-        tx.set(signupRef, {
+        // 1) guard
+        tx.set(guard, {
             uid: creatorUid,
             categoryId,
-            boatId: newBoatRef.id,
+            boatId: newBoatId,
             createdAt: serverTimestamp(),
         });
 
-        // 2) Create boat
-        tx.set(newBoatRef, {
+        // 2) boat doc
+        tx.set(newBoat, {
             ...boat,
-            id: newBoatRef.id,
+            id: newBoatId,
             createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
         } as any);
     });
+
+    return newBoatId;
 }
 
 export async function updateBoat(boatId: string, patch: Partial<BoatDoc> & { eventId?: string }): Promise<void> {
-    if (DEV_MODE) {
-        mockBoats = mockBoats.map((b) => (b.id === boatId ? { ...b, ...patch } : b));
-        saveMockBoats(mockBoats);
-        return Promise.resolve();
-    }
-
     const eventId = patch.eventId;
-    if (!eventId) throw new Error("updateBoat requires patch.eventId in Firestore mode.");
+    if (!eventId) throw new Error("updateBoat requires patch.eventId");
 
-    const ref = doc(db, "events", eventId, "boats", boatId);
+    await updateDoc(boatRef(eventId, boatId), cleanPatch(patch));
+}
 
-    const clean: any = {};
-    for (const [k, v] of Object.entries(patch)) {
-        if (k === "id" || k === "eventId") continue;
-        if (v !== undefined) clean[k] = v;
-    }
-    clean.updatedAt = serverTimestamp();
+/**
+ * Join a boat using the boat's single inviteCode.
+ * The same invite link can be used by multiple people until the boat is full.
+ * When full -> status becomes "registered" and inviteCode is cleared (optional).
+ */
+export async function joinBoatWithInviteCode(args: { eventId: string; code: string; uid: string }): Promise<string> {
+    const { eventId, code, uid } = args;
+    if (!eventId) throw new Error("Missing eventId");
+    if (!code) throw new Error("Missing invite code");
+    if (!uid) throw new Error("Missing uid");
 
-    await updateDoc(ref, clean);
+    // Find boat by inviteCode (should be unique)
+    const q = query(boatsCol(eventId), where("inviteCode", "==", code));
+    const snap = await getDocs(q);
+    if (snap.empty) throw new Error("Invite not found or expired.");
+
+    const boatDocSnap = snap.docs[0];
+    const ref = boatDocSnap.ref;
+
+    await runTransaction(db, async (tx) => {
+        const fresh = await tx.get(ref);
+        if (!fresh.exists()) throw new Error("Boat not found.");
+
+        const boat = fresh.data() as any;
+
+        const status = boat.status ?? "registered";
+        if (status !== "pending_crew") throw new Error("This crew is no longer accepting invites.");
+
+        const rowerUids: string[] = Array.isArray(boat.rowerUids) ? boat.rowerUids : [];
+        const boatSize: number = Number(boat.boatSize ?? 0);
+
+        if (!boatSize || boatSize < 1) throw new Error("Invalid boat size.");
+        if (rowerUids.includes(uid)) throw new Error("You’re already on this boat.");
+        if (rowerUids.length >= boatSize) throw new Error("This boat is already full.");
+
+        const next = [...rowerUids, uid];
+        const nowFull = next.length >= boatSize;
+
+        tx.update(ref, {
+            rowerUids: next,
+            status: nowFull ? "registered" : "pending_crew",
+            inviteCode: nowFull ? null : boat.inviteCode, // clear when full
+            updatedAt: serverTimestamp(),
+        });
+    });
+
+    return boatDocSnap.id;
+}
+
+/**
+ * Optional helper: get a boat (useful if you want to show boat details after joining)
+ */
+export async function getBoat(eventId: string, boatId: string): Promise<BoatDoc | null> {
+    const snap = await getDoc(boatRef(eventId, boatId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, eventId, ...(snap.data() as any) } as any;
 }
 
 export async function assignBowNumbersForEvent(eventId: string, categoryOrder: string[]): Promise<void> {
-    if (DEV_MODE) {
-        const boats = mockBoats.filter((b) => b.eventId === eventId);
-
-        const byCategory = new Map<string, BoatDoc[]>();
-        for (const b of boats) {
-            const key = b.categoryName || b.category || b.categoryId;
-            const list = byCategory.get(key) ?? [];
-            list.push(b);
-            byCategory.set(key, list);
-        }
-
-        for (const [cat, list] of byCategory.entries()) {
-            list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
-            byCategory.set(cat, list);
-        }
-
-        let bow = 1;
-
-        for (const cat of categoryOrder) {
-            const list = byCategory.get(cat);
-            if (!list || list.length === 0) continue;
-            for (const b of list) b.bowNumber = bow++;
-            byCategory.delete(cat);
-        }
-
-        const remainingCats = Array.from(byCategory.keys()).sort((a, b) => a.localeCompare(b));
-        for (const cat of remainingCats) {
-            const list = byCategory.get(cat)!;
-            for (const b of list) b.bowNumber = bow++;
-        }
-
-        const updated = new Map<string, BoatDoc>();
-        for (const b of boats) updated.set(b.id!, b);
-        mockBoats = mockBoats.map((b) => (updated.has(b.id!) ? updated.get(b.id!)! : b));
-
-        saveMockBoats(mockBoats);
-        return Promise.resolve();
-    }
-
-    const snap = await getDocs(query(boatCol(eventId), orderBy("createdAt", "asc")));
+    const snap = await getDocs(query(boatsCol(eventId), orderBy("createdAt", "asc")));
     const boats = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 
     const byCategory = new Map<string, { id: string; createdAt: number }[]>();
@@ -214,7 +227,7 @@ export async function assignBowNumbersForEvent(eventId: string, categoryOrder: s
 
     const batch = writeBatch(db);
     for (const u of updates) {
-        batch.update(doc(db, "events", eventId, "boats", u.boatId), {
+        batch.update(boatRef(eventId, u.boatId), {
             bowNumber: u.bowNumber,
             updatedAt: serverTimestamp(),
         });
@@ -222,32 +235,15 @@ export async function assignBowNumbersForEvent(eventId: string, categoryOrder: s
     await batch.commit();
 }
 
-/** DEBUG: view all boats in memory */
-export function __debugAllBoats(): BoatDoc[] {
-    return mockBoats;
-}
-
-/** DEBUG: clear all boats */
-export function __debugClearBoats() {
-    mockBoats = [];
-    saveMockBoats(mockBoats);
-}
-
 export async function startBoat(eventId: string, boatId: string): Promise<void> {
-    if (DEV_MODE) {
-        return updateBoat(boatId, { startedAt: Date.now() });
-    }
-    await updateDoc(doc(db, "events", eventId, "boats", boatId), {
+    await updateDoc(boatRef(eventId, boatId), {
         startedAt: Date.now(),
         updatedAt: serverTimestamp(),
     });
 }
 
 export async function finishBoat(eventId: string, boatId: string): Promise<void> {
-    if (DEV_MODE) {
-        return updateBoat(boatId, { finishedAt: Date.now() });
-    }
-    await updateDoc(doc(db, "events", eventId, "boats", boatId), {
+    await updateDoc(boatRef(eventId, boatId), {
         finishedAt: Date.now(),
         updatedAt: serverTimestamp(),
     });

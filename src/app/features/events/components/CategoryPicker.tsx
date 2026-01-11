@@ -13,6 +13,10 @@ type DivisionConfig = (typeof DIVISIONS)[number] & {
     genders?: readonly Gender[];
 };
 
+function boatClassesForGender(d: DivisionConfig, gender: Gender) {
+    return d.boatClasses;
+}
+
 function groupFromDivision(division: Division): GroupKey {
     const s = String(division);
     if (s.startsWith("Junior")) return "Junior";
@@ -29,7 +33,6 @@ function prettyGender(g: Gender) {
     return g;
 }
 
-// Avoid "M" ambiguity (Men vs Mixed) in compact UI
 function genderShort(g: Gender) {
     if (g === "Men") return "M";
     if (g === "Women") return "W";
@@ -47,13 +50,13 @@ export default function CategoryPicker({ value, onChange }: Props) {
     // Group accordions (collapsed by default for big groups)
     const [openGroups, setOpenGroups] = useState<Record<GroupKey, boolean>>({
         All: true,
-        Junior: true,
+        Junior: false,
         U19: false,
         U21: false,
         U23: false,
         Senior: false,
         Masters: false,
-        Para: true,
+        Para: false,
     });
 
     const groups: GroupKey[] = ["All", "Junior", "U19", "U21", "U23", "Senior", "Masters", "Para"];
@@ -118,7 +121,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
         for (const d of DIVISIONS as DivisionConfig[]) {
             const genders = allowedGendersForDivision(d);
             for (const g of genders) {
-                for (const bc of d.boatClasses) {
+                for (const bc of boatClassesForGender(d, g)) {
                     all.push(categoryKey(g, d.division, bc));
                 }
             }
@@ -130,7 +133,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
         const next = new Set(selected);
         const genders = visibleGendersForDivision(d);
         for (const g of genders) {
-            for (const bc of d.boatClasses) {
+            for (const bc of boatClassesForGender(d, g)) {
                 const cat = categoryKey(g, d.division, bc);
                 if (on) next.add(cat);
                 else next.delete(cat);
@@ -145,7 +148,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
         let checked = 0;
 
         for (const g of genders) {
-            for (const bc of d.boatClasses) {
+            for (const bc of boatClassesForGender(d, g)) {
                 total += 1;
                 if (selected.has(categoryKey(g, d.division, bc))) checked += 1;
             }

@@ -56,14 +56,6 @@ export default function ProfilePage() {
 
                             <div className="profile-grid">
                                 <div>
-                                    <div className="muted profile-label">UID</div>
-                                    <div className="profile-value">{user?.uid}</div>
-                                </div>
-                                <div>
-                                    <div className="muted profile-label">Email</div>
-                                    <div className="profile-value">{user?.email ?? "—"}</div>
-                                </div>
-                                <div>
                                     <div className="muted profile-label">Provider</div>
                                     <div className="profile-value">
                                         {user?.providerData?.[0]?.providerId ?? "—"}

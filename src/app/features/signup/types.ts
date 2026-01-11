@@ -17,7 +17,8 @@ export type BoatDoc = {
     rowerUids: string[];
     invitedEmails: string[];
 
-    inviteCodes?: string[];
+    inviteCode?: string | null;
+    status?: "pending_crew" | "registered";
 
     bowNumber?: number;
     createdAt?: number;

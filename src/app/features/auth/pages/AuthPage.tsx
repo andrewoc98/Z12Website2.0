@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../../../shared/lib/firebase";
@@ -26,8 +26,30 @@ function normalizeFullName(name: string) {
 }
 
 export default function AuthPage() {
-    const navigate = useNavigate();
 
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+
+    const goAfterAuth = () => {
+        const raw = searchParams.get("returnTo");
+        if (!raw) {
+            navigate("/rower/events");
+            return;
+        }
+
+        let path = raw;
+        try {
+            path = decodeURIComponent(raw);
+        } catch {}
+
+        // safety: only internal paths
+        if (!path.startsWith("/")) {
+            navigate("/rower/events");
+            return;
+        }
+
+        navigate(path);
+    };
     const [mode, setMode] = useState<Mode>("signin");
 
     // shared
@@ -81,10 +103,8 @@ export default function AuthPage() {
         setBusy(true);
         try {
             await signInGoogle();
-            // AuthProvider ensures base profile exists for any provider.
-            // If you want Google users to pick role, redirect to onboarding:
-            // navigate("/onboarding");
-            navigate("/");
+
+            goAfterAuth();
         } catch (e: any) {
             setErr(friendlyError(e?.message ?? "Google sign-in failed"));
         } finally {
@@ -97,13 +117,14 @@ export default function AuthPage() {
         setBusy(true);
         try {
             await signInEmail(email.trim(), password);
-            navigate("/");
+            goAfterAuth();
         } catch (e: any) {
             setErr(friendlyError(e?.message ?? "Sign-in failed"));
         } finally {
             setBusy(false);
         }
     }
+
 
     async function onRegister() {
         setErr(null);
@@ -117,7 +138,6 @@ export default function AuthPage() {
             if (!name) throw new Error("Full name is required.");
             if (password.length < 6) throw new Error("Password must be at least 6 characters.");
 
-            // ✅ Only enforce rower constraints
             if (role === "rower") {
                 if (!gender) throw new Error("Gender is required for rowers.");
                 if (!dateOfBirth) throw new Error("Date of birth is required for rowers.");
@@ -128,10 +148,8 @@ export default function AuthPage() {
 
             const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
 
-            // Use full name as auth displayName
             await updateProfile(cred.user, { displayName: name });
 
-            // Base fields everyone has
             const profileBase: any = {
                 uid: cred.user.uid,
                 email: cred.user.email ?? cleanEmail,
@@ -141,10 +159,9 @@ export default function AuthPage() {
                 roles: {},
             };
 
-            // ✅ Role-specific profile fields + roles payload
             if (role === "rower") {
-                profileBase.gender = gender;                 // from state
-                profileBase.dateOfBirth = dateOfBirth;       // "YYYY-MM-DD" from state
+                profileBase.gender = gender;
+                profileBase.dateOfBirth = dateOfBirth;
                 profileBase.birthYear = Number(dateOfBirth.slice(0, 4));
 
                 profileBase.roles.rower = {
@@ -152,21 +169,18 @@ export default function AuthPage() {
                     coach: coach.trim() ? coach.trim() : undefined,
                 };
             } else {
-                profileBase.roles.host = {
-                    location: location.trim(),
-                };
+                profileBase.roles.host = { location: location.trim() };
             }
 
             await upsertUserProfile(cred.user.uid, profileBase);
-            navigate("/");
+
+            goAfterAuth();
         } catch (e: any) {
             setErr(friendlyError(e?.message ?? "Registration failed"));
         } finally {
             setBusy(false);
         }
     }
-
-
 
     return (
         <>

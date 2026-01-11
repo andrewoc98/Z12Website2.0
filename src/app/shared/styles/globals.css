@@ -283,3 +283,61 @@ input:focus, select:focus, textarea:focus{
     margin: 0 auto;
 }
 
+.error-text{
+    color: var(--danger);
+    font-weight: 800;
+}
+
+.invite-list{
+    margin-top: 10px;
+    padding-left: 18px;
+}
+
+.invite-list li{
+    margin-bottom: 8px;
+}
+
+.boats-grid{
+    display: grid;
+    gap: 10px;
+    padding: 0;
+    list-style: none;
+}
+.error-text{
+    color: var(--danger);
+    font-weight: 800;
+}
+
+.invite-preview{
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+/* --- Signup page helpers --- */
+.error-text{
+    color: #9f1239;
+    font-weight: 800;
+}
+
+.boats-grid{
+    display: grid;
+    gap: 10px;
+    padding: 0;
+    list-style: none;
+}
+
+.invite-fields{
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.invite-status-list{
+    margin: 8px 0 0;
+    padding-left: 18px;
+}
+
+.invite-status{
+    font-weight: 800;
+}
+

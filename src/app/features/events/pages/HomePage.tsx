@@ -3,8 +3,8 @@ import Navbar from "../../../shared/components/Navbar/Navbar";
 import { DEV_MODE } from "../../../shared/lib/config";
 import { useMockAuth } from "../../../providers/MockAuthProvider.tsx";
 
-import { listEvents } from "../../events/api/events";
-import type { EventDoc } from "../../events/types";
+import { listEvents } from "../api/events.ts";
+import type { EventDoc } from "../types.ts";
 import EventCard from "../../events/components/EventCard";
 import { Link } from "react-router-dom";
 

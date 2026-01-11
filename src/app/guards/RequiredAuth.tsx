@@ -1,22 +1,19 @@
 import type { JSX } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { DEV_MODE } from "../shared/lib/config";
 
-// Firebase auth (used when DEV_MODE = false)
 import { useAuth } from "../providers/AuthProvider";
-
-// Mock auth (used when DEV_MODE = true)
 import { useMockAuth } from "../providers/MockAuthProvider";
 
 export default function RequireAuth({ children }: { children: JSX.Element }) {
-    // DEV MODE (mock users)
-    if (DEV_MODE) {
-        const { user } = useMockAuth();
-        return user ? children : <Navigate to="/" replace />;
-    }
+    const location = useLocation();
 
-    // REAL AUTH (Firebase)
-    const { user, loading } = useAuth();
+    // Always call hooks
+    const realAuth = useAuth();
+    const mockAuth = useMockAuth();
+
+    const user = DEV_MODE ? mockAuth.user : realAuth.user;
+    const loading = DEV_MODE ? false : realAuth.loading;
 
     if (loading) {
         return (
@@ -32,5 +29,13 @@ export default function RequireAuth({ children }: { children: JSX.Element }) {
         );
     }
 
-    return user ? children : <Navigate to="/auth" replace />;
+    if (!user) {
+        const returnTo = encodeURIComponent(
+            location.pathname + location.search
+        );
+
+        return <Navigate to={`/auth?returnTo=${returnTo}`} replace />;
+    }
+
+    return children;
 }

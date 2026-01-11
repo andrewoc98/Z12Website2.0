@@ -1,22 +1,27 @@
 export type Gender = "Men" | "Women" | "Mixed";
 export type BoatClass = "1x" | "2x" | "2-" | "4x+";
+
+const WEIGHT_ORDER: readonly WeightClass[] = [
+    "60kg",
+    "70kg",
+    "80kg",
+    "Open",
+] as const;
+
+
+// Keep ages as-is
+export type JuniorDivision = "Junior 14" | "Junior 15" | "Junior 16";
+
+// Make “base division” separate from weight
+export type AgeBand = "U19" | "U21" | "U23" | "Senior";
+export type MastersBand = "A" | "B" | "C" | "D" | "E" | "F";
+
+export type WeightClass = "60kg" | "70kg" | "80kg" | "Open";
+
 export type Division =
-    | "Junior 14"
-    | "Junior 15"
-    | "Junior 16"
-    | "U19 70kgs"
-    | "U19 80kgs"
-    | "U19 Open"
-    | "U21 70kgs"
-    | "U21 80kgs"
-    | "U21 Open"
-    | "U23 70kg"
-    | "U23 80kgs"
-    | "U23 Open"
-    | "Senior 70kgs"
-    | "Senior 80kgs"
-    | "Senior Open"
-    | `Masters ${"A" | "B" | "C" | "D" | "E" | "F"} ${"70kgs" | "80kgs" | "Open"}`
+    | JuniorDivision
+    | `${AgeBand} ${WeightClass}`
+    | `Masters ${MastersBand} ${WeightClass}`
     | "Para";
 
 export const GENDERS: Gender[] = ["Men", "Women", "Mixed"];
@@ -24,59 +29,90 @@ export const GENDERS: Gender[] = ["Men", "Women", "Mixed"];
 export type DivisionConfig = {
     division: Division;
     boatClasses: readonly BoatClass[];
-    /** If omitted: defaults to Men/Women (and Mixed too if you want). If set: restrict to these genders. */
     genders?: readonly Gender[];
 };
 
-const MASTERS_BANDS = ["A", "B", "C", "D", "E", "F"] as const;
-const MASTERS_WEIGHTS = ["70kgs", "80kgs", "Open"] as const;
+const MEN_WOMEN = ["Men", "Women"] as const;
+const MEN_ONLY = ["Men"] as const;
+const WOMEN_ONLY = ["Women"] as const;
+
+const WEIGHTS_BY_GENDER: Record<Exclude<Gender, "Mixed">, readonly WeightClass[]> = {
+    Women: ["60kg", "70kg", "Open"] as const,
+    Men: ["70kg", "80kg", "Open"] as const,
+};
+
+const BOAT_SWEEP: readonly BoatClass[] = ["1x", "2-"] as const;
+const BOAT_JUNIOR_14_15: readonly BoatClass[] = ["4x+", "2x"] as const;
+const BOAT_JUNIOR_16: readonly BoatClass[] = ["1x", "2x"] as const;
+
 const MASTERS_BOAT_CLASSES = ["1x", "2x", "4x+", "2-"] as const satisfies readonly BoatClass[];
 
-const BASE_DIVISIONS: readonly DivisionConfig[] = [
-    { division: "Junior 14", boatClasses: ["4x+", "2x"] as const },
-    { division: "Junior 15", boatClasses: ["4x+", "2x"] as const },
-    { division: "Junior 16", boatClasses: ["1x", "2x"] as const },
+const AGE_BANDS: readonly AgeBand[] = ["U19", "U21", "U23", "Senior"] as const;
+const MASTERS_BANDS: readonly MastersBand[] = ["A", "B", "C", "D", "E", "F"] as const;
 
-    { division: "U19 70kgs", boatClasses: ["1x", "2-"] as const },
-    { division: "U19 80kgs", boatClasses: ["1x", "2-"] as const },
-    { division: "U19 Open", boatClasses: ["1x", "2-"] as const },
+function gendersForWeight(w: WeightClass) {
+    if (w === "60kg") return WOMEN_ONLY;
+    if (w === "80kg") return MEN_ONLY;
+    return MEN_WOMEN;
+}
 
-    { division: "U21 70kgs", boatClasses: ["1x", "2-"] as const },
-    { division: "U21 80kgs", boatClasses: ["1x", "2-"] as const },
-    { division: "U21 Open", boatClasses: ["1x", "2-"] as const },
+function buildWeightedDivisions(): DivisionConfig[] {
+    const out: DivisionConfig[] = [];
 
-    { division: "U23 70kg", boatClasses: ["1x", "2-"] as const },
-    { division: "U23 80kgs", boatClasses: ["1x", "2-"] as const },
-    { division: "U23 Open", boatClasses: ["1x", "2-"] as const },
+    for (const band of AGE_BANDS) {
+        for (const w of WEIGHT_ORDER) {
+            const genders = gendersForWeight(w);
+            if (!genders.length) continue;
 
-    { division: "Senior 70kgs", boatClasses: ["1x", "2-"] as const },
-    { division: "Senior 80kgs", boatClasses: ["1x", "2-"] as const },
-    { division: "Senior Open", boatClasses: ["1x", "2-"] as const },
+            out.push({
+                division: `${band} ${w}` as const,
+                boatClasses: BOAT_SWEEP,
+                genders,
+            });
+        }
+    }
 
-    // ✅ Para is Mixed only
+    return out;
+}
+
+
+function buildMastersDivisions(): DivisionConfig[] {
+    const out: DivisionConfig[] = [];
+
+    for (const band of MASTERS_BANDS) {
+        for (const w of WEIGHT_ORDER) {
+            out.push({
+                division: `Masters ${band} ${w}` as const,
+                boatClasses: MASTERS_BOAT_CLASSES,
+                genders: gendersForWeight(w),
+            });
+        }
+    }
+
+    return out;
+}
+
+
+export const DIVISIONS: DivisionConfig[] = [
+    { division: "Junior 14", boatClasses: BOAT_JUNIOR_14_15 },
+    { division: "Junior 15", boatClasses: BOAT_JUNIOR_14_15 },
+    { division: "Junior 16", boatClasses: BOAT_JUNIOR_16 },
+
+    ...buildWeightedDivisions(),
+    ...buildMastersDivisions(),
+
     { division: "Para", boatClasses: ["4x+", "2x"] as const, genders: ["Mixed"] as const },
 ];
-
-const MASTERS_DIVISIONS: DivisionConfig[] = MASTERS_BANDS.flatMap((band) =>
-    MASTERS_WEIGHTS.map((w) => ({
-        division: `Masters ${band} ${w}` as const,
-        boatClasses: MASTERS_BOAT_CLASSES,
-        // (optional) set genders here if Masters should also be Mixed; otherwise omit
-    }))
-);
-
-export const DIVISIONS: DivisionConfig[] = [...BASE_DIVISIONS, ...MASTERS_DIVISIONS];
 
 /** Display label stored for now */
 export function categoryKey(gender: Gender, division: Division, boatClass: BoatClass) {
     return `${gender} • ${division} • ${boatClass}`;
 }
 
-/** Default enabled categories: all combos, respecting per-division genders */
 export function buildDefaultCategories(): string[] {
     const out: string[] = [];
     for (const d of DIVISIONS) {
-        const allowedGenders = d.genders ?? (["Men", "Women"] as const); // 👈 default rule
+        const allowedGenders = d.genders ?? (["Men", "Women"] as const);
         for (const g of allowedGenders) {
             for (const bc of d.boatClasses) {
                 out.push(categoryKey(g, d.division, bc));
@@ -86,30 +122,17 @@ export function buildDefaultCategories(): string[] {
     return out;
 }
 
-/**
- * Extract the boat class from a category string like:
- * "Men • Senior Open • 1x"
- */
 export function parseBoatClassFromCategory(cat: string): BoatClass | null {
     if (!cat) return null;
-
     const parts = cat.split("•").map((s) => s.trim());
     if (parts.length !== 3) return null;
-
     const boat = parts[2];
-
-    if (boat === "1x" || boat === "2x" || boat === "2-" || boat === "4x+") {
-        return boat;
-    }
-
+    if (boat === "1x" || boat === "2x" || boat === "2-" || boat === "4x+") return boat;
     return null;
 }
 
 export type BoatSize = 1 | 2 | 4;
 
-/**
- * Convert a boat class into crew size
- */
 export function boatSizeFromBoatClass(bc: BoatClass): BoatSize {
     switch (bc) {
         case "1x":
@@ -120,8 +143,6 @@ export function boatSizeFromBoatClass(bc: BoatClass): BoatSize {
         case "4x+":
             return 4;
         default:
-            // Exhaustive safety for future changes
             throw new Error(`Unknown boat class: ${bc}`);
     }
 }
-
