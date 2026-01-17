@@ -7,7 +7,7 @@ import { upsertUserProfile } from "../api/users";
 import { signInEmail, signInGoogle } from "../api/auth";
 
 type Mode = "signin" | "register";
-type RoleChoice = "rower" | "host";
+type RoleChoice = "rower" | "host" | "coach";
 
 function friendlyError(message: string) {
     const m = (message || "").toLowerCase();
@@ -64,7 +64,6 @@ export default function AuthPage() {
 
     // rower fields
     const [club, setClub] = useState("");
-    const [coach, setCoach] = useState("");
 
     // host fields
     const [location, setLocation] = useState("");
@@ -83,7 +82,7 @@ export default function AuthPage() {
         if (name.length < 2) return false;
         if (!dateOfBirth && role == "rower") return false;
 
-        if (role === "rower") return club.trim().length >= 2; // coach optional
+        if (role === "rower" || role === "coach") return club.trim().length >= 2; // coach optional
         return location.trim().length >= 2;
     }, [email, password, fullName, role, club, location]);
 
@@ -93,7 +92,6 @@ export default function AuthPage() {
         setFullName("");
         setRole("rower");
         setClub("");
-        setCoach("");
         setLocation("");
         setErr(null);
     }
@@ -142,7 +140,11 @@ export default function AuthPage() {
                 if (!gender) throw new Error("Gender is required for rowers.");
                 if (!dateOfBirth) throw new Error("Date of birth is required for rowers.");
                 if (club.trim().length < 2) throw new Error("Club is required.");
-            } else {
+            }
+            else if (role === "coach"){
+                if (club.trim().length < 2) throw new Error("Club is required.");
+            }
+            else {
                 if (location.trim().length < 2) throw new Error("Host location is required.");
             }
 
@@ -166,9 +168,13 @@ export default function AuthPage() {
 
                 profileBase.roles.rower = {
                     club: club.trim(),
-                    coach: coach.trim() ? coach.trim() : undefined,
                 };
-            } else {
+            } else if (role === "coach") {
+                profileBase.roles.coach = {
+                    club: club.trim()
+                };
+            }
+            else {
                 profileBase.roles.host = { location: location.trim() };
             }
 
@@ -232,10 +238,10 @@ export default function AuthPage() {
                         </div>
 
                         <div className="row auth-actions">
-                            <button type="button" className="btn-primary" onClick={onGoogle} disabled={busy}>
+                            <button type="button" className="btn-primary" onClick={onGoogle} disabled={true}>
                                 {busy ? "Working…" : "Continue with Google"}
                             </button>
-                            <span className="muted auth-hint">Recommended</span>
+                            <span className="muted auth-hint">Coming Soon</span>
                         </div>
                     </div>
 
@@ -286,21 +292,39 @@ export default function AuthPage() {
                                         type="button"
                                         className={role === "rower" ? "btn-primary" : "btn-ghost"}
                                         onClick={() => setRole("rower")}
-                                        disabled={busy}
                                     >
                                         Rower
                                     </button>
+
+                                    <button
+                                        type="button"
+                                        className={role === "coach" ? "btn-primary" : "btn-ghost"}
+                                        onClick={() => setRole("coach")}
+                                    >
+                                        Coach
+                                    </button>
+
                                     <button
                                         type="button"
                                         className={role === "host" ? "btn-primary" : "btn-ghost"}
                                         onClick={() => setRole("host")}
-                                        disabled={busy}
                                     >
                                         Event Host
                                     </button>
                                 </div>
-
-                                {role === "rower" ? (
+                                {role === "coach" && (
+                                    <div className="auth-role-fields">
+                                        <label>
+                                            Club
+                                            <input
+                                                value={club}
+                                                onChange={(e) => setClub(e.target.value)}
+                                                placeholder="e.g. Z12 RC"
+                                            />
+                                        </label>
+                                    </div>
+                                )}
+                                {role === "rower" && (
 
                                     <div className="auth-role-fields">
 
@@ -325,13 +349,8 @@ export default function AuthPage() {
                                             Club
                                             <input value={club} onChange={(e) => setClub(e.target.value)} placeholder="e.g. Z12 RC" />
                                         </label>
-
-                                        <label>
-                                            Coach (optional)
-                                            <input value={coach} onChange={(e) => setCoach(e.target.value)} placeholder="e.g. Coach Sam" />
-                                        </label>
                                     </div>
-                                ) : (
+                                )} {role === "host" && (
                                     <div className="auth-role-fields">
                                         <label>
                                             Host location

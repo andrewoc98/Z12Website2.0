@@ -1,4 +1,4 @@
-export type Role = "rower" | "host" | "admin";
+export type Role = "rower" | "host" | "admin" | "coach";
 
 export type Gender = "male" | "female";
 
@@ -16,6 +16,7 @@ export type UserProfile = {
         rower?: { club: string; coach: string };
         host?: { name: string; email: string; location: string };
         admin?: { name: string; email: string; hostId: string };
+        coach?:{club: string}
     };
 };
 

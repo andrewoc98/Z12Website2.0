@@ -4,6 +4,9 @@ import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useAuth } from "../../../providers/AuthProvider";
 import type { UserProfile } from "../../auth/types";
 import { upsertUserProfile } from "../../auth/api/users";
+import {addCoachLink, fetchUserProfileByEmail, getCoachesForRower, getRowersForCoach} from "../api/user.ts";
+import CoachSearchBlock from "./CoachSearchBlock.tsx";
+import CoachDashboard from "./CoachDashBoard.tsx";
 
 function safeTrim(s: string) {
     return s.trim().replace(/\s+/g, " ");
@@ -29,7 +32,6 @@ export default function ProfilePage() {
         );
     }
 
-    // At this point user exists. Profile might still be null if Firestore doc hasn't loaded yet.
     const p = profile;
 
     return (
@@ -97,13 +99,88 @@ export default function ProfilePage() {
         </>
     );
 }
-
 function ProfileDetails({ profile }: { profile: UserProfile }) {
+
+
+    const [coaches, setCoaches] = useState<UserProfile[]>([]);
+    const [loadingCoaches, setLoadingCoaches] = useState(false);
+
+    const [rowers, setRowers] = useState<UserProfile[]>([]);
+    const [loadingRowers, setLoadingRowers] = useState(false);
+
+    useEffect(() => {
+        async function loadCoaches() {
+            if (profile.roles?.rower) {
+                setLoadingCoaches(true);
+                const data = await getCoachesForRower(profile.uid);
+                setCoaches(data);
+                setLoadingCoaches(false);
+            }
+        }
+
+        async function loadRowers() {
+            if (profile.roles?.coach) {
+                setLoadingRowers(true);
+                const data = await getRowersForCoach(profile.uid);
+                setRowers(data);
+                setLoadingRowers(false);
+            }
+        }
+
+        loadCoaches();
+        loadRowers();},[profile]);
+
+    useEffect(() => {
+        async function loadCoaches() {
+            if (profile.roles?.rower) {
+                setLoadingCoaches(true);
+                const coachIds = await getCoachesForRower(profile.uid);
+                const coachProfiles = await Promise.all(coachIds.map(id => getUserProfileById(id)));
+                setCoaches(coachProfiles.filter(Boolean) as UserProfile[]);
+                setLoadingCoaches(false);
+            }
+        }
+
+        async function loadRowers() {
+            if (profile.roles?.coach) {
+                setLoadingRowers(true);
+                const rowerIds = await getRowersForCoach(profile.uid);
+                const rowerProfiles = await Promise.all(rowerIds.map(id => getUserProfileById(id)));
+                setRowers(rowerProfiles.filter(Boolean) as UserProfile[]);
+                setLoadingRowers(false);
+            }
+        }
+
+        loadCoaches();
+        loadRowers();
+    }, [profile]);
+
+    async function onAddCoach() {
+        const coachEmail = prompt("Enter your coach's email:");
+        if (!coachEmail) return;
+
+        // Here you would look up the coach UID by email
+        const coachProfile = await fetchUserProfileByEmail(coachEmail.trim());
+        if (!coachProfile || !coachProfile.roles?.coach) {
+            alert("No coach found with that email.");
+            return;
+        }
+
+        // Create a link in Firestore
+        await addCoachLink(profile.uid, coachProfile.uid); // you can set status='pending' or 'approved'
+
+        // Refresh coaches list
+        const data = await getCoachesForRower(profile.uid);
+        setCoaches(data);
+    }
+
+
     const roleBadges = useMemo(() => {
         const roles: string[] = [];
-        if (profile.roles?.rower) roles.push("rower");
-        if (profile.roles?.host) roles.push("host");
-        if (profile.roles?.admin) roles.push("admin");
+        if (profile.roles?.rower) roles.push("Rower");
+        if (profile.roles?.host) roles.push("Host");
+        if (profile.roles?.admin) roles.push("Admin");
+        if(profile.roles?.coach) roles.push("Coach")
         return roles;
     }, [profile]);
 
@@ -120,7 +197,7 @@ function ProfileDetails({ profile }: { profile: UserProfile }) {
                 </div>
                 <div>
                     <div className="muted profile-label">Primary role</div>
-                    <div className="profile-value">{profile.primaryRole || "—"}</div>
+                    <div className="profile-value">{profile.primaryRole.charAt(0).toUpperCase() + profile.primaryRole.slice(1) || "—"}</div>
                 </div>
                 <div>
                     <div className="muted profile-label">Roles</div>
@@ -144,22 +221,31 @@ function ProfileDetails({ profile }: { profile: UserProfile }) {
                 {profile.roles?.rower && (
                     <div className="card card--tight">
                         <div className="space-between">
-                            <h3>Rower</h3>
-                            <span className="badge">roles.rower</span>
+                            <h3>Coaches</h3>
+                            {profile.roles?.rower && <CoachSearchBlock />}
                         </div>
-                        <div className="profile-grid">
-                            <div>
-                                <div className="muted profile-label">Club</div>
-                                <div className="profile-value">{profile.roles.rower.club || "—"}</div>
-                            </div>
-                            <div>
-                                <div className="muted profile-label">Coach</div>
-                                <div className="profile-value">{profile.roles.rower.coach || "—"}</div>
-                            </div>
-                        </div>
+                        {loadingCoaches ? (
+                            <p>Loading…</p>
+                        ) : coaches.length === 0 ? (
+                            <p className="muted">No coaches assigned</p>
+                        ) : (
+                            <ul>
+                                {coaches.map(c => (
+                                    <li key={c.uid}>{c.fullName} ({c.roles?.coach?.club ?? "—"})</li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 )}
 
+                {profile.roles?.coach && (
+                    <div className="card card--tight">
+                        <div className="space-between">
+                            <h3>Athletes</h3>
+                        </div>
+                            <CoachDashboard />
+                    </div>
+                )}
                 {profile.roles?.host && (
                     <div className="card card--tight">
                         <div className="space-between">
@@ -200,7 +286,6 @@ function ProfileEditor({ profile }: { profile: UserProfile }) {
     const [fullName, setFullName] = useState(profile.fullName ?? "");
     const [displayName, setDisplayName] = useState(profile.displayName ?? "");
     const [club, setClub] = useState(profile.roles?.rower?.club ?? "");
-    const [coach, setCoach] = useState(profile.roles?.rower?.coach ?? "");
     const [location, setLocation] = useState(profile.roles?.host?.location ?? "");
 
     const [saving, setSaving] = useState(false);
@@ -211,7 +296,6 @@ function ProfileEditor({ profile }: { profile: UserProfile }) {
         setFullName(profile.fullName ?? "");
         setDisplayName(profile.displayName ?? "");
         setClub(profile.roles?.rower?.club ?? "");
-        setCoach(profile.roles?.rower?.coach ?? "");
         setLocation(profile.roles?.host?.location ?? "");
     }, [profile]);
 
@@ -228,7 +312,7 @@ function ProfileEditor({ profile }: { profile: UserProfile }) {
                 roles: {
                     ...profile.roles,
                     ...(profile.roles?.rower
-                        ? { rower: { club: club.trim(), coach: coach.trim() ? coach.trim() : undefined } }
+                        ? { rower: { club: club.trim()} }
                         : {}),
                     ...(profile.roles?.host ? { host: { location: location.trim() } } : {}),
                 },
@@ -276,10 +360,6 @@ function ProfileEditor({ profile }: { profile: UserProfile }) {
                         <input value={club} onChange={(e) => setClub(e.target.value)} placeholder="Club" />
                     </label>
 
-                    <label>
-                        Coach (optional)
-                        <input value={coach} onChange={(e) => setCoach(e.target.value)} placeholder="Coach" />
-                    </label>
                 </div>
             )}
 
