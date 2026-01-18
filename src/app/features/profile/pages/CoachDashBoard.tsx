@@ -92,27 +92,36 @@ export default function CoachDashboard() {
     if (!profile?.roles?.coach) return null;
 
     return (
-        <div className="card card--tight">
-            <h2>Pending Rower Requests</h2>
+        <>
+            <div className="subhead" style={{ marginTop: 8 }}>
+                <h3 className="subhead-title">Pending requests</h3>
+                <span className="pill">Coach</span>
+            </div>
 
-            {loading && <p>Loading requests…</p>}
-
+            {loading && <p className="muted">Loading requests…</p>}
             {!loading && pendingRowers.length === 0 && <p className="muted">No pending requests</p>}
 
-            <ul>
-                {pendingRowers.map(r => (
-                    <li key={r.linkId} className="row space-between">
-                        <div>
-                            <strong>{r.displayName ?? r.rowerId}</strong>
-                            <div className="muted">{r.roles?.rower?.club ?? "No club info"}</div>
-                        </div>
-                        <div className="row">
-                            <button className="btn-success" onClick={() => approveRower(r.linkId)}>Approve</button>
-                            <button className="btn-danger" onClick={() => rejectRower(r.linkId)}>Reject</button>
-                        </div>
-                    </li>
-                ))}
-            </ul>
-        </div>
+            {pendingRowers.length > 0 && (
+                <ul className="list">
+                    {pendingRowers.map((r) => (
+                        <li key={r.linkId} className="list-item">
+                            <div className="list-main">
+                                <div className="list-title">{r.displayName ?? r.rowerId}</div>
+                                <div className="muted">{r.roles?.rower?.club ?? "No club info"}</div>
+                            </div>
+
+                            <div className="actions">
+                                <button className="btn btn--ok" onClick={() => approveRower(r.linkId)}>
+                                    Approve
+                                </button>
+                                <button className="btn btn--danger" onClick={() => rejectRower(r.linkId)}>
+                                    Reject
+                                </button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </>
     );
 }

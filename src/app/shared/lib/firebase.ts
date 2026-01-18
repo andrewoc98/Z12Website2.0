@@ -12,7 +12,7 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const useEmulators = import.meta.env.VITE_USE_EMULATORS === "true";
+const useEmulators = import.meta.env.VITE_USE_EMULATORS === "false";
 const functionsPort = Number(import.meta.env.VITE_FUNCTIONS_EMULATOR_PORT || "5002");
 
 export const app = initializeApp(firebaseConfig);

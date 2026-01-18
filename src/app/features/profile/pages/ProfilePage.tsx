@@ -37,64 +37,40 @@ export default function ProfilePage() {
     return (
         <>
             <Navbar />
-            <main>
-                <div className="card profile-card">
-                    <div className="space-between">
-                        <div>
-                            <h1 className="profile-title">Your profile</h1>
-                            <p className="profile-subtitle">This is what we currently have stored for your account.</p>
-                        </div>
-                        <span className="badge badge--brand">Signed in</span>
-                    </div>
+            <main className="page">
+                <section className="shell">
+                    <div className="stack">
 
-                    <hr />
-
-                    <div className="cp-wrap">
-                        <div className="card card--tight">
-                            <div className="space-between">
-                                <h3>Account</h3>
-                                <span className="badge">Firebase Auth</span>
-                            </div>
-
-                            <div className="profile-grid">
-                                <div>
-                                    <div className="muted profile-label">Provider</div>
-                                    <div className="profile-value">
-                                        {user?.providerData?.[0]?.providerId ?? "—"}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="muted profile-label">Auth display name</div>
-                                    <div className="profile-value">{user?.displayName ?? "—"}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="card card--tight">
-                            <div className="space-between">
-                                <h3>Profile</h3>
-                                <span className="badge">Firestore</span>
+                        <section className="card section">
+                            <div className="section-head">
+                                <h2 className="section-title">Profile</h2>
                             </div>
 
                             {!p ? (
-                                <p className="muted profile-empty">
+                                <p className="muted">
                                     No profile document found yet. (This should be created automatically after sign-in.)
                                 </p>
                             ) : (
                                 <ProfileDetails profile={p} />
                             )}
-                        </div>
+                        </section>
 
-                        {p && <ProfileEditor profile={p} />}
+                        {p && (
+                            <section className="card section">
+                                <div className="section-head">
+                                    <h2 className="section-title">Edit</h2>
+                                    <span className="pill">Basic</span>
+                                </div>
+                                <ProfileEditor profile={p} />
+                            </section>
+                        )}
+
+                        <footer className="help">
+                            <span className="muted">Need help?</span>{" "}
+                            <a href="andrewdarraghoconnor@gmail.com">Contact support</a>
+                        </footer>
                     </div>
-                </div>
-
-                <div className="muted profile-help">
-                    <span>Need help?</span>{" "}
-                    <a className="muted" href="mailto:support@example.com">
-                        Contact support
-                    </a>
-                </div>
+                </section>
             </main>
         </>
     );
@@ -109,51 +85,41 @@ function ProfileDetails({ profile }: { profile: UserProfile }) {
     const [loadingRowers, setLoadingRowers] = useState(false);
 
     useEffect(() => {
-        async function loadCoaches() {
+        let alive = true;
+
+        async function run() {
+            setLoadingCoaches(false);
+            setLoadingRowers(false);
+
             if (profile.roles?.rower) {
                 setLoadingCoaches(true);
                 const data = await getCoachesForRower(profile.uid);
-                setCoaches(data);
-                setLoadingCoaches(false);
+                if (alive) setCoaches(data);
+                if (alive) setLoadingCoaches(false);
             }
-        }
 
-        async function loadRowers() {
             if (profile.roles?.coach) {
                 setLoadingRowers(true);
                 const data = await getRowersForCoach(profile.uid);
-                setRowers(data);
-                setLoadingRowers(false);
+                if (alive) setRowers(data);
+                if (alive) setLoadingRowers(false);
             }
         }
 
-        loadCoaches();
-        loadRowers();},[profile]);
+        run();
+        return () => {
+            alive = false;
+        };
+    }, [profile.uid, profile.roles]);
 
-    useEffect(() => {
-        async function loadCoaches() {
-            if (profile.roles?.rower) {
-                setLoadingCoaches(true);
-                const coachIds = await getCoachesForRower(profile.uid);
-                const coachProfiles = await Promise.all(coachIds.map(id => getUserProfileById(id)));
-                setCoaches(coachProfiles.filter(Boolean) as UserProfile[]);
-                setLoadingCoaches(false);
-            }
-        }
 
         async function loadRowers() {
             if (profile.roles?.coach) {
                 setLoadingRowers(true);
-                const rowerIds = await getRowersForCoach(profile.uid);
-                const rowerProfiles = await Promise.all(rowerIds.map(id => getUserProfileById(id)));
-                setRowers(rowerProfiles.filter(Boolean) as UserProfile[]);
                 setLoadingRowers(false);
             }
         }
 
-        loadCoaches();
-        loadRowers();
-    }, [profile]);
 
     async function onAddCoach() {
         const coachEmail = prompt("Enter your coach's email:");
@@ -167,7 +133,7 @@ function ProfileDetails({ profile }: { profile: UserProfile }) {
         }
 
         // Create a link in Firestore
-        await addCoachLink(profile.uid, coachProfile.uid); // you can set status='pending' or 'approved'
+        await addCoachLink(profile.uid, coachProfile.uid);
 
         // Refresh coaches list
         const data = await getCoachesForRower(profile.uid);
@@ -184,100 +150,115 @@ function ProfileDetails({ profile }: { profile: UserProfile }) {
         return roles;
     }, [profile]);
 
-    return (
-        <>
-            <div className="profile-grid">
-                <div>
-                    <div className="muted profile-label">Full name</div>
-                    <div className="profile-value">{profile.fullName || "—"}</div>
-                </div>
-                <div>
-                    <div className="muted profile-label">Display name</div>
-                    <div className="profile-value">{profile.displayName || "—"}</div>
-                </div>
-                <div>
-                    <div className="muted profile-label">Primary role</div>
-                    <div className="profile-value">{profile.primaryRole.charAt(0).toUpperCase() + profile.primaryRole.slice(1) || "—"}</div>
-                </div>
-                <div>
-                    <div className="muted profile-label">Roles</div>
-                    <div className="row">
-                        {roleBadges.length === 0 ? (
-                            <span className="muted">—</span>
-                        ) : (
-                            roleBadges.map((r) => (
-                                <span key={r} className="badge">
-                  {r}
-                </span>
-                            ))
-                        )}
-                    </div>
-                </div>
+return (
+    <>
+        <dl className="kv">
+            <div className="kv-row">
+                <dt>Full name</dt>
+                <dd>{profile.fullName || "—"}</dd>
             </div>
-
-            <hr />
-
-            <div className="cp-wrap">
-                {profile.roles?.rower && (
-                    <div className="card card--tight">
-                        <div className="space-between">
-                            <h3>Coaches</h3>
-                            {profile.roles?.rower && <CoachSearchBlock />}
-                        </div>
-                        {loadingCoaches ? (
-                            <p>Loading…</p>
-                        ) : coaches.length === 0 ? (
-                            <p className="muted">No coaches assigned</p>
-                        ) : (
-                            <ul>
-                                {coaches.map(c => (
-                                    <li key={c.uid}>{c.fullName} ({c.roles?.coach?.club ?? "—"})</li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                )}
-
-                {profile.roles?.coach && (
-                    <div className="card card--tight">
-                        <div className="space-between">
-                            <h3>Athletes</h3>
-                        </div>
-                            <CoachDashboard />
-                    </div>
-                )}
-                {profile.roles?.host && (
-                    <div className="card card--tight">
-                        <div className="space-between">
-                            <h3>Host</h3>
-                            <span className="badge">roles.host</span>
-                        </div>
-                        <div className="profile-grid">
-                            <div>
-                                <div className="muted profile-label">Location</div>
-                                <div className="profile-value">{profile.roles.host.location || "—"}</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {profile.roles?.admin && (
-                    <div className="card card--tight">
-                        <div className="space-between">
-                            <h3>Admin</h3>
-                            <span className="badge">roles.admin</span>
-                        </div>
-                        <div className="profile-grid">
-                            <div>
-                                <div className="muted profile-label">Host ID</div>
-                                <div className="profile-value">{profile.roles.admin.hostId || "—"}</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+            <div className="kv-row">
+                <dt>Display name</dt>
+                <dd>{profile.displayName || "—"}</dd>
             </div>
-        </>
-    );
+            <div className="kv-row">
+                <dt>Primary role</dt>
+                <dd>
+                    {profile.primaryRole
+                        ? profile.primaryRole.charAt(0).toUpperCase() + profile.primaryRole.slice(1)
+                        : "—"}
+                </dd>
+            </div>
+            <div className="kv-row">
+                <dt>Roles</dt>
+                <dd className="chips">
+                    {roleBadges.length === 0 ? (
+                        <span className="muted">—</span>
+                    ) : (
+                        roleBadges.map((r) => (
+                            <span key={r} className="chip">
+                {r}
+              </span>
+                        ))
+                    )}
+                </dd>
+            </div>
+        </dl>
+
+        <div className="divider" />
+
+        <div className="stack-sm">
+            {profile.roles?.rower && (
+                <section className="subsection">
+                    <div className="subhead">
+                        <h3 className="subhead-title">Coaches</h3>
+                    </div>
+
+                    <CoachSearchBlock />
+
+                    {loadingCoaches ? (
+                        <p className="muted">Loading…</p>
+                    ) : coaches.length === 0 ? (
+                        <p className="muted">No coaches assigned</p>
+                    ) : (
+                        <ul className="list">
+                            {coaches.map((c) => (
+                                <li key={c.uid} className="list-item">
+                                    <div className="list-main">
+                                        <div className="list-title">{c.fullName}</div>
+                                        <div className="muted">{c.roles?.coach?.club ?? "—"}</div>
+                                    </div>
+                                    <span className="chip chip--soft">Coach</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            )}
+
+            {profile.roles?.coach && (
+                <section className="subsection">
+                    <div className="subhead">
+                        <h3 className="subhead-title">Athletes</h3>
+                    </div>
+                    <CoachDashboard />
+                </section>
+            )}
+
+            {profile.roles?.host && (
+                <section className="subsection">
+                    <div className="subhead">
+                        <h3 className="subhead-title">Host</h3>
+                        <span className="chip chip--soft">roles.host</span>
+                    </div>
+
+                    <dl className="kv">
+                        <div className="kv-row">
+                            <dt>Location</dt>
+                            <dd>{profile.roles.host.location || "—"}</dd>
+                        </div>
+                    </dl>
+                </section>
+            )}
+
+            {profile.roles?.admin && (
+                <section className="subsection">
+                    <div className="subhead">
+                        <h3 className="subhead-title">Admin</h3>
+                        <span className="chip chip--soft">roles.admin</span>
+                    </div>
+
+                    <dl className="kv">
+                        <div className="kv-row">
+                            <dt>Host ID</dt>
+                            <dd>{profile.roles.admin.hostId || "—"}</dd>
+                        </div>
+                    </dl>
+                </section>
+            )}
+        </div>
+    </>
+);
 }
 
 function ProfileEditor({ profile }: { profile: UserProfile }) {
@@ -328,66 +309,60 @@ function ProfileEditor({ profile }: { profile: UserProfile }) {
     }
 
     return (
-        <div className="card card--tight">
-            <div className="space-between">
-                <h3>Edit profile</h3>
-                <span className="badge">Basic</span>
-            </div>
-
-            <p className="muted profile-note">
+        <form className="form" onSubmit={(e) => e.preventDefault()}>
+            <p className="muted">
                 This edits your Firestore profile document. (We’re not updating Firebase Auth displayName here yet.)
             </p>
 
-            <label>
-                Full name
+            <div className="field">
+                <label>Full name</label>
                 <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" />
-            </label>
+            </div>
 
-            <label>
-                Display name
-                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Shown in UI (defaults to full name)" />
-            </label>
+            <div className="field">
+                <label>Display name</label>
+                <input
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Shown in UI (defaults to full name)"
+                />
+            </div>
 
             {profile.roles?.rower && (
-                <div className="card card--tight profile-subcard">
-                    <div className="space-between">
-                        <h3>Rower fields</h3>
-                        <span className="badge">roles.rower</span>
+                <div className="panel">
+                    <div className="subhead">
+                        <h3 className="subhead-title">Rower</h3>
+                        <span className="chip chip--soft">roles.rower</span>
                     </div>
 
-                    <label>
-                        Club
+                    <div className="field">
+                        <label>Club</label>
                         <input value={club} onChange={(e) => setClub(e.target.value)} placeholder="Club" />
-                    </label>
-
+                    </div>
                 </div>
             )}
 
             {profile.roles?.host && (
-                <div className="card card--tight profile-subcard">
-                    <div className="space-between">
-                        <h3>Host fields</h3>
-                        <span className="badge">roles.host</span>
+                <div className="panel">
+                    <div className="subhead">
+                        <h3 className="subhead-title">Host</h3>
+                        <span className="chip chip--soft">roles.host</span>
                     </div>
 
-                    <label>
-                        Location
+                    <div className="field">
+                        <label>Location</label>
                         <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" />
-                    </label>
+                    </div>
                 </div>
             )}
 
-            {msg && (
-                <div className="card card--tight profile-message">
-                    <div className="muted">{msg}</div>
-                </div>
-            )}
+            {msg && <div className="toast">{msg}</div>}
 
-            <div className="row profile-actions">
-                <button type="button" className="btn-primary" onClick={onSave} disabled={saving}>
-                    {saving ? "Saving…" : "Save"}
+            <div className="sticky-actions">
+                <button type="button" className="btn btn--brand" onClick={onSave} disabled={saving}>
+                    {saving ? "Saving…" : "Save changes"}
                 </button>
             </div>
-        </div>
+        </form>
     );
 }

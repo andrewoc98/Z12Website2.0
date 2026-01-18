@@ -77,33 +77,33 @@ export default function CoachSearchBlock() {
     }
 
     return (
-        <div className="card card--tight profile-subcard">
-            <h3>Find Coaches</h3>
+        <div className="search">
+            <div className="search-head">
+                <h4 className="search-title">Find coaches</h4>
+            </div>
+
             <input
                 type="text"
                 value={queryStr}
-                placeholder="Type coach name..."
+                placeholder="Type a coach name…"
                 onChange={(e) => setQueryStr(e.target.value)}
                 className="input"
             />
 
-            {loading && <p>Searching…</p>}
+            {loading && <p className="muted">Searching…</p>}
 
             {results.length > 0 && (
-                <ul className="search-results">
+                <ul className="list">
                     {results.map((coach) => {
                         const status = existingLinks[coach.uid];
                         return (
-                            <li key={coach.uid} className="search-result-item">
-                                <div>
-                                    <strong>{coach.fullName}</strong>
+                            <li key={coach.uid} className="list-item">
+                                <div className="list-main">
+                                    <div className="list-title">{coach.fullName}</div>
                                     <div className="muted">{coach.roles?.coach?.club ?? "No club info"}</div>
                                 </div>
-                                <button
-                                    className="btn-primary"
-                                    disabled={!!status}
-                                    onClick={() => onAddCoach(coach)}
-                                >
+
+                                <button className="btn btn--brand" disabled={!!status} onClick={() => onAddCoach(coach)}>
                                     {status === "pending" ? "Pending…" : status === "approved" ? "Approved" : "Add"}
                                 </button>
                             </li>
