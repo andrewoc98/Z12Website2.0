@@ -310,10 +310,6 @@ function ProfileEditor({ profile }: { profile: UserProfile }) {
 
     return (
         <form className="form" onSubmit={(e) => e.preventDefault()}>
-            <p className="muted">
-                This edits your Firestore profile document. (We’re not updating Firebase Auth displayName here yet.)
-            </p>
-
             <div className="field">
                 <label>Full name</label>
                 <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" />
