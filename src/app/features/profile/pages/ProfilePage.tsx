@@ -7,6 +7,7 @@ import { upsertUserProfile } from "../../auth/api/users";
 import {addCoachLink, fetchUserProfileByEmail, getCoachesForRower, getRowersForCoach} from "../api/user.ts";
 import CoachSearchBlock from "./CoachSearchBlock.tsx";
 import CoachDashboard from "./CoachDashBoard.tsx";
+import HostAdminInvite from "../../auth/pages/AdminHostInvite.tsx";
 
 function safeTrim(s: string) {
     return s.trim().replace(/\s+/g, " ");
@@ -186,7 +187,11 @@ return (
         </dl>
 
         <div className="divider" />
-
+        {profile.roles?.host && (
+            <section className="subsection">
+                <HostAdminInvite />
+            </section>
+        )}
         <div className="stack-sm">
             {profile.roles?.rower && (
                 <section className="subsection">

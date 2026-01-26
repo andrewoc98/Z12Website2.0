@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../../../shared/lib/firebase";
-import { upsertUserProfile } from "../api/users";
+import {fetchAdminInvite, markAdminInviteUsed, upsertUserProfile} from "../api/users";
 import { signInEmail, signInGoogle } from "../api/auth";
 
 type Mode = "signin" | "register";
@@ -29,6 +29,9 @@ export default function AuthPage() {
 
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+
+    const inviteId = searchParams.get("adminInvite");
+    const isAdminInvite = Boolean(inviteId);
 
     const goAfterAuth = () => {
         const raw = searchParams.get("returnTo");
@@ -71,6 +74,25 @@ export default function AuthPage() {
     const [err, setErr] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
+    const [adminInvite, setAdminInvite] = useState<any | null>(null);
+
+    useEffect(() => {
+        if (!inviteId) return;
+
+        fetchAdminInvite(inviteId).then(invite => {
+            if (!invite || invite.used) return;
+            setAdminInvite(invite);
+            setMode("register");
+        });
+    }, [inviteId]);
+
+    useEffect(() => {
+        if (adminInvite) {
+            setEmail(adminInvite.email);
+            setRole("admin" as any);
+        }
+    }, [adminInvite]);
+
     const canSignIn = useMemo(() => email.trim().length > 0 && password.trim().length > 0, [email, password]);
 
     const canRegister = useMemo(() => {
@@ -81,6 +103,9 @@ export default function AuthPage() {
         if (password.trim().length < 6) return false;
         if (name.length < 2) return false;
         if (!dateOfBirth && role == "rower") return false;
+        if (isAdminInvite) {
+            return true;
+        }
 
         if (role === "rower" || role === "coach") return club.trim().length >= 2; // coach optional
         return location.trim().length >= 2;
@@ -144,7 +169,7 @@ export default function AuthPage() {
             else if (role === "coach"){
                 if (club.trim().length < 2) throw new Error("Club is required.");
             }
-            else {
+            else if (role === "host"){
                 if (location.trim().length < 2) throw new Error("Host location is required.");
             }
 
@@ -160,8 +185,17 @@ export default function AuthPage() {
                 primaryRole: role,
                 roles: {},
             };
+            if (adminInvite) {
+                if (email.trim().toLowerCase() !== adminInvite.email) {
+                    throw new Error("This invite is restricted to a specific email.");
+                }
 
-            if (role === "rower") {
+                profileBase.primaryRole = "admin";
+                profileBase.inviteId = adminInvite.id;
+                profileBase.roles.admin = {
+                    hostId: adminInvite.hostId,
+                };
+            } else if (role === "rower") {
                 profileBase.gender = gender;
                 profileBase.dateOfBirth = dateOfBirth;
                 profileBase.birthYear = Number(dateOfBirth.slice(0, 4));
@@ -174,12 +208,14 @@ export default function AuthPage() {
                     club: club.trim()
                 };
             }
-            else {
+            else if(role === "host"){
                 profileBase.roles.host = { location: location.trim() };
             }
 
             await upsertUserProfile(cred.user.uid, profileBase);
-
+            if(adminInvite) {
+                await markAdminInviteUsed(adminInvite.id);
+            }
             goAfterAuth();
         } catch (e: any) {
             setErr(friendlyError(e?.message ?? "Registration failed"));
@@ -195,7 +231,13 @@ export default function AuthPage() {
                 <div className="card auth-card">
                     <div className="space-between">
                         <div>
-                            <h1 className="auth-title">{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
+                            <h1 className="auth-title">
+                                {isAdminInvite
+                                    ? "Admin invitation"
+                                    : mode === "signin"
+                                        ? "Welcome back"
+                                        : "Create your account"}
+                            </h1>
                             <p className="auth-subtitle">
                                 {mode === "signin"
                                     ? "Sign in to register boats, manage events, and view results."
@@ -252,6 +294,7 @@ export default function AuthPage() {
                         <input
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            disabled={isAdminInvite}
                             placeholder="you@email.com"
                             autoComplete="email"
                             inputMode="email"
@@ -280,7 +323,7 @@ export default function AuthPage() {
                                     autoComplete="name"
                                 />
                             </label>
-
+                            {!isAdminInvite && (
                             <div className="card card--tight auth-role-card">
                                 <div className="space-between">
                                     <h3>Role</h3>
@@ -358,7 +401,7 @@ export default function AuthPage() {
                                         </label>
                                     </div>
                                 )}
-                            </div>
+                            </div>)}
                         </>
                     )}
 

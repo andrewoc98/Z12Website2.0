@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, serverTimestamp, setDoc, updateDoc} from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import type { UserProfile } from "../types";
 
@@ -55,4 +55,30 @@ export async function upsertUserProfile(uid: string, profile: UserProfile) {
         },
         { merge: true }
     );
+}
+
+export async function createAdminInvite(hostId: string, email: string) {
+    const ref = await addDoc(collection(db, "adminInvites"), {
+        email: email.trim().toLowerCase(),
+        hostId,
+        role: "admin",
+        createdAt: serverTimestamp(),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7 days
+        used: false,
+    });
+
+    return ref.id;
+}
+
+export async function fetchAdminInvite(inviteId: string) {
+    const snap = await getDoc(doc(db, "adminInvites", inviteId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() };
+}
+
+export async function markAdminInviteUsed(inviteId: string) {
+    await updateDoc(doc(db, "adminInvites", inviteId), {
+        used: true,
+        usedAt: serverTimestamp(),
+    });
 }
