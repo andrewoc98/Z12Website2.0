@@ -253,3 +253,35 @@ export function getElapsedMs(b: { startedAt?: number; finishedAt?: number }) {
     if (!b.startedAt || !b.finishedAt) return null;
     return Math.max(0, b.finishedAt - b.startedAt);
 }
+
+export async function getInviteRequirements(
+    eventId: string,
+    code: string
+) {
+    // 1. Find boat by invite code
+    const boatsRef = collection(db, "events", eventId, "boats");
+    const q = query(boatsRef, where("inviteCode", "==", code));
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+        throw new Error("Invalid invite code");
+    }
+
+    const boatDoc = snap.docs[0];
+    const boat = boatDoc.data();
+
+    // 2. Get event date
+    const eventRef = doc(db, "events", eventId);
+    const eventSnap = await getDoc(eventRef);
+
+    if (!eventSnap.exists()) {
+        throw new Error("Event not found");
+    }
+
+    return {
+        eventDate: eventSnap.data().date,
+        category: boat.category,
+        genderCategory: boat.genderCategory,
+        boatId: boatDoc.id,
+    };
+}
