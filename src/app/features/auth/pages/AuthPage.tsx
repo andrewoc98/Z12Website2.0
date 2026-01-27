@@ -246,7 +246,7 @@ export default function AuthPage() {
                         </div>
 
                         <div className="row">
-                            <button
+                            {!isAdminInvite && (<button
                                 type="button"
                                 className={mode === "signin" ? "btn-primary" : "btn-ghost"}
                                 onClick={() => {
@@ -256,8 +256,9 @@ export default function AuthPage() {
                                 disabled={busy}
                             >
                                 Sign in
-                            </button>
-                            <button
+                            </button>)}
+
+                            {!isAdminInvite && (<button
                                 type="button"
                                 className={mode === "register" ? "btn-primary" : "btn-ghost"}
                                 onClick={() => {
@@ -267,7 +268,7 @@ export default function AuthPage() {
                                 disabled={busy}
                             >
                                 Register
-                            </button>
+                            </button>)}
                         </div>
                     </div>
 
