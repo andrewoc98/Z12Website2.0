@@ -12,6 +12,7 @@ import AuthPage from "./features/auth/pages/AuthPage.tsx";
 import RequireAuth from "./guards/RequiredAuth.tsx";
 import ProfilePage from "./features/profile/pages/ProfilePage.tsx";
 import InviteJoinPage from "./features/signup/pages/InviteJoinPage.tsx";
+import HostEventListPage from "./features/events/pages/HostEventListPage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -45,14 +46,25 @@ export const router = createBrowserRouter([
             </RequireRole>
         ),
     },
+
     {
-        path: "/host/events/manage",
+        path: "/host/events",
+        element: (
+            <RequireRole role="host">
+                <HostEventListPage />
+            </RequireRole>
+        ),
+    },
+
+    {
+        path: "/host/events/:eventId",
         element: (
             <RequireRole role="host">
                 <HostEventManagePage />
             </RequireRole>
         ),
     },
+
     {
         path: "/rower/signup",
         element: (
