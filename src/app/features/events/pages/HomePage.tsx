@@ -112,12 +112,6 @@ export default function HomePage() {
                         )}
                     </section>
                 )}
-
-                {!DEV_MODE && (
-                    <section className="card">
-                        <p>DEV_MODE is off. This page should use Firebase auth state (useAuth) instead.</p>
-                    </section>
-                )}
             </main>
         </>
     );
