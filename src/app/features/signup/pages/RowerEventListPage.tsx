@@ -25,7 +25,7 @@ function tsToYMD(ts: any) {
 }
 
 function isPastEvent(e: EventDoc) {
-    const end = tsToDate(e.endAt);
+    const end = tsToDate(e.endDate);
     if (!end) return false;
     // day-based
     return ymdFromDate(end) < todayYMD();
@@ -77,8 +77,8 @@ export default function RowerEventListPage() {
                 : events.filter((e) => !isPastEvent(e) && e.status !== "finished");
 
         const sorted = [...filtered].sort((a, b) => {
-            const aStart = tsToDate(a.startAt)?.getTime() ?? 0;
-            const bStart = tsToDate(b.startAt)?.getTime() ?? 0;
+            const aStart = tsToDate(a.startDate)?.getTime() ?? 0;
+            const bStart = tsToDate(b.startDate)?.getTime() ?? 0;
             if (mode === "past") return bStart - aStart; // most recent first
             return aStart - bStart; // soonest first
         });
@@ -142,9 +142,9 @@ export default function RowerEventListPage() {
                         <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
                             {pageItems.map((e) => {
                                 const past = isPastEvent(e);
-                                const startYMD = tsToYMD(e.startAt);
-                                const endYMD = tsToYMD(e.endAt);
-                                const closeYMD = tsToYMD(e.closeAt);
+                                const startYMD = tsToYMD(e.startDate);
+                                const endYMD = tsToYMD(e.endDate);
+                                const closeYMD = tsToYMD(e.closingDate);
 
                                 const canSignup = e.status === "open" && !past;
                                 const canViewResults = mode === "past" || e.status === "finished" || past;

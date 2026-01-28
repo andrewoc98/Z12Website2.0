@@ -1,5 +1,5 @@
 import { DEV_MODE } from "../../../shared/lib/config";
-import type { EventCategory, EventDoc, EventStatus } from "../types";
+import type {EventCategory, EventDoc, EventStatus, FirestoreEventDoc} from "../types";
 
 // Firestore
 import {
@@ -15,6 +15,7 @@ import {
     updateDoc,
 } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
+import {mapEvent} from "../lib/mapper.tsx";
 
 // --------------------
 // Helpers (keep as-is)
@@ -113,7 +114,7 @@ export async function listEvents(): Promise<EventWithId[]> {
 
     const q = query(collection(db, "events"), orderBy("startAt", "desc"));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as EventDoc) }));
+    return snap.docs.map((d) => mapEvent(d.id, d.data() as FirestoreEventDoc));
 }
 
 export async function getEvent(eventId: string): Promise<EventWithId | null> {
@@ -125,7 +126,8 @@ export async function getEvent(eventId: string): Promise<EventWithId | null> {
 
     const snap = await getDoc(doc(db, "events", eventId));
     if (!snap.exists()) return null;
-    return { id: snap.id, ...(snap.data() as EventDoc) };
+    const data = snap.data() as FirestoreEventDoc;
+    return mapEvent(snap.id, data);
 }
 
 export async function updateEvent(eventId: string, patch: Partial<EventDoc>): Promise<void> {

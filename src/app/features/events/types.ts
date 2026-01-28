@@ -6,23 +6,31 @@ export type EventCategory = {
 };
 
 export type EventDoc = {
+    id: string;
     name: string;
-    description: string;
+    startDate: string;
+    endDate: string;
+    closingDate?: string;
+    status: "draft" | "open" | "closed" | "running" | "finished";
     location: string;
-
-    startAt: unknown;
-    endAt: unknown;
-    closeAt: unknown;
-
+    description?: string;
     lengthMeters: number;
-
+    createdByUid?: string;
+    createdByName?: string;
     categories: EventCategory[];
+};
 
-    status: EventStatus;
 
+export type FirestoreEventDoc = {
+    name: string;
+    startAt: any;   // Timestamp
+    endAt: any;     // Timestamp
+    closeAt?: any;  // Timestamp
+    status: "draft" | "open" | "closed" | "running" | "finished";
+    location: string;
+    description?: string;
+    lengthMeters: number;
+    createdByName?: string;
     createdByUid: string;
-    createdByName: string;
-
-    createdAt?: unknown;
-    updatedAt?: unknown;
+    categories: EventCategory[];
 };

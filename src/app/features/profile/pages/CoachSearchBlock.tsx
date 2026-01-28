@@ -9,17 +9,18 @@ export default function CoachSearchBlock() {
     const [queryStr, setQueryStr] = useState("");
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+    const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
 
     const [existingLinks, setExistingLinks] = useState<Record<string, string>>({}); // coachId -> status
 
     // Fetch existing links for this rower
     useEffect(() => {
-        if (!profile?.uid) return;
+        const uid = profile?.uid;
+        if (!uid) return
         async function loadLinks() {
             const q = query(
                 collection(db, "coachLinks"),
-                where("rowerId", "==", profile.uid)
+                where("rowerId", "==", uid)
             );
             const snapshot = await getDocs(q);
             const map: Record<string, string> = {};
@@ -55,7 +56,9 @@ export default function CoachSearchBlock() {
 
     // Request a coach
     async function onAddCoach(coach: any) {
-        if (!profile?.uid) return;
+
+        const uid = profile?.uid;
+        if (!uid) return
 
         const existingStatus = existingLinks[coach.uid];
         if (existingStatus) {
@@ -65,7 +68,7 @@ export default function CoachSearchBlock() {
 
         // Create pending link
         await addDoc(collection(db, "coachLinks"), {
-            rowerId: profile.uid,
+            rowerId: uid,
             coachId: coach.uid,
             status: "pending",
             requestedAt: serverTimestamp(),

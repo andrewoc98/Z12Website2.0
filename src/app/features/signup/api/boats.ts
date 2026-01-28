@@ -10,7 +10,6 @@ import {
     updateDoc,
     writeBatch,
     where,
-    documentId,
     getDoc,
 } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
@@ -35,13 +34,6 @@ function signupGuardRef(eventId: string, uid: string, categoryId: string) {
     if (!categoryId) throw new Error("Missing categoryId");
     // Guard doc that makes "category once per rower" atomic
     return doc(db, "events", eventId, "rowerCategorySignups", `${uid}__${categoryId}`);
-}
-
-function randomCode(len = 12) {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let out = "";
-    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-    return out;
 }
 
 function cleanPatch(patch: any) {
@@ -255,10 +247,13 @@ export function getElapsedMs(b: { startedAt?: number; finishedAt?: number }) {
 }
 
 export async function getInviteRequirements(
-    eventId: string,
-    code: string
+    eventId: string | undefined,
+    code: string | undefined
 ) {
-    // 1. Find boat by invite code
+
+    if (!eventId) {
+        throw new Error("eventId is required");
+    }
     const boatsRef = collection(db, "events", eventId, "boats");
     const q = query(boatsRef, where("inviteCode", "==", code));
     const snap = await getDocs(q);

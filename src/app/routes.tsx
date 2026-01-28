@@ -4,7 +4,6 @@ import LeaderboardPage from "../app/features/leaderboard/pages/LeaderboardPage";
 import RequireRole from "../app/guards/RequireRole";
 import EventCreatePage from "../app/features/events/pages/EventCreatePage";
 import EventSignupPage from "../app/features/signup/pages/EventSignupPage";
-import TimingPage from "../app/features/timing/pages/TimingPage";
 import HostEventManagePage from "../app/features/events/pages/HostEventManagePage";
 import RowerEventListPage from "./features/signup/pages/RowerEventListPage.tsx";
 import EventResultsPage from "./features/signup/pages/EventResultsPage.tsx";
@@ -70,14 +69,6 @@ export const router = createBrowserRouter([
         element: (
             <RequireRole role="rower">
                 <EventSignupPage />
-            </RequireRole>
-        ),
-    },
-    {
-        path: "/admin/timing",
-        element: (
-            <RequireRole role="admin">
-                <TimingPage />
             </RequireRole>
         ),
     },

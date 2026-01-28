@@ -23,11 +23,12 @@ export default function CoachDashboard() {
 
         async function loadPending() {
             setLoading(true);
-
+            const uid = profile?.uid;
+            if (!uid) return;
             try {
                 const q = query(
                     collection(db, "coachLinks"),
-                    where("coachId", "==", profile.uid),
+                    where("coachId", "==", uid),
                     where("status", "==", "pending")
                 );
                 const snapshot = await getDocs(q);

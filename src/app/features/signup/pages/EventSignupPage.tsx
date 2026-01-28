@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
-import type { EventDoc, EventCategory } from "../../events/types";
+import type {EventDoc, EventCategory, FirestoreEventDoc} from "../../events/types";
 import type { BoatSize } from "../types";
 
 import { createBoat, listBoatsForEvent } from "../api/boats";
@@ -10,6 +10,7 @@ import { parseBoatClassFromCategory, boatSizeFromBoatClass } from "../../events/
 import { collection, doc, getDoc, getDocs, query, where, documentId } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import { useAuth } from "../../../providers/AuthProvider";
+import {mapEvent} from "../../events/lib/mapper.tsx";
 
 type Profile = {
     dateOfBirth?: string;
@@ -135,7 +136,8 @@ function randomCode(len = 12) {
 async function getEventById(eventId: string): Promise<(EventDoc & { id: string }) | null> {
     const snap = await getDoc(doc(db, "events", eventId));
     if (!snap.exists()) return null;
-    return { id: snap.id, ...(snap.data() as EventDoc) };
+    const data = snap.data() as FirestoreEventDoc;
+    return mapEvent(snap.id, data);
 }
 
 async function fetchUsersByUid(uids: string[]): Promise<Map<string, UserDoc>> {

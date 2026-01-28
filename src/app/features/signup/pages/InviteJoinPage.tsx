@@ -91,7 +91,7 @@ export default function InviteJoinPage() {
         try {
             await joinBoatWithInviteCode({
                 eventId,
-                boatId,
+                code: boatId,
                 uid: user.uid,
             });
             setOk(true);

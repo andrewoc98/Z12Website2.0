@@ -35,12 +35,6 @@ export type DivisionConfig = {
 const MEN_WOMEN = ["Men", "Women"] as const;
 const MEN_ONLY = ["Men"] as const;
 const WOMEN_ONLY = ["Women"] as const;
-
-const WEIGHTS_BY_GENDER: Record<Exclude<Gender, "Mixed">, readonly WeightClass[]> = {
-    Women: ["60kg", "70kg", "Open"] as const,
-    Men: ["70kg", "80kg", "Open"] as const,
-};
-
 const BOAT_SWEEP: readonly BoatClass[] = ["1x", "2-"] as const;
 const BOAT_JUNIOR_14_15: readonly BoatClass[] = ["4x+", "2x"] as const;
 const BOAT_JUNIOR_16: readonly BoatClass[] = ["1x", "2x"] as const;

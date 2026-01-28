@@ -15,10 +15,11 @@ export default function HostAdminInvite() {
         setBusy(true);
         setInviteLink(null);
         setCopied(false);
-
+        const uid = profile?.uid;
+        if (!uid) return;
         try {
             const inviteId = await createAdminInvite(
-                profile.uid,
+                uid,
                 email.trim().toLowerCase()
             );
 

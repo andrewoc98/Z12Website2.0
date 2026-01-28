@@ -13,7 +13,7 @@ type DivisionConfig = (typeof DIVISIONS)[number] & {
     genders?: readonly Gender[];
 };
 
-function boatClassesForGender(d: DivisionConfig, gender: Gender) {
+function boatClassesForGender(d: DivisionConfig) {
     return d.boatClasses;
 }
 
@@ -121,7 +121,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
         for (const d of DIVISIONS as DivisionConfig[]) {
             const genders = allowedGendersForDivision(d);
             for (const g of genders) {
-                for (const bc of boatClassesForGender(d, g)) {
+                for (const bc of boatClassesForGender(d)) {
                     all.push(categoryKey(g, d.division, bc));
                 }
             }
@@ -133,7 +133,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
         const next = new Set(selected);
         const genders = visibleGendersForDivision(d);
         for (const g of genders) {
-            for (const bc of boatClassesForGender(d, g)) {
+            for (const bc of boatClassesForGender(d)) {
                 const cat = categoryKey(g, d.division, bc);
                 if (on) next.add(cat);
                 else next.delete(cat);
@@ -148,7 +148,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
         let checked = 0;
 
         for (const g of genders) {
-            for (const bc of boatClassesForGender(d, g)) {
+            for (const bc of boatClassesForGender(d)) {
                 total += 1;
                 if (selected.has(categoryKey(g, d.division, bc))) checked += 1;
             }

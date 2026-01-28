@@ -1,6 +1,6 @@
 import {addDoc, collection, doc, getDoc, serverTimestamp, setDoc, updateDoc} from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
-import type { UserProfile } from "../types";
+import type {AdminInvite, UserProfile} from "../types";
 
 // Remove empty-string keys so we don't overwrite good values with "".
 function stripEmptyStrings<T extends Record<string, any>>(obj: T): Partial<T> {
@@ -70,10 +70,16 @@ export async function createAdminInvite(hostId: string, email: string) {
     return ref.id;
 }
 
-export async function fetchAdminInvite(inviteId: string) {
+export async function fetchAdminInvite(
+    inviteId: string
+): Promise<AdminInvite | null> {
     const snap = await getDoc(doc(db, "adminInvites", inviteId));
     if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() };
+
+    return {
+        id: snap.id,
+        ...(snap.data() as Omit<AdminInvite, "id">),
+    };
 }
 
 export async function markAdminInviteUsed(inviteId: string) {

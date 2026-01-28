@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
-import type { EventDoc } from "../../events/types";
+import type {EventDoc, FirestoreEventDoc} from "../../events/types";
 import { DEV_MODE } from "../../../shared/lib/config";
 import { listBoatsForEvent, getElapsedMs } from "../api/boats";
 
 // Firestore event read (DEV_MODE=false)
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
+import {mapEvent} from "../../events/lib/mapper.tsx";
 
 type EventWithId = EventDoc & { id: string };
 
@@ -41,7 +42,8 @@ async function getEventById(eventId: string): Promise<EventWithId | null> {
     if (DEV_MODE) return null; // wire mock if you have it
     const snap = await getDoc(doc(db, "events", eventId));
     if (!snap.exists()) return null;
-    return { id: snap.id, ...(snap.data() as EventDoc) };
+    const data = snap.data() as FirestoreEventDoc;
+    return mapEvent(snap.id, data);
 }
 
 export default function EventResultsPage() {
@@ -133,8 +135,8 @@ export default function EventResultsPage() {
         return map;
     }, [finished]);
 
-    const startYMD = tsToYMD(event?.startAt);
-    const endYMD = tsToYMD(event?.endAt);
+    const startYMD = tsToYMD(event?.startDate);
+    const endYMD = tsToYMD(event?.endDate);
 
     return (
         <>

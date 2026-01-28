@@ -4,7 +4,7 @@ import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useAuth } from "../../../providers/AuthProvider";
 import type { UserProfile } from "../../auth/types";
 import { upsertUserProfile } from "../../auth/api/users";
-import {addCoachLink, fetchUserProfileByEmail, getCoachesForRower, getRowersForCoach} from "../api/user.ts";
+import {getCoachesForRower} from "../api/user.ts";
 import CoachSearchBlock from "./CoachSearchBlock.tsx";
 import CoachDashboard from "./CoachDashBoard.tsx";
 import HostAdminInvite from "../../auth/pages/AdminHostInvite.tsx";
@@ -82,15 +82,15 @@ function ProfileDetails({ profile }: { profile: UserProfile }) {
     const [coaches, setCoaches] = useState<UserProfile[]>([]);
     const [loadingCoaches, setLoadingCoaches] = useState(false);
 
-    const [rowers, setRowers] = useState<UserProfile[]>([]);
-    const [loadingRowers, setLoadingRowers] = useState(false);
+    // const [rowers, setRowers] = useState<UserProfile[]>([]);
+    // const [loadingRowers, setLoadingRowers] = useState(false);
 
     useEffect(() => {
         let alive = true;
 
         async function run() {
             setLoadingCoaches(false);
-            setLoadingRowers(false);
+            // setLoadingRowers(false);
 
             if (profile.roles?.rower) {
                 setLoadingCoaches(true);
@@ -100,10 +100,10 @@ function ProfileDetails({ profile }: { profile: UserProfile }) {
             }
 
             if (profile.roles?.coach) {
-                setLoadingRowers(true);
-                const data = await getRowersForCoach(profile.uid);
-                if (alive) setRowers(data);
-                if (alive) setLoadingRowers(false);
+                // setLoadingRowers(true);
+                // const data = await getRowersForCoach(profile.uid);
+                // if (alive) setRowers(data);
+                // if (alive) setLoadingRowers(false);
             }
         }
 
@@ -113,33 +113,33 @@ function ProfileDetails({ profile }: { profile: UserProfile }) {
         };
     }, [profile.uid, profile.roles]);
 
+        //
+        // async function loadRowers() {
+        //     if (profile.roles?.coach) {
+        //         setLoadingRowers(true);
+        //         setLoadingRowers(false);
+        //     }
+        // }
 
-        async function loadRowers() {
-            if (profile.roles?.coach) {
-                setLoadingRowers(true);
-                setLoadingRowers(false);
-            }
-        }
 
-
-    async function onAddCoach() {
-        const coachEmail = prompt("Enter your coach's email:");
-        if (!coachEmail) return;
-
-        // Here you would look up the coach UID by email
-        const coachProfile = await fetchUserProfileByEmail(coachEmail.trim());
-        if (!coachProfile || !coachProfile.roles?.coach) {
-            alert("No coach found with that email.");
-            return;
-        }
-
-        // Create a link in Firestore
-        await addCoachLink(profile.uid, coachProfile.uid);
-
-        // Refresh coaches list
-        const data = await getCoachesForRower(profile.uid);
-        setCoaches(data);
-    }
+    // async function onAddCoach() {
+    //     const coachEmail = prompt("Enter your coach's email:");
+    //     if (!coachEmail) return;
+    //
+    //     // Here you would look up the coach UID by email
+    //     const coachProfile = await fetchUserProfileByEmail(coachEmail.trim());
+    //     if (!coachProfile || !coachProfile.roles?.coach) {
+    //         alert("No coach found with that email.");
+    //         return;
+    //     }
+    //
+    //     // Create a link in Firestore
+    //     await addCoachLink(profile.uid, coachProfile.uid);
+    //
+    //     // Refresh coaches list
+    //     const data = await getCoachesForRower(profile.uid);
+    //     setCoaches(data);
+    // }
 
 
     const roleBadges = useMemo(() => {
