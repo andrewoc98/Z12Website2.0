@@ -21,6 +21,18 @@ export type UserProfile = {
         rower?: {
             club: string;
             coachId?: string;
+            stats: {
+                heightCm?: number
+                wingspanCm?: number
+                weightKg?: number
+            },
+
+            performances: {
+                best100m?: number   // seconds
+                best500m?: number
+                best2000m?: number
+                best6000m?: number
+            }
         };
         coach?: {
             club: string;

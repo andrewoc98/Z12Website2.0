@@ -12,6 +12,8 @@ import RequireAuth from "./guards/RequiredAuth.tsx";
 import ProfilePage from "./features/profile/pages/ProfilePage.tsx";
 import InviteJoinPage from "./features/signup/pages/InviteJoinPage.tsx";
 import HostEventListPage from "./features/events/pages/HostEventListPage.tsx";
+import CommunityPage from "./features/community/pages/CommunityPage.tsx";
+import PublicProfilePage from "./features/community/pages/PublicProfilePage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -92,4 +94,20 @@ export const router = createBrowserRouter([
     { path: "/", element: <HomePage /> },
     { path: "/leaderboard", element: <LeaderboardPage /> },
     { path: "/auth", element: <AuthPage /> },
+    {
+        path: "/community",
+        element: (
+            <RequireAuth>
+                <CommunityPage />
+            </RequireAuth>
+        ),
+    },
+    {
+        path: "/community/:uid",
+        element: (
+            <RequireAuth>
+                <PublicProfilePage />
+            </RequireAuth>
+        ),
+    },
 ]);

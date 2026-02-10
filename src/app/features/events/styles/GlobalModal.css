@@ -1,0 +1,30 @@
+.modal-root {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: grid;
+    place-items: center; /* PERFECT CENTER */
+}
+
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+}
+
+.modal-window {
+    position: relative;
+    width: min(90%, 520px);
+    max-height: 80vh;
+    overflow-y: auto;
+
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(14px);
+
+    border-radius: 16px;
+    padding: 24px;
+
+    box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+}

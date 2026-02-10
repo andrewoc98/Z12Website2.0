@@ -1,0 +1,152 @@
+.homepage {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+.dev-panel {
+    margin-top: 40px;
+}
+.home-hero {
+    text-align: center;
+    margin-bottom: 60px;
+
+    padding: 60px 20px;
+
+    background:
+            radial-gradient(circle at top, #f6f9ff, white);
+
+    border-radius: 20px;
+}
+
+
+.home-hero h1 {
+    font-size: 2.5rem;
+}
+
+.hero-buttons {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+.modal-root {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: grid;
+    place-items: center;   /* TRUE viewport centering */
+}
+
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-window {
+    position: relative;
+
+    width: min(90%, 520px);
+    max-height: 80vh;
+    overflow-y: auto;
+
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+
+    box-shadow:
+            0 20px 60px rgba(0,0,0,0.2);
+}
+
+@keyframes modalFade {
+    from { transform: translateY(10px); opacity: 0 }
+    to { transform: translateY(0); opacity: 1 }
+}
+.features {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    margin-bottom: 48px;
+}
+
+.feature-card {
+    background: white;
+    padding: 24px;
+    border-radius: 14px;
+
+    transition: all 0.2s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.12);
+}
+
+
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 900px) {
+    .features {
+        grid-template-columns: 1fr;
+    }
+}
+.sponsor-section {
+    margin-top: 40px;
+}
+
+.sponsor-carousel-wrapper {
+    overflow: hidden;
+    width: 100%;
+}
+
+.sponsor-track {
+    display: flex;
+    gap: 16px;
+
+    animation: sponsorScroll 25s linear infinite;
+    will-change: transform; /* GPU acceleration */
+}
+
+@keyframes sponsorScroll {
+    from {
+        transform: translate3d(0,0,0);
+    }
+    to {
+        transform: translate3d(calc(-1 * var(--scroll-distance)),0,0);
+    }
+}
+
+
+/* pause on hover (pro UX) */
+.sponsor-carousel-wrapper {
+    mask-image: linear-gradient(
+            to right,
+            transparent,
+            black 10%,
+            black 90%,
+            transparent
+    );
+}
+
+
+.sponsor-card {
+    min-width: 200px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* infinite motion */
+@keyframes sponsorScroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}

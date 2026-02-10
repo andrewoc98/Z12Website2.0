@@ -82,3 +82,29 @@ export async function getUserProfileByUid(uid: string): Promise<UserProfile | nu
 
     return snap.data() as UserProfile;
 }
+
+export function formatLength(cm: number, units: "metric" | "imperial") {
+    if (units === "metric") return `${cm} cm`;
+    const inches = cm / 2.54;
+    const feet = Math.floor(inches / 12);
+    const remInches = Math.round(inches % 12);
+    return `${feet}'${remInches}"`;
+}
+
+export function formatWeight(kg: number, units: "metric" | "imperial") {
+    if (units === "metric") return `${kg} kg`;
+    const lbs = Math.round(kg * 2.20462);
+    return `${lbs} lbs`;
+}
+
+export function formatTime(seconds: number) {
+    if (seconds < 60) {
+        // For times under a minute, show only seconds with one decimal
+        return seconds.toFixed(1);
+    } else {
+        // For 1 minute or more, show mm:ss.s
+        const m = Math.floor(seconds / 60);
+        const s = (seconds % 60).toFixed(1).padStart(4, "0"); // ensures "05.0" format
+        return `${m}:${s}`;
+    }
+}

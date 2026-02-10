@@ -1,30 +1,25 @@
 import { useEffect, useState } from "react";
 import { searchCoachesByName } from "../api/user";
-import { useAuth } from "../../../providers/AuthProvider";
 import { db } from "../../../shared/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { useAuth } from "../../../providers/AuthProvider";
 
 export default function CoachSearchBlock() {
     const { profile } = useAuth();
     const [queryStr, setQueryStr] = useState("");
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
+    const [existingLinks, setExistingLinks] = useState<Record<string, string>>({});
 
-    const [existingLinks, setExistingLinks] = useState<Record<string, string>>({}); // coachId -> status
-
-    // Fetch existing links for this rower
+    // Fetch existing links
     useEffect(() => {
-        const uid = profile?.uid;
-        if (!uid) return
+        if (!profile?.uid) return;
         async function loadLinks() {
-            const q = query(
-                collection(db, "coachLinks"),
-                where("rowerId", "==", uid)
-            );
+            // @ts-ignore
+            const q = query(collection(db, "coachLinks"), where("rowerId", "==", profile.uid));
             const snapshot = await getDocs(q);
             const map: Record<string, string> = {};
-            snapshot.docs.forEach(doc => {
+            snapshot.docs.forEach((doc) => {
                 const data = doc.data();
                 map[data.coachId] = data.status;
             });
@@ -35,13 +30,7 @@ export default function CoachSearchBlock() {
 
     // Search coaches with debounce
     useEffect(() => {
-        if (!queryStr.trim()) {
-            setResults([]);
-            return;
-        }
-
-        if (debounceTimer) clearTimeout(debounceTimer);
-
+        if (!queryStr.trim()) return setResults([]);
         const timer = setTimeout(async () => {
             setLoading(true);
             const data = await searchCoachesByName(queryStr.trim(), 5);
@@ -49,72 +38,57 @@ export default function CoachSearchBlock() {
             setLoading(false);
         }, 300);
 
-        setDebounceTimer(timer);
-
         return () => clearTimeout(timer);
     }, [queryStr]);
 
-    // Request a coach
     async function onAddCoach(coach: any) {
-
-        const uid = profile?.uid;
-        if (!uid) return
-
-        const existingStatus = existingLinks[coach.uid];
-        if (existingStatus) {
-            alert(`You already have a ${existingStatus} request with ${coach.fullName}`);
+        if (!profile?.uid) return;
+        const status = existingLinks[coach.uid];
+        if (status) {
+            alert(`You already have a ${status} request with ${coach.fullName}`);
             return;
         }
-
-        // Create pending link
         await addDoc(collection(db, "coachLinks"), {
-            rowerId: uid,
+            rowerId: profile.uid,
             coachId: coach.uid,
             status: "pending",
             requestedAt: serverTimestamp(),
             approvedAt: null,
         });
-
-        // Optimistically update UI
-        setExistingLinks(prev => ({ ...prev, [coach.uid]: "pending" }));
+        setExistingLinks((prev) => ({ ...prev, [coach.uid]: "pending" }));
     }
 
     return (
-        <div className="search">
-            <div className="search-head">
-                <h4 className="search-title">Find coaches</h4>
-            </div>
-
+        <div className="card profile-section coach-search">
+            <h4 className="section-title">Find Coaches</h4>
             <input
                 type="text"
-                value={queryStr}
-                placeholder="Type a coach name…"
-                onChange={(e) => setQueryStr(e.target.value)}
                 className="input"
+                placeholder="Type a coach name…"
+                value={queryStr}
+                onChange={(e) => setQueryStr(e.target.value)}
             />
-
             {loading && <p className="muted">Searching…</p>}
-
-            {results.length > 0 && (
-                <ul className="list">
-                    {results.map((coach) => {
-                        const status = existingLinks[coach.uid];
-                        return (
-                            <li key={coach.uid} className="list-item">
-                                <div className="list-main">
-                                    <div className="list-title">{coach.fullName}</div>
-                                    <div className="muted">{coach.roles?.coach?.club ?? "No club info"}</div>
-                                </div>
-
-                                <button className="btn btn--brand" disabled={!!status} onClick={() => onAddCoach(coach)}>
-                                    {status === "pending" ? "Pending…" : status === "approved" ? "Approved" : "Add"}
-                                </button>
-                            </li>
-                        );
-                    })}
-                </ul>
-            )}
-
+            <ul className="list search-results">
+                {results.map((coach) => {
+                    const status = existingLinks[coach.uid];
+                    return (
+                        <li key={coach.uid} className="card search-card">
+                            <div className="list-main">
+                                <div className="list-title">{coach.fullName}</div>
+                                <div className="muted">{coach.roles?.coach?.club ?? "No club info"}</div>
+                            </div>
+                            <button
+                                className="btn btn--brand"
+                                disabled={!!status}
+                                onClick={() => onAddCoach(coach)}
+                            >
+                                {status === "pending" ? "Pending…" : status === "approved" ? "Approved" : "Add"}
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
             {!loading && results.length === 0 && queryStr.trim() && <p className="muted">No coaches found</p>}
         </div>
     );

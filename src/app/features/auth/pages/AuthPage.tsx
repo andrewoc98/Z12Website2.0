@@ -36,7 +36,7 @@ export default function AuthPage() {
     const goAfterAuth = () => {
         const raw = searchParams.get("returnTo");
         if (!raw) {
-            navigate("/rower/events");
+            navigate("/");
             return;
         }
 
@@ -47,7 +47,7 @@ export default function AuthPage() {
 
         // safety: only internal paths
         if (!path.startsWith("/")) {
-            navigate("/rower/events");
+            navigate("/");
             return;
         }
 
