@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
+import type {EventDoc} from "../../events/types.ts";
 
 export function useUserResults(uid: string) {
     const [results, setResults] = useState<any[]>([]);
@@ -13,9 +14,9 @@ export function useUserResults(uid: string) {
             try {
                 // 1️⃣ Get all events
                 const eventsSnapshot = await getDocs(collection(db, "events"));
-                const events = eventsSnapshot.docs.map((doc) => ({
+                const events: EventDoc[] = eventsSnapshot.docs.map((doc) => ({
                     id: doc.id,
-                    ...doc.data(),
+                    ...(doc.data() as Omit<EventDoc, "id">),
                 }));
 
                 const allBoats: any[] = [];
