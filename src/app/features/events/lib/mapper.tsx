@@ -15,5 +15,6 @@ export function mapEvent(id: string, data: FirestoreEventDoc): EventDoc {
         createdByUid: data.createdByUid,
         createdByName: data.createdByName,
         categories: data.categories ?? [],
+        resultsPublishMode: data.resultsPublishMode
     };
 }

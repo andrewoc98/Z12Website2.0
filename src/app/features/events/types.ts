@@ -1,3 +1,5 @@
+import type {BoatDoc} from "../signup/types.ts";
+
 export type EventStatus = "draft" | "open" | "closed" | "running" | "finished";
 
 export type EventCategory = {
@@ -18,6 +20,11 @@ export type EventDoc = {
     createdByUid?: string;
     createdByName?: string;
     categories: EventCategory[];
+    resultsPublishMode:
+        | "live"
+        | "category_complete"
+        | "manual";
+    boats?: BoatDoc
 };
 
 
@@ -33,4 +40,9 @@ export type FirestoreEventDoc = {
     createdByName?: string;
     createdByUid: string;
     categories: EventCategory[];
+    resultsPublishMode:
+        | "live"
+        | "category_complete"
+        | "manual";
+    boats: BoatDoc
 };

@@ -1,12 +1,11 @@
 import { createBrowserRouter } from "react-router-dom";
 import HomePage from "../app/features/events/pages/HomePage";
-import LeaderboardPage from "../app/features/leaderboard/pages/LeaderboardPage";
 import RequireRole from "../app/guards/RequireRole";
 import EventCreatePage from "../app/features/events/pages/EventCreatePage";
 import EventSignupPage from "../app/features/signup/pages/EventSignupPage";
 import HostEventManagePage from "../app/features/events/pages/HostEventManagePage";
 import RowerEventListPage from "./features/signup/pages/RowerEventListPage.tsx";
-import EventResultsPage from "./features/signup/pages/EventResultsPage.tsx";
+import EventResultsPage from "./features/results/pages/EventResultsPage.tsx";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
 import RequireAuth from "./guards/RequiredAuth.tsx";
 import ProfilePage from "./features/profile/pages/ProfilePage.tsx";
@@ -92,7 +91,6 @@ export const router = createBrowserRouter([
     },
 
     { path: "/", element: <HomePage /> },
-    { path: "/leaderboard", element: <LeaderboardPage /> },
     { path: "/auth", element: <AuthPage /> },
     {
         path: "/community",

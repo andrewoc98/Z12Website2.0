@@ -7,12 +7,12 @@ import {
     collection,
     doc,
     getDoc,
-    getDocs,
+    getDocs, onSnapshot,
     orderBy,
     query,
     serverTimestamp,
     Timestamp,
-    updateDoc,
+    updateDoc, where,
 } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import {mapEvent} from "../lib/mapper.tsx";
@@ -130,6 +130,39 @@ export async function getEvent(eventId: string): Promise<EventWithId | null> {
     return mapEvent(snap.id, data);
 }
 
+export function subscribeToEventBoats(
+    eventId: string,
+    callback: (boats:any[]) => void
+) {
+
+    const ref = collection(db, "events", eventId, "boats");
+
+    return onSnapshot(ref, (snapshot) => {
+
+        const boats = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        callback(boats);
+    });
+
+}
+
+export async function saveBoatAdjustment(
+    eventId: string,
+    boatId: string,
+    adjustmentMs: number
+) {
+
+    const ref = doc(db, "events", eventId, "boats", boatId);
+
+    await updateDoc(ref, {
+        adjustmentMs
+    });
+
+}
+
 export async function updateEvent(eventId: string, patch: Partial<EventDoc>): Promise<void> {
     if (!eventId) throw new Error("updateEvent: missing eventId");
 
@@ -148,4 +181,43 @@ export async function updateEvent(eventId: string, patch: Partial<EventDoc>): Pr
     clean.updatedAt = serverTimestamp();
 
     await updateDoc(doc(db, "events", eventId), clean);
+}
+
+export function listenToCategoryBoats(
+    eventId: string,
+    categoryId: string,
+    callback: (boats:any[]) => void
+){
+
+    const q = query(
+        collection(db, "events", eventId, "boats"),
+        where("categoryId", "==", categoryId),
+        orderBy("bowNumber")
+    );
+
+    return onSnapshot(q, snapshot => {
+
+        const boats = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        callback(boats);
+
+    });
+
+}
+
+export function formatRaceTime(start:any, finish:any){
+
+    if(!start || !finish) return "--";
+
+    const ms = finish.toMillis() - start.toMillis();
+
+    const totalSeconds = Math.floor(ms / 1000);
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${minutes}:${seconds.toString().padStart(2,"0")}`;
 }

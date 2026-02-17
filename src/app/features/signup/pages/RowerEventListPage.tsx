@@ -147,7 +147,8 @@ export default function RowerEventListPage() {
                                 const closeYMD = tsToYMD(e.closingDate);
 
                                 const canSignup = e.status === "open" && !past;
-                                const canViewResults = mode === "past" || e.status === "finished" || past;
+                                // Allow "View results" if past, finished, or currently running
+                                const canViewResults = past || e.status === "finished" || e.status === "running";
 
                                 const badge = statusBadge(e, past);
 

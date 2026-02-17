@@ -1,0 +1,121 @@
+.registrations-container {
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+/* FILTER BAR */
+
+.filter-bar {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.filter-bar input,
+.filter-bar select {
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ddd;
+}
+
+/* LIST */
+
+.registration-list {
+    display:flex;
+    flex-direction:column;
+}
+
+.list-header {
+    display:grid;
+    grid-template-columns: 80px 1fr 1fr 140px;
+    font-weight:600;
+    border-bottom:1px solid #eee;
+    padding-bottom:8px;
+}
+
+.crew-row {
+    display:grid;
+    grid-template-columns: 80px 1fr 1fr 140px;
+    padding:10px 0;
+    border-bottom:1px solid #f0f0f0;
+    align-items:center;
+}
+
+/* STATUS */
+
+.status-pill {
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:12px;
+    text-transform:capitalize;
+}
+
+.status-pill.registered {
+    background:#e6f4ea;
+}
+
+.status-pill.pending_crew {
+    background:#fff4cc;
+}
+
+/* BOW */
+
+.bow-input {
+    width:60px;
+    padding:6px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+.bow-input.missing {
+    border-color:red;
+    background:#ffeaea;
+}
+
+/* MOBILE */
+
+@media(max-width:700px) {
+
+    .list-header {
+        display:none;
+    }
+
+    .crew-row {
+        grid-template-columns:1fr;
+        gap:6px;
+        background:white;
+        padding:12px;
+        border-radius:8px;
+        margin-bottom:8px;
+    }
+
+}
+/* PAGINATION */
+
+.pagination {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:12px;
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px solid #eee;
+}
+
+.pagination button {
+    background:#f5f6f8;
+    border:none;
+    border-radius:6px;
+    padding:6px 12px;
+    cursor:pointer;
+}
+
+.pagination button:hover:not(:disabled) {
+    background:#e9ebef;
+}
+
+.pagination button:disabled {
+    opacity:0.4;
+    cursor:not-allowed;
+}

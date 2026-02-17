@@ -7,7 +7,7 @@ import { DEV_MODE } from "../../../shared/lib/config";
 import { useMockAuth } from "../../../providers/MockAuthProvider";
 import { useAuth } from "../../../providers/AuthProvider";
 
-type Mode = "active" | "closed";
+type Mode = "active" | "finished";
 
 export default function HostEventListPage() {
     const mock = DEV_MODE ? useMockAuth() : null;
@@ -38,7 +38,7 @@ export default function HostEventListPage() {
 
     const visible = useMemo(() => {
         return events.filter((e) =>
-            mode === "closed" ? e.status === "closed" : e.status !== "closed"
+            mode === "finished" ? e.status === "finished" : e.status !== "finished"
         );
     }, [events, mode]);
 
@@ -60,10 +60,10 @@ export default function HostEventListPage() {
                             Active
                         </button>
                         <button
-                            className={mode === "closed" ? "btn-primary" : "btn-ghost"}
-                            onClick={() => setMode("closed")}
+                            className={mode === "finished" ? "btn-primary" : "btn-ghost"}
+                            onClick={() => setMode("finished")}
                         >
-                            Closed
+                            Finished
                         </button>
                     </div>
                 </div>

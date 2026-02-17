@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useAuth } from "../../../providers/AuthProvider";
 import CategoryPicker from "../components/CategoryPicker";
@@ -7,7 +8,8 @@ import { categoriesFromIds, createEvent, dateInputToTimestampLocalMidday } from 
 import type { EventStatus } from "../types";
 
 export default function EventCreatePage() {
-    const { user, profile } = useAuth() as any; // remove `as any` if your hook is typed
+    const { user, profile } = useAuth() as any;
+    const navigate = useNavigate();
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
@@ -15,12 +17,9 @@ export default function EventCreatePage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [closingDate, setClosingDate] = useState("");
-    const [lengthMeters, setLengthMeters] = useState<number>(2000);
+    const [lengthMeters, setLengthMeters] = useState<number>(3000);
 
     const [categories, setCategories] = useState<string[]>(() => buildDefaultCategories());
-
-    // optional: allow host to choose initial status
-    const [status, setStatus] = useState<EventStatus>("open"); // or "draft"
 
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
@@ -38,18 +37,62 @@ export default function EventCreatePage() {
         );
     }, [user, name, location, startDate, endDate, closingDate, lengthMeters, categories]);
 
+    function calculateInitialStatus(
+        startAtMillis: number,
+        endAtMillis: number,
+        closeAtMillis: number
+    ): EventStatus {
+
+        const now = Date.now();
+
+        // If start and end same day → running immediately
+        if (startAtMillis === endAtMillis) {
+            return "running";
+        }
+
+        if (now >= startAtMillis && now <= endAtMillis) {
+            return "running";
+        }
+
+        if (now > endAtMillis) {
+            return "finished";
+        }
+
+        if (now > closeAtMillis) {
+            return "closed";
+        }
+
+        return "open";
+    }
+
     async function onCreate() {
         if (!user || !canSubmit) return;
 
         setBusy(true);
         setErr(null);
+
         try {
             const startAt = dateInputToTimestampLocalMidday(startDate);
             const endAt = dateInputToTimestampLocalMidday(endDate);
             const closeAt = dateInputToTimestampLocalMidday(closingDate);
 
-            // basic validation
-            if (endAt.toMillis() < startAt.toMillis()) throw new Error("End date must be on/after start date.");
+            const startMillis = startAt.toMillis();
+            const endMillis = endAt.toMillis();
+            const closeMillis = closeAt.toMillis();
+
+            if (endMillis < startMillis) {
+                throw new Error("End date must be on or after start date.");
+            }
+
+            if (closeMillis > startMillis) {
+                throw new Error("Registration closing date must be before the start date.");
+            }
+
+            const status = calculateInitialStatus(
+                startMillis,
+                endMillis,
+                closeMillis
+            );
 
             const eventId = await createEvent({
                 name: name.trim(),
@@ -60,23 +103,17 @@ export default function EventCreatePage() {
                 closeAt,
                 lengthMeters: Number(lengthMeters),
                 categories: categoriesFromIds(categories),
-                status, // "open" or "draft"
+                status,
                 createdByUid: user.uid,
-                createdByName: profile?.displayName || user.displayName || user.email || "Host",
+                createdByName:
+                    profile?.displayName ||
+                    user.displayName ||
+                    user.email ||
+                    "Host",
             });
 
-            // reset
-            setName("");
-            setDescription("");
-            setLocation("");
-            setStartDate("");
-            setEndDate("");
-            setClosingDate("");
-            setLengthMeters(2000);
-            setCategories(buildDefaultCategories());
-            setStatus("open");
+            navigate(`/host/events/${eventId}`);
 
-            alert(`Event created! (${eventId})`);
         } catch (e: any) {
             setErr(e?.message ?? "Failed to create event");
         } finally {
@@ -127,18 +164,6 @@ export default function EventCreatePage() {
                             <input type="number" value={lengthMeters} onChange={(e) => setLengthMeters(Number(e.target.value))} />
                         </label>
                     </div>
-
-                    {/* Optional: initial status selector */}
-                    <label>
-                        Status
-                        <select value={status} onChange={(e) => setStatus(e.target.value as EventStatus)}>
-                            <option value="draft">Draft</option>
-                            <option value="open">Open</option>
-                            <option value="closed">Closed</option>
-                            <option value="running">Running</option>
-                            <option value="finished">Finished</option>
-                        </select>
-                    </label>
                 </div>
 
                 <CategoryPicker value={categories} onChange={setCategories} />
@@ -169,7 +194,12 @@ export default function EventCreatePage() {
 
                 {err && <p style={{ color: "crimson" }}>{err}</p>}
 
-                <button className="btn-primary" disabled={!canSubmit || busy} onClick={onCreate} style={{ marginTop: 16 }}>
+                <button
+                    className="btn-primary"
+                    disabled={!canSubmit || busy}
+                    onClick={onCreate}
+                    style={{ marginTop: 16 }}
+                >
                     {busy ? "Creating..." : "Create Event"}
                 </button>
             </main>

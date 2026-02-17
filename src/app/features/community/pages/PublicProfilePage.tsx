@@ -108,8 +108,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function formatTime(seconds: number) {
-
     const m = Math.floor(seconds / 60);
     const s = (seconds % 60).toFixed(1);
-    return `${m}:${s.toString().padStart(2, "0")}`;
+    const [sec, dec] = s.split("."); // split seconds into integer and decimal
+    return `${m}:${sec.padStart(2, "0")}.${dec}`;
 }

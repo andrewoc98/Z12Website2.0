@@ -25,4 +25,5 @@ export type BoatDoc = {
 
     startedAt?: number;
     finishedAt?: number;
+    adjustmentMs:number;
 };

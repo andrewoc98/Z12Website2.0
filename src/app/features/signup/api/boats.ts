@@ -63,14 +63,13 @@ export async function listBoatsForEvent(eventId: string): Promise<BoatDoc[]> {
             boatSize: data.boatSize,
             rowerUids: data.rowerUids ?? [],
             invitedEmails: data.invitedEmails ?? [], // optional, can stay
-            // ✅ new single invite
             inviteCode: data.inviteCode ?? null,
-            // ✅ status
             status: data.status ?? "registered",
             bowNumber: data.bowNumber,
             createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt ?? undefined,
             startedAt: data.startedAt ?? undefined,
             finishedAt: data.finishedAt ?? undefined,
+            adjustmentMs:data.adjustmentMs
         } as any satisfies BoatDoc;
     });
 }
