@@ -1,0 +1,83 @@
+/* ===== PAGE LAYOUT ===== */
+.homepage {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* ===== HERO IMAGE ===== */
+.hero {
+    position: relative;
+    width: 100%;
+    height: 70vh;
+    background: transparent;
+    overflow: visible;
+}
+
+.hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Gradient overlay */
+.hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, rgba(0, 0, 0, 0.6));
+    pointer-events: none;
+}
+
+/* HERO TITLE */
+.hero-title {
+    position: absolute;
+    bottom: 0;                /* align with hero bottom */
+    left: 50%;                /* center horizontally */
+    transform: translateX(-50%) translateY(55%); /* move half of its height down */
+
+    font-size: clamp(36px, 6vw, 100px);
+    font-weight: 900;
+
+    color: #FEB959;
+    background: rgba(255, 255, 255, 0); /* transparent */
+    padding: 16px 28px;
+    border-radius: 8px;
+    text-align: center;
+    z-index: 99;
+    width: auto;
+}
+
+
+/* TEXT SECTION */
+.challenge-text {
+    max-width: 900px;
+    margin: 120px auto;
+    padding: 0 24px;
+
+    font-size: 20px;
+    line-height: 1.6;
+    color: #111;
+}
+
+.challenge-text p {
+    margin-bottom: 24px;
+    color: white;
+}
+
+/* IMAGE HELPERS (optional) */
+.homepage-img {
+    width: 100%;
+    overflow: hidden;
+}
+
+.homepage-img img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+h1{
+    font-size: clamp(36px, 6vw, 100px);
+}

@@ -1,0 +1,67 @@
+/* ===== PAGE CONTAINER ===== */
+.z12-page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #1e1e22; /* dark background to match hero */
+    color: #fff;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ===== MAIN CONTENT ===== */
+.z12-page-content {
+    flex: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 80px 24px;
+    line-height: 1.7;
+}
+
+/* ===== SECTION STYLING ===== */
+.z12-intro h1 {
+    font-size: clamp(36px, 6vw, 80px);
+    margin-bottom: 24px;
+    color: #feb959;
+    text-align: center;
+}
+
+.z12-section {
+    margin-top: 80px;
+}
+
+.z12-section h2 {
+    font-size: clamp(28px, 5vw, 48px);
+    margin-bottom: 16px;
+    color: #feb959;
+}
+
+.z12-section p {
+    margin-bottom: 16px;
+    font-size: clamp(18px, 2vw, 20px);
+}
+
+.z12-intro ul {
+    list-style: disc;
+    padding-left: 32px;
+    margin-bottom: 16px;
+}
+
+.z12-intro li {
+    margin-bottom: 8px;
+}
+
+p{
+    color: white;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .z12-page-content {
+        padding: 40px 16px;
+    }
+
+    .z12-intro h1,
+    .z12-section h2 {
+        text-align: left;
+    }
+}

@@ -1,5 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
-import HomePage from "../app/features/events/pages/HomePage";
+import HomePage from "../app/features/home/pages/HomePage";
 import RequireRole from "../app/guards/RequireRole";
 import EventCreatePage from "../app/features/events/pages/EventCreatePage";
 import EventSignupPage from "../app/features/signup/pages/EventSignupPage";
@@ -13,6 +13,8 @@ import InviteJoinPage from "./features/signup/pages/InviteJoinPage.tsx";
 import HostEventListPage from "./features/events/pages/HostEventListPage.tsx";
 import CommunityPage from "./features/community/pages/CommunityPage.tsx";
 import PublicProfilePage from "./features/community/pages/PublicProfilePage.tsx";
+import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage.tsx";
+import AboutPage from "./features/about/pages/AboutPage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -91,7 +93,9 @@ export const router = createBrowserRouter([
     },
 
     { path: "/", element: <HomePage /> },
+    { path: "/about", element: <AboutPage /> },
     { path: "/auth", element: <AuthPage /> },
+    { path: "/forgot-password", element: <ForgotPasswordPage /> },
     {
         path: "/community",
         element: (

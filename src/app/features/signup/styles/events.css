@@ -1,0 +1,321 @@
+.events-page{
+    display: grid;
+    gap: 24px;
+}
+
+.events-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+}
+
+.events-filters{
+    display: flex;
+    gap: 10px;
+}
+
+.events-stats{
+
+    display: flex;
+
+    gap: 10px;
+
+    margin: 16px 0;
+
+}
+
+.events-list{
+    display: grid;
+    gap: 14px;
+}
+
+.event-card{
+
+    border: 2px solid #e4a84d;
+
+    border-radius: 14px;
+
+    padding: 16px 20px;
+
+    background: transparent;
+
+}
+.badge{
+
+    padding: 6px 12px;
+
+    border-radius: 999px;
+
+    border: 1px solid #2a2a2a;
+
+    background: #141414;
+
+    color: #d0d0d0;
+
+    font-size: 13px;
+
+}
+
+.event-card:hover{
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+.event-card:hover{
+
+    border-color: #f5b457;
+
+    transform: translateY(-2px);
+
+}
+.event-title{
+
+    margin: 0;
+
+    font-size: 22px;
+
+    color: #FEB959;
+
+    letter-spacing: 1px;
+
+}
+.event-meta{
+
+    margin-top: 4px;
+
+    font-size: 14px;
+
+    color: #bdbdbd;
+
+}
+.event-actions{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.events-pagination{
+
+    margin-top: 22px;
+
+    border: 2px solid #e4a84d;
+
+    border-radius: 14px;
+
+    padding: 14px 20px;
+
+    background: #0f0f0f;
+
+}
+
+.events-pagination button{
+
+    padding: 8px 18px;
+
+    border-radius: 10px;
+
+    border: 1px solid #333;
+
+    background: #161616;
+
+    color: #d6d6d6;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: background .15s ease,
+    border-color .15s ease;
+
+}
+
+.events-pagination button:hover{
+
+    background: #1f1f1f;
+
+    border-color: #e4a84d;
+
+}
+
+.events-pagination button:disabled{
+
+    opacity: .35;
+
+    cursor: not-allowed;
+
+}
+
+/* mobile */
+
+@media (max-width: 700px){
+
+    .events-header{
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .events-filters{
+        width: 100%;
+    }
+
+    .events-filters button{
+        flex: 1;
+    }
+
+}
+
+.event-grid{
+
+    display: grid;
+
+    grid-template-columns: 1fr auto;
+
+    align-items: center;
+
+    gap: 16px;
+
+}
+
+.event-left{
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+}
+
+.event-line{
+
+    display: grid;
+
+    grid-template-columns: 1fr 440px;
+
+    align-items: center;
+
+}
+
+.event-name{
+
+    font-family: "Bebas Neue", sans-serif;
+
+    font-size: 28px;
+
+    letter-spacing: 1px;
+
+    color: #FEB959;
+
+}
+
+.event-type{
+
+    font-size: 16px;
+
+    color: #d6d6d6;
+
+}
+
+.enter-race-btn{
+
+    width: 90px;
+
+    height: 70px;
+
+    border-radius: 14px;
+
+    background: #FEB959;
+
+    color: var(--brand-ink);
+
+    font-weight: 700;
+
+    font-size: 14px;
+
+    line-height: 1.1;
+
+    border: none;
+
+}
+
+@media (max-width: 640px){
+
+    .event-grid{
+
+        grid-template-columns: 1fr;
+
+        gap: 14px;
+
+    }
+
+    .event-action{
+
+        width: 100%;
+
+    }
+
+    .enter-race-btn{
+
+        width: 100%;
+
+        height: 54px;
+
+    }
+
+}
+
+.event-card:hover{
+
+    border-color: #f5b457;
+
+}
+
+.events-toggle{
+
+    display: flex;
+
+    background: #121212;
+
+    border: 2px solid #FEB959;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+}
+
+.events-toggle button{
+
+    padding: 10px 22px;
+
+    font-weight: 600;
+
+    border: none;
+
+    background: transparent;
+
+    color: #bdbdbd;
+
+    cursor: pointer;
+
+    transition: background .15s ease,
+    color .15s ease;
+
+}
+
+.events-toggle button:hover{
+    color: #fff;
+}
+
+.events-toggle .btn-primary{
+
+    background: #FEB959;
+
+    color: #111;
+
+}
+
+.events-pagination{
+    margin-bottom: 30px;
+}

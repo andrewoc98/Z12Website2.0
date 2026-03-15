@@ -1,0 +1,135 @@
+.event-signup-page {
+    padding: 2rem;
+    background-color: var(--surface-1);
+    min-height: 100vh;
+}
+
+.back-btn {
+    color: white;
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+
+.back-btn:hover {
+    text-decoration: underline;
+}
+
+.card {
+    background-color: var(--surface-2);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Custom select with arrow (auth page style) */
+.custom-select {
+    position: relative;
+    display: block;
+    width: 100%;
+    border: 2px solid #e4a84d;
+    border-radius: 12px;
+}
+
+.custom-select select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--surface-3);
+    background-color: var(--surface-1);
+    color: white;
+    font-size: 1rem;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Arrow */
+.custom-select::after {
+    content: "▼";
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.custom-select select:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+}
+
+/* Badge */
+.badge {
+    background-color: var(--brand);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.error-text {
+    color: var(--error);
+    font-size: 0.9rem;
+}
+
+.boats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.crew-list {
+    list-style: none;
+    padding-left: 1rem;
+    margin: 0;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.pagination button {
+    background: var(--surface-3);
+    color: white;
+    border-radius: 8px;
+    padding: 8px 12px;
+    border: none;
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.signup-event-header h1 {
+    margin: 0 0 0.25rem 0;
+    color: #FEB959;
+}
+
+.event-meta, .event-description {
+    color: var(--muted);
+    margin: 0.25rem 0;
+}
+/* styles/eventSignUp.css */
+.invite-link-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.invite-link {
+    word-break: break-all; /* ensures long URL wraps nicely */
+    flex: 1 1 auto;
+}

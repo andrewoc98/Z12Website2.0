@@ -33,3 +33,4 @@ dist/
 .env.development
 .env.local
 .env.production
+*z12-website-firebase-adminsdk*.json

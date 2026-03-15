@@ -21,7 +21,6 @@ export default function ResultsEditor({ event, boats }: any) {
     };
 
     const handleSave = async (boatId: string) => {
-        console.log(event)
         const newValue = adjustments[boatId] ?? 0;
         const boat = boats.find((b: any) => b.id === boatId);
 
@@ -34,7 +33,6 @@ export default function ResultsEditor({ event, boats }: any) {
 
         try {
             setSaving(prev => ({ ...prev, [boatId]: true }));
-            console.log("Saving adjustment", { event, boatId, newValue });
             await saveBoatAdjustment(event.id, boatId, newValue);
         } catch (err) {
             console.error("Failed to save adjustment", err);

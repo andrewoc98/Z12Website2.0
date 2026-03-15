@@ -1,0 +1,248 @@
+/* =========================================
+   AUTH PAGE LAYOUT
+========================================= */
+.auth-card{
+
+    width: 100%;
+    max-width: 420px;
+
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.auth-card h3{
+    font-size: 46px;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+}
+.auth-card label{
+    color: #d6d6d6;
+    font-weight: 500;
+    font-size: 15px;
+}
+.auth-row{
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 26px;
+}
+
+/* =========================================
+   INPUTS
+========================================= */
+
+.auth-card label{
+    color: #d0d0d0;
+    font-weight: 600;
+}
+
+.auth-card input{
+    background: transparent;
+    border: 2px solid #e4a84d;
+    border-radius: 12px;
+    padding: 14px;
+    color: white;
+    font-size: 16px;
+}
+
+.auth-card input:focus{
+    border-color: #f5b457;
+    box-shadow: none;
+}
+
+
+/* =========================================
+   SIGNIN ROW
+========================================= */
+
+.auth-row{
+    display: flex;
+    gap: 22px;
+    align-items: flex-end;
+    margin-top: 30px;
+}
+
+
+/* =========================================
+   SIGN IN BUTTON (KEY PART)
+========================================= */
+
+.auth-login-btn{
+
+    width: 70px;
+    height: 80px;
+
+    border-radius: 8px;
+
+    font-size: 16px;
+    font-weight: 800;
+
+    line-height: 1.1;
+
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* =========================================
+   RIGHT SIDE LINKS
+========================================= */
+
+.auth-links{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.auth-links a{
+    color: #cfcfcf;
+    font-size: 14px;
+}
+
+.auth-links a:hover{
+    text-decoration: underline;
+}
+
+
+/* =========================================
+   REGISTER ROW
+========================================= */
+
+.auth-register{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.auth-register span{
+    font-size: 14px;
+    color: #bdbdbd;
+}
+
+
+/* =========================================
+   CREATE ACCOUNT BUTTON
+========================================= */
+
+.auth-register .btn-secondary{
+
+    background: #dcdcdc;
+    color: #111;
+
+    border-radius: 9px;
+
+    padding: 10px 22px;
+
+    font-size: 14px;
+    font-weight: 800;
+
+    border: none;
+}
+
+.auth-page main{
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 80px;
+}
+
+.auth-login-btn{
+    background: #FEB959;
+    color: var(--brand-ink);
+
+    border-radius: 999px;
+    border: none;
+
+    padding: 12px 28px;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    height: auto;
+    width: auto;
+}
+
+.auth-login-btn{
+    white-space: normal;
+}
+
+.auth-card a,
+.auth-card a:visited{
+    color: #cfcfcf;
+    text-decoration: none;
+}
+
+.auth-card input,
+.auth-card select{
+    width: 100%;
+}
+
+.auth-card a:hover{
+    text-decoration: underline;
+}
+
+.auth-back{
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 14px;
+}
+
+.auth-card select{
+
+    background: transparent;
+
+    border: 2px solid #e4a84d;
+    border-radius: 12px;
+
+    padding: 14px;
+
+    color: white;
+
+    font-size: 16px;
+
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+}
+
+@media (max-width: 600px){
+
+    .auth-row{
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .auth-login-btn{
+        width: 100%;
+    }
+
+}
+
+.auth-login-btn,
+.auth-register .btn-secondary{
+
+    width: 232px;
+    height: 62px;
+
+    border-radius: 14px;
+
+    font-size: 16px;
+    font-weight: 700;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

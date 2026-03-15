@@ -4,6 +4,7 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
+    sendPasswordResetEmail
 } from "firebase/auth";
 import { auth } from "../../../shared/lib/firebase";
 
@@ -18,4 +19,8 @@ export async function signInGoogle() {
 }
 export async function signOutUser() {
     return signOut(auth);
+}
+
+export async function resetPassword(email: string) {
+    return sendPasswordResetEmail(auth, email);
 }

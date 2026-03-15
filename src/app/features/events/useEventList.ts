@@ -10,7 +10,6 @@ export function useEventList() {
 
     useEffect(() => {
         listEvents().then((e) => {
-            console.log("Loaded events:", e);
             setEvents(e);
             setLoading(false);
         });
