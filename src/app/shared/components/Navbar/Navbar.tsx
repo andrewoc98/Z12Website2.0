@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Navbar.css";
+import logo from "../../../../assets/Z12Challenge_Gold.png"
 
 import { DEV_MODE } from "../../lib/config";
 
@@ -58,7 +59,7 @@ export default function Navbar() {
         <header className="nav">
             <div className="nav__inner">
                 <Link to="/" className="nav__brand">
-                    <img src="/src/assets/Z12Challenge_Gold.png" alt="Z12 Challenge" />
+                    <img src={logo} alt="Z12 Challenge" />
                 </Link>
 
                 <button

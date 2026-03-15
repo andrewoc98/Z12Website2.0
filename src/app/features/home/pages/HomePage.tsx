@@ -1,7 +1,7 @@
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 import "../styles/HomePage.css";
-
+import picture from "../../../../assets/mensbaselayerheader_BW.jpg"
 export default function HomePage() {
     return (
         <div className="page-container">
@@ -11,7 +11,7 @@ export default function HomePage() {
 
                 {/* HERO IMAGE */}
                 <div className="hero">
-                    <img src="/src/assets/img.png" alt="Rowing" />
+                    <img src={picture} alt="Rowing" />
                     <div className="hero-title">
                         <h1>
                         READY FOR THE CHALLENGE?
