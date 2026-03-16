@@ -133,3 +133,52 @@
     word-break: break-all; /* ensures long URL wraps nicely */
     flex: 1 1 auto;
 }
+
+.event-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+    align-items: center;
+}
+
+.event-left {
+    min-width: 0;
+}
+
+.events-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.events-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+
+    .event-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .event-action {
+        width: 100%;
+    }
+
+    .enter-race-btn {
+        width: 100%;
+    }
+
+}
+
+.event-card {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}

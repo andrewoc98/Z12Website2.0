@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { listEvents } from "../../events/api/events";
 import type { EventDoc } from "../../events/types";
-import "../styles/events.css"
 
 import "../styles/events.css";
 import Footer from "../../../shared/components/Footer/Footer.tsx";

@@ -319,3 +319,71 @@
 .events-pagination{
     margin-bottom: 30px;
 }
+
+@media (max-width: 640px) {
+
+    /* Card spacing */
+    .event-card {
+        padding: 16px;
+    }
+
+    /* Stack layout vertically */
+    .event-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Space text blocks */
+    .event-left {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    /* Name + distance */
+    .event-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    /* Event name */
+    .event-name {
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    /* Distance highlight */
+    .event-type {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Location + date row */
+    .event-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 0.9rem;
+    }
+
+
+    .event-meta span {
+        color: #e3e3e3;
+        font-weight: 500;
+    }
+
+    /* Keep button at bottom */
+    .event-action {
+        margin-top: 10px;
+        width: 100%;
+    }
+
+    .enter-race-btn {
+        width: 100%;
+    }
+
+}
