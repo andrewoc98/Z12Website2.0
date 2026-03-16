@@ -44,11 +44,17 @@ export default function Navbar() {
             base.push({ to: "/about", label: "About" });
 
             if (hasRole("rower")) base.push({ to: "/rower/events", label: "Races" });
-            if (hasRole("host")) base.push({ to: "/host/events/new", label: "Create Race" });
+            if (hasRole("host")) {
+                base.push({ to: "/host/events", label: "Manage Races" });
+                base.push({ to: "/host/events/new", label: "Create Race" });
+            }
+
+            // logout option
+            base.push({ to: "/auth", label: "Logout" });
         }
 
         return base;
-    }, [user, rolesLoading]);
+    }, [user, rolesLoading, mockRoles, fbRoles]);
 
     async function onSignOut() {
         if (DEV_MODE) mockAuth?.logout();
@@ -72,16 +78,17 @@ export default function Navbar() {
 
                 <nav className={`nav__links ${open ? "is-open" : ""}`}>
                     {items.map((x) => (
-                        <Link key={x.to} to={x.to} onClick={() => setOpen(false)}>
+                        <Link
+                            key={x.to}
+                            to={x.to}
+                            onClick={async () => {
+                                setOpen(false);
+                                if (x.label === "Logout") await onSignOut();
+                            }}
+                        >
                             {x.label}
                         </Link>
                     ))}
-
-                    {user && (
-                        <Link to='/auth' className="nav__links" onClick={onSignOut}>
-                            Logout
-                        </Link>
-                    )}
                 </nav>
             </div>
         </header>
