@@ -1,14 +1,23 @@
+/* =========================================
+   OVERVIEW CONTAINER
+========================================= */
 .overview-container {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    background-color: #121212; /* Dark background */
+    color: #e0e0e0; /* Light text */
 }
 
+/* =========================================
+   CARDS
+========================================= */
 .card {
-    background: white;
+    background: #1e1e1e;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    color: #e0e0e0;
 }
 
 .card-header {
@@ -26,6 +35,11 @@
 
 .event-grid textarea {
     min-height:80px;
+    background: #2a2a2a;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    border-radius: 6px;
+    padding: 8px;
 }
 
 .stats-grid {
@@ -35,79 +49,57 @@
 }
 
 .stat {
-    background:#f5f6f8;
+    background:#1e1e1e;
     padding:14px;
     border-radius:8px;
     display:flex;
     flex-direction:column;
+    border: 1px solid #333;
 }
 
 .stat.alert {
-    background:#ffeaea;
+    background:#3a1a1a;
+    color:#ff6b6b;
 }
 
 .stat-value {
     font-size:22px;
     font-weight:600;
+    color:#fff;
 }
 
-.category-table {
-    display:flex;
-    flex-direction:column;
-}
-
-.row {
-    display:grid;
-    grid-template-columns: 1fr 80px 100px 80px;
-    padding:8px 0;
-    border-bottom:1px solid #eee;
-}
-
-.row.header {
-    font-weight:600;
-}
-
-@media(max-width:700px) {
-
-    .event-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .row {
-        grid-template-columns: 1fr 60px 60px 60px;
-        font-size:14px;
-    }
-
-}
-
-/* CATEGORY GRID */
-
-.category-grid {
+/* =========================================
+   CATEGORY GRID & CARD
+========================================= */
+.category-grid,
+.category-list {
     display:grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap:14px;
 }
 
-/* CATEGORY CARD */
-
 .category-card {
-    background:#f9fafb;
+    background:#1f1f1f;
     border-radius:10px;
     padding:14px;
     display:flex;
     flex-direction:column;
     gap:10px;
-    border:1px solid #eee;
+    border:1px solid #333;
+    height: 90px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-/* CATEGORY NAME */
+.category-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(255, 185, 89, 0.3); /* warm hover glow */
+}
 
 .category-name {
     font-weight:600;
     font-size:14px;
+    color:#fff;
 }
-
-/* STATS */
 
 .category-stats {
     display:flex;
@@ -115,37 +107,35 @@
 }
 
 .category-stat {
-    background:white;
+    background:#2a2a2a;
     border-radius:8px;
     padding:6px 10px;
     display:flex;
     flex-direction:column;
     align-items:center;
     min-width:70px;
+    color:#e0e0e0;
 }
 
 .category-stat.alert {
-    background:#ffeaea;
+    background:#3a1a1a;
+    color:#ff6b6b;
 }
 
 .stat-number {
     font-size:16px;
     font-weight:600;
+    color:#fff;
 }
 
 .stat-label {
     font-size:11px;
-    color:#666;
+    color:#aaa;
 }
 
-.category-card {
-    height: 90px; /* match itemSize roughly */
-}
-
-/* ===================================== */
-/* CATEGORY FILTERS */
-/* ===================================== */
-
+/* =========================================
+   CATEGORY FILTERS
+========================================= */
 .category-filters {
     display:flex;
     flex-wrap:wrap;
@@ -157,29 +147,34 @@
 .category-filters input {
     padding:8px 10px;
     border-radius:6px;
-    border:1px solid #ddd;
+    border:1px solid #555;
     font-size:14px;
-    background:white;
+    background:#2a2a2a;
+    color:#e0e0e0;
 }
 
 .category-filters input {
     min-width:220px;
 }
 
-/* ===================================== */
-/* CATEGORY LIST (pagination version) */
-/* ===================================== */
-
-.category-list {
+/* =========================================
+   ROWS / TABLES
+========================================= */
+.row {
     display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap:14px;
+    grid-template-columns: 1fr 80px 100px 80px;
+    padding:8px 0;
+    border-bottom:1px solid #333;
+    color:#e0e0e0;
 }
 
-/* ===================================== */
-/* PAGINATION */
-/* ===================================== */
+.row.header {
+    font-weight:600;
+}
 
+/* =========================================
+   PAGINATION
+========================================= */
 .pagination {
     display:flex;
     justify-content:center;
@@ -189,16 +184,17 @@
 }
 
 .pagination button {
-    background:#f5f6f8;
+    background:#2a2a2a;
     border:none;
     border-radius:6px;
     padding:6px 12px;
     cursor:pointer;
     font-size:14px;
+    color:#e0e0e0;
 }
 
 .pagination button:hover:not(:disabled) {
-    background:#e9ebef;
+    background:#3a3a3a;
 }
 
 .pagination button:disabled {
@@ -208,28 +204,22 @@
 
 .pagination span {
     font-size:14px;
-    color:#555;
+    color:#aaa;
 }
 
-/* ===================================== */
-/* CATEGORY CARD IMPROVEMENTS */
-/* ===================================== */
-
-/* smoother hover — subtle but improves scanning */
-.category-card {
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-.category-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-}
-
-/* ===================================== */
-/* MOBILE TWEAKS */
-/* ===================================== */
-
+/* =========================================
+   MOBILE TWEAKS
+========================================= */
 @media(max-width:700px) {
+
+    .event-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .row {
+        grid-template-columns: 1fr 60px 60px 60px;
+        font-size:14px;
+    }
 
     .category-filters {
         flex-direction:column;
@@ -244,5 +234,4 @@
     .pagination {
         flex-wrap:wrap;
     }
-
 }

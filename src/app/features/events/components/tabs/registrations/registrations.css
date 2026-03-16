@@ -1,11 +1,17 @@
+/* =========================================
+   REGISTRATIONS CONTAINER
+========================================= */
 .registrations-container {
     display:flex;
     flex-direction:column;
     gap:20px;
+    background:#121212;
+    color:#e0e0e0;
 }
 
-/* FILTER BAR */
-
+/* =========================================
+   FILTER BAR
+========================================= */
 .filter-bar {
     display:flex;
     gap:10px;
@@ -16,11 +22,14 @@
 .filter-bar select {
     padding:8px;
     border-radius:6px;
-    border:1px solid #ddd;
+    border:1px solid #555;
+    background:#1e1e1e;
+    color:#e0e0e0;
 }
 
-/* LIST */
-
+/* =========================================
+   REGISTRATION LIST
+========================================= */
 .registration-list {
     display:flex;
     flex-direction:column;
@@ -30,51 +39,64 @@
     display:grid;
     grid-template-columns: 80px 1fr 1fr 140px;
     font-weight:600;
-    border-bottom:1px solid #eee;
+    border-bottom:1px solid #333;
     padding-bottom:8px;
+    color:#e0e0e0;
 }
 
 .crew-row {
     display:grid;
     grid-template-columns: 80px 1fr 1fr 140px;
     padding:10px 0;
-    border-bottom:1px solid #f0f0f0;
+    border-bottom:1px solid #333;
     align-items:center;
+    color:#e0e0e0;
+    background:#1e1e1e;
 }
 
-/* STATUS */
+.crew-row:hover {
+    background:#2a2a2a;
+}
 
+/* =========================================
+   STATUS PILLS
+========================================= */
 .status-pill {
     padding:4px 10px;
     border-radius:999px;
     font-size:12px;
     text-transform:capitalize;
+    color:#121212;
 }
 
 .status-pill.registered {
-    background:#e6f4ea;
+    background:#22c55e; /* green accent */
 }
 
 .status-pill.pending_crew {
-    background:#fff4cc;
+    background:#FEB959; /* gold accent */
 }
 
-/* BOW */
-
+/* =========================================
+   BOW INPUT
+========================================= */
 .bow-input {
     width:60px;
     padding:6px;
     border-radius:6px;
-    border:1px solid #ccc;
+    border:1px solid #555;
+    background:#1e1e1e;
+    color:#e0e0e0;
 }
 
 .bow-input.missing {
-    border-color:red;
-    background:#ffeaea;
+    border-color:#ff6b6b;
+    background:#3a1a1a;
 }
 
-/* MOBILE */
-
+/* =========================================
+   MOBILE
+========================================= */
 @media(max-width:700px) {
 
     .list-header {
@@ -84,15 +106,16 @@
     .crew-row {
         grid-template-columns:1fr;
         gap:6px;
-        background:white;
+        background:#1e1e1e;
         padding:12px;
         border-radius:8px;
         margin-bottom:8px;
     }
-
 }
-/* PAGINATION */
 
+/* =========================================
+   PAGINATION
+========================================= */
 .pagination {
     display:flex;
     justify-content:center;
@@ -100,19 +123,20 @@
     gap:12px;
     margin-top:14px;
     padding-top:12px;
-    border-top:1px solid #eee;
+    border-top:1px solid #333;
 }
 
 .pagination button {
-    background:#f5f6f8;
+    background:#2a2a2a;
     border:none;
     border-radius:6px;
     padding:6px 12px;
     cursor:pointer;
+    color:#e0e0e0;
 }
 
 .pagination button:hover:not(:disabled) {
-    background:#e9ebef;
+    background:#3a3a3a;
 }
 
 .pagination button:disabled {
