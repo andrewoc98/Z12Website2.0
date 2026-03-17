@@ -6,6 +6,7 @@ import type { EventDoc } from "../../events/types";
 
 import "../styles/events.css";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
+import {mapEvent} from "../../events/lib/mapper.tsx";
 
 type Mode = "upcoming" | "past";
 
@@ -61,7 +62,12 @@ export default function RowerEventListPage() {
 
             try {
                 const all = await listEvents();
-                setEvents(all as any);
+
+                const mapped = all.map((doc: any) =>
+                    mapEvent(doc.id, doc)
+                );
+
+                setEvents(mapped);
             } catch (e: any) {
                 setErr(e?.message ?? "Failed to load events");
             } finally {
