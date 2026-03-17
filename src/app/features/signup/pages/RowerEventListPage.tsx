@@ -242,7 +242,7 @@ export default function RowerEventListPage() {
 
                                                 <div className="event-action">
 
-                                                    {e.status === "open" && !isPastEvent(e) ? (
+                                                    {e.status !== "finished" && !isPastEvent(e) ? (
                                                         <Link to={`/rower/events/${e.id}/signup`}>
                                                             <button className="enter-race-btn">
                                                                 Enter
