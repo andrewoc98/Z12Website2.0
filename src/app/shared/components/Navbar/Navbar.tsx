@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Navbar.css";
 import logo from "../../../../assets/Z12Challenge_Gold.png"
-import { FaUserCircle } from "react-icons/fa";
 import { DEV_MODE } from "../../lib/config";
 
 import { useMockAuth } from "../../../providers/MockAuthProvider.tsx";
