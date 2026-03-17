@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Navbar.css";
 import logo from "../../../../assets/Z12Challenge_Gold.png"
-
+import { FaUserCircle } from "react-icons/fa";
 import { DEV_MODE } from "../../lib/config";
 
 import { useMockAuth } from "../../../providers/MockAuthProvider.tsx";
@@ -48,7 +48,7 @@ export default function Navbar() {
                 base.push({ to: "/host/events", label: "Manage Races" });
                 base.push({ to: "/host/events/new", label: "Create Race" });
             }
-
+            base.unshift({ to: "/profile", label: "Profile" });
             // logout option
             base.push({ to: "/auth", label: "Logout" });
         }

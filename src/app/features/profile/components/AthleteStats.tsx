@@ -1,6 +1,6 @@
 import { useAuth } from "../../../providers/AuthProvider";
 import { formatLength, formatWeight } from "../api/user";
-
+import "../style/profile.css"
 export function AthleteStats({ unit }: { unit: "metric" | "imperial" }) {
 
     const { profile } = useAuth();

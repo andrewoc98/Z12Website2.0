@@ -3,7 +3,7 @@ import { searchCoachesByName } from "../api/user";
 import { db } from "../../../shared/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { useAuth } from "../../../providers/AuthProvider";
-
+import "../style/profile.css"
 export default function CoachSearchBlock() {
     const { profile } = useAuth();
     const [queryStr, setQueryStr] = useState("");

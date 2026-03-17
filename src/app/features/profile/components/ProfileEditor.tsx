@@ -2,7 +2,7 @@ import { useAuth } from "../../../providers/AuthProvider.tsx";
 import { useEffect, useState } from "react";
 import type { UserProfile } from "../../auth/types.ts";
 import { upsertUserProfile } from "../../auth/api/users.ts";
-
+import "../style/profile.css"
 function parseTime(value: string): number | undefined {
     if (!value) return undefined;
     const parts = value.split(":").map(Number);

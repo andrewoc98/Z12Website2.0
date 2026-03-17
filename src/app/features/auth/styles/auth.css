@@ -246,3 +246,32 @@
     align-items: center;
     justify-content: center;
 }
+
+.terms-checkbox {
+    margin-top: 18px;
+}
+
+.terms-checkbox label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: #cfcfcf;
+    line-height: 1.4;
+}
+
+.terms-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-top: 3px;
+
+    padding: 0;
+    border: 2px solid #e4a84d;
+    border-radius: 4px;
+    accent-color: #FEB959; /* modern browsers */
+}
+
+.terms-checkbox a {
+    color: #FEB959;
+    font-weight: 500;
+}

@@ -1,5 +1,5 @@
 import type {UserProfile} from "../../auth/types.ts";
-
+import "../style/profile.css"
 export function ProfileHero({
                          profile,
                          unit,

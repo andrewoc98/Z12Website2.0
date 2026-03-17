@@ -1,4 +1,4 @@
-import {ProfileHero} from "../components/ProfileHero.tsx";
+import  {ProfileHero} from "../components/ProfileHero.tsx";
 import {useAuth} from "../../../providers/AuthProvider.tsx";
 import {useState} from "react";
 import Navbar from "../../../shared/components/Navbar/Navbar.tsx";

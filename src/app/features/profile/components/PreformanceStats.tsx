@@ -1,6 +1,6 @@
 import { useAuth } from "../../../providers/AuthProvider";
 import { formatTime } from "../api/user";
-
+import "../style/profile.css"
 export function PerformanceStats() {
 
     const { profile } = useAuth();

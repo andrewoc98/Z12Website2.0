@@ -96,3 +96,15 @@
         padding: 6px 0;
     }
 }
+
+.nav__profile-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #fff;
+    font-weight: 700;
+}
+
+.nav__profile-link:hover {
+    color: #f3b24f;
+}

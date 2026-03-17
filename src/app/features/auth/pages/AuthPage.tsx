@@ -81,6 +81,8 @@ export default function AuthPage() {
 
     const [adminInvite, setAdminInvite] = useState<any | null>(null);
 
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+
     useEffect(() => {
         if (!inviteId) return;
 
@@ -111,6 +113,8 @@ export default function AuthPage() {
         if (!cleanEmail) return false;
         if (password.trim().length < 6) return false;
         if (name.length < 2) return false;
+
+        if (!acceptedTerms) return false;
 
         if (role === "rower" && !dateOfBirth) return false;
 
@@ -357,6 +361,19 @@ export default function AuthPage() {
                                                 />
                                             </>
                                         )}
+                                        <div className="terms-checkbox">
+                                            <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={acceptedTerms}
+                                                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                                />
+                                                <span>
+                                                    By checking this, you agree to our{" "}
+                                                    <Link to="#">terms and conditions</Link>
+                                              </span>
+                                            </label>
+                                        </div>
                                     </>
                                 )}
 
