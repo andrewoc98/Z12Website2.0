@@ -6,13 +6,13 @@ export function mapEvent(id: string, data: FirestoreEventDoc): EventDoc {
         id,
         name: data.name,
 
-        startDate: data.startAt
-            ? data.startAt
-            : null,
+        startDate: data.startAt instanceof Timestamp
+            ? data.startAt.toDate().toISOString()
+            : "",
 
-        endDate: data.endAt
-            ? data.endAt
-            : null,
+        endDate: data.endAt instanceof Timestamp
+            ? data.endAt.toDate().toISOString()
+            : "",
 
         closingDate: data.closeAt instanceof Timestamp
             ? data.closeAt.toDate().toISOString()
