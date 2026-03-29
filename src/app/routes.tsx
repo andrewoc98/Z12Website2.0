@@ -15,6 +15,8 @@ import CommunityPage from "./features/community/pages/CommunityPage.tsx";
 import PublicProfilePage from "./features/community/pages/PublicProfilePage.tsx";
 import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage.tsx";
 import AboutPage from "./features/about/pages/AboutPage.tsx";
+import Terms from "./features/Terms/Terms.tsx";
+import Privacy from "./features/Privacy/Privacy.tsx";
 
 
 export const router = createBrowserRouter([
@@ -96,6 +98,8 @@ export const router = createBrowserRouter([
     { path: "/about", element: <AboutPage /> },
     { path: "/auth", element: <AuthPage /> },
     { path: "/forgot-password", element: <ForgotPasswordPage /> },
+    {path: "/terms", element: <Terms/>},
+    {path: "/privacy", element: <Privacy/>},
     {
         path: "/community",
         element: (

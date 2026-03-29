@@ -8,6 +8,8 @@ import {ProfileEditor} from "../components/ProfileEditor.tsx";
 import ProfileDetails from "../components/ProfileDetails.tsx";
 import "../style/profile.css"
 import {PerformanceStats} from "../components/PreformanceStats.tsx";
+import Footer from "../../../shared/components/Footer/Footer.tsx";
+import AdminHostInvite from "../../auth/pages/AdminHostInvite.tsx"
 
 export default function ProfilePageElite() {
     const { user, profile, loading } = useAuth();
@@ -38,7 +40,11 @@ export default function ProfilePageElite() {
                     <PerformanceStats />
                 </>
             )}
-                {/* Existing role-specific sections */}
+                {profile.roles.host &&(
+                    <>
+                        <AdminHostInvite/>
+                    </>
+                )}
                 <ProfileDetails />
 
                 <section className="card profile-section">
@@ -46,6 +52,7 @@ export default function ProfilePageElite() {
                     <ProfileEditor profile={profile} />
                 </section>
             </main>
+            <Footer/>
         </>
     )
 }

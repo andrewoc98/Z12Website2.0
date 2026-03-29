@@ -7,7 +7,7 @@ import "./race.css";
 
 export default function RaceTab({ event, boats = [] }: any) {
 
-    const [publishMode, setPublishMode] = useState("live");
+    const [publishMode, setPublishMode] = useState<"Live" | "Category" | "Event">(event?.resultsPublishMode ?? "Live")
 
     const activeBoats = useMemo(() => {
         return boats.filter((b:any) =>
@@ -35,6 +35,7 @@ export default function RaceTab({ event, boats = [] }: any) {
                 <PublishControls
                     publishMode={publishMode}
                     setPublishMode={setPublishMode}
+                    eventId={event?.id}
                 />
             </CollapsibleCard>
 

@@ -208,16 +208,43 @@ export function listenToCategoryBoats(
 
 }
 
-export function formatRaceTime(start:any, finish:any){
+export async function updateEventPublishMode(eventId: string, mode: "Live" | "Category" | "Event") {
+    if (!eventId) throw new Error("Missing event ID");
+    const eventRef = doc(db, "events", eventId);
+    await updateDoc(eventRef, { resultsPublishMode: mode });
+}
 
-    if(!start || !finish) return "--";
+export interface Admin {
+    uid: string;
+    email: string;
+    fullName: string;
+    displayName: string;
+    hostId?: string;
+}
 
-    const ms = finish.toMillis() - start.toMillis();
+// --------------------
+// API
+// --------------------
+export async function fetchAdminsByHost(hostId: string): Promise<Admin[]> {
+    if (!hostId) return [];
 
-    const totalSeconds = Math.floor(ms / 1000);
+    try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("roles.admin.hostId", "==", hostId));
+        const snapshot = await getDocs(q);
 
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-
-    return `${minutes}:${seconds.toString().padStart(2,"0")}`;
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                uid: data.uid,
+                email: data.email,
+                fullName: data.fullName,
+                displayName: data.displayName,
+                hostId: data.admin?.hostId,
+            };
+        });
+    } catch (error) {
+        console.error("Error fetching admins:", error);
+        return [];
+    }
 }

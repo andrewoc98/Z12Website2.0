@@ -7,8 +7,9 @@ import "../styles/HostEventManagePage.css";
 import OverviewTab from "../components/tabs/overview/OverviewTab";
 import RegistrationsTab from "../components/tabs/registrations/RegistrationsTab";
 import RaceTab from "../components/tabs/raceTab/RaceTab";
+import ContactsTab from "../components/tabs/contacts/ContactsTab.tsx";
 
-type Tab = "overview" | "registrations"  | "race" | "settings";
+type Tab = "overview" | "registrations"  | "race" | "contacts";
 
 export default function HostEventManagePage() {
 
@@ -56,11 +57,12 @@ export default function HostEventManagePage() {
             case "overview": return <OverviewTab event={event} boats = {boats}/>;
             case "registrations": return <RegistrationsTab event={event} boats={boats} />;
             case "race": return <RaceTab event={event} boats={boats}/>;
+            case "contacts": return <ContactsTab hostId={event.createdByUid}/>;
             default: return null;
         }
     };
 
-    const tabs: Tab[] = ["overview","registrations","race","settings"];
+    const tabs: Tab[] = ["overview","registrations","race","contacts"];
 
     return (
         <>

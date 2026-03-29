@@ -181,12 +181,24 @@ export async function getBoat(eventId: string, boatId: string): Promise<BoatDoc 
     return { id: snap.id, eventId, ...(snap.data() as any) } as any;
 }
 
-export async function assignBowNumbersForEvent(eventId: string, categoryOrder: string[]): Promise<void> {
-    const snap = await getDocs(query(boatsCol(eventId), orderBy("createdAt", "asc")));
+export async function assignBowNumbersForEvent(
+    eventId: string,
+    categoryOrder: string[]
+): Promise<void> {
+    // Query only boats that are NOT pending_crew
+    const snap = await getDocs(
+        query(
+            boatsCol(eventId),
+            where("status", "!=", "pending_crew"),
+            orderBy("status"),       // Required by Firestore for != queries
+            orderBy("createdAt", "asc")
+        )
+    );
+
     const boats = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 
+    // Group boats by category
     const byCategory = new Map<string, { id: string; createdAt: number }[]>();
-
     for (const b of boats) {
         const key = b.categoryName || b.category || b.categoryId;
         const createdMs = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
@@ -195,14 +207,16 @@ export async function assignBowNumbersForEvent(eventId: string, categoryOrder: s
         byCategory.set(key, list);
     }
 
-    for (const [cat, list] of byCategory.entries()) {
+    // Sort each category by creation time
+    for (const [, list] of byCategory.entries()) {
         list.sort((a, b) => a.createdAt - b.createdAt);
-        byCategory.set(cat, list);
     }
 
+    // Assign bow numbers
     let bow = 1;
     const updates: Array<{ boatId: string; bowNumber: number }> = [];
 
+    // First, assign by categoryOrder
     for (const cat of categoryOrder) {
         const list = byCategory.get(cat);
         if (!list || list.length === 0) continue;
@@ -210,12 +224,16 @@ export async function assignBowNumbersForEvent(eventId: string, categoryOrder: s
         byCategory.delete(cat);
     }
 
-    const remainingCats = Array.from(byCategory.keys()).sort((a, b) => a.localeCompare(b));
+    // Then assign remaining categories in alphabetical order
+    const remainingCats = Array.from(byCategory.keys()).sort((a, b) =>
+        a.localeCompare(b)
+    );
     for (const cat of remainingCats) {
         const list = byCategory.get(cat)!;
         for (const b of list) updates.push({ boatId: b.id, bowNumber: bow++ });
     }
 
+    // Commit updates in a batch
     const batch = writeBatch(db);
     for (const u of updates) {
         batch.update(boatRef(eventId, u.boatId), {

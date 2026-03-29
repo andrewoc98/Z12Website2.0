@@ -62,35 +62,61 @@ export default function EventResultsPage() {
         return map;
     }, [finishedBoats]);
 
+    const visibleBoats = useMemo(() => {
+        if (!event?.resultsPublishMode || event.resultsPublishMode === "Live") {
+            // Live: show all finished boats immediately
+            return finishedBoats;
+        }
+
+        if (event.resultsPublishMode === "Category") {
+            // Only show boats in categories that are fully finished
+            const filteredByCategory: any[] = [];
+            for (const [, boatsInCat] of byCategory.entries()) {
+                const allFinished = boatsInCat.every(b => b.finishedAt);
+                if (allFinished) filteredByCategory.push(...boatsInCat);
+            }
+            return filteredByCategory;
+        }
+
+        if (event.resultsPublishMode === "Event") {
+            // Only show results if ALL boats are finished
+            const allFinished = boats.every(b => b.finishedAt);
+            return allFinished ? finishedBoats : [];
+        }
+
+        return finishedBoats; // fallback
+    }, [event?.resultsPublishMode, finishedBoats, byCategory, boats]);
+
     // Pagination slice
     const paginatedBoats = useMemo<Boat[]>(() => {
         const start = (page - 1) * PAGE_SIZE;
         const end = start + PAGE_SIZE;
-        if (tab === "overall") return finishedBoats.slice(start, end);
+
+        if (tab === "overall") return visibleBoats.slice(start, end);
 
         if (tab === "category") {
             if (selectedCategory === "All") {
-                // Merge all categories
-                const allBoats = Array.from(byCategory.values()).flat();
+                const allBoats = Array.from(byCategory.values()).flat().filter(b => visibleBoats.includes(b));
                 return allBoats.slice(start, end);
             } else {
-                const boatsInCat = byCategory.get(selectedCategory) || [];
+                const boatsInCat = (byCategory.get(selectedCategory) || []).filter(b => visibleBoats.includes(b));
                 return boatsInCat.slice(start, end);
             }
         }
-        return []
-    }, [tab, page, finishedBoats, byCategory, selectedCategory]);
+
+        return [];
+    }, [tab, page, visibleBoats, byCategory, selectedCategory]);
 
     // Total pages
     const totalPages = useMemo(() => {
         const totalItems = tab === "overall"
-            ? finishedBoats.length
+            ? visibleBoats.length
             : selectedCategory === "All"
-                ? Array.from(byCategory.values()).flat().length
-                : (byCategory.get(selectedCategory)?.length || 0);
-        return Math.ceil(totalItems / PAGE_SIZE);
-    }, [tab, byCategory, finishedBoats, selectedCategory]);
+                ? Array.from(byCategory.values()).flat().filter(b => visibleBoats.includes(b)).length
+                : (byCategory.get(selectedCategory)?.filter(b => visibleBoats.includes(b)).length || 0);
 
+        return Math.ceil(totalItems / PAGE_SIZE);
+    }, [tab, byCategory, visibleBoats, selectedCategory]);
     return (
         <>
             <Navbar />

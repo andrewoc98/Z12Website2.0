@@ -21,28 +21,29 @@ export default function RegistrationList({
                 <CrewRow key={boat.id} boat={boat} />
             ))}
 
-            <div className="pagination">
+            <div className="card card--tight registration-pagination">
+                <div className="space-between">
+                    <button
+                        className="btn-ghost"
+                        disabled={page === 1}
+                        onClick={() => setPage((p: number) => Math.max(1, p - 1))}
+                    >
+                        ← Prev
+                    </button>
 
-                <button
-                    disabled={page === 1}
-                    onClick={()=>setPage((p:number)=>p-1)}
-                >
-                    Prev
-                </button>
+                    <span className="badge">
+            Page {page} / {totalPages}
+        </span>
 
-                <span>
-                    Page {page} / {totalPages}
-                </span>
-
-                <button
-                    disabled={page === totalPages}
-                    onClick={()=>setPage((p:number)=>p+1)}
-                >
-                    Next
-                </button>
-
+                    <button
+                        className="btn-ghost"
+                        disabled={page === totalPages}
+                        onClick={() => setPage((p: number) => Math.min(totalPages, p + 1))}
+                    >
+                        Next →
+                    </button>
+                </div>
             </div>
-
         </div>
     );
 }

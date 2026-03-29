@@ -6,6 +6,8 @@ import type { EventDoc } from "../types";
 import { DEV_MODE } from "../../../shared/lib/config";
 import { useMockAuth } from "../../../providers/MockAuthProvider";
 import { useAuth } from "../../../providers/AuthProvider";
+import {formatDate, getEventStatus} from "../lib/categories.ts";
+import "../../signup/styles/events.css"
 
 type Mode = "active" | "finished";
 
@@ -18,6 +20,10 @@ export default function HostEventListPage() {
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
     const [mode, setMode] = useState<Mode>("active");
+
+
+
+
 
     useEffect(() => {
         if (!hostUid) return;
@@ -37,9 +43,13 @@ export default function HostEventListPage() {
     }, [hostUid]);
 
     const visible = useMemo(() => {
-        return events.filter((e) =>
-            mode === "finished" ? e.status === "finished" : e.status !== "finished"
-        );
+        return events.filter((e) => {
+            const status = getEventStatus(e);
+
+            return mode === "finished"
+                ? status === "finished"
+                : status !== "finished";
+        });
     }, [events, mode]);
 
     return (
@@ -75,27 +85,38 @@ export default function HostEventListPage() {
                 ) : visible.length === 0 ? (
                     <p>No events found.</p>
                 ) : (
-                    <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-                        {visible.map((e) => (
-                            <Link
-                                key={e.id}
-                                to={`/host/events/${e.id}`}
-                                style={{ textDecoration: "none", color: "inherit" }}
-                            >
-                                <div className="card card--hover">
-                                    <div className="space-between">
-                                        <div>
-                                            <h2 style={{ margin: 0 }}>{e.name}</h2>
-                                            <div className="muted">
-                                                {e.location} • {e.lengthMeters}m
-                                            </div>
-                                        </div>
 
-                                        <span className="badge">{e.status}</span>
+                    <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+                        {visible.map((e) => {
+                            const status = getEventStatus(e);
+
+                            return (
+                                <Link
+                                    key={e.id}
+                                    to={`/host/events/${e.id}`}
+                                    style={{ textDecoration: "none", color: "inherit" }}
+                                >
+                                    <div className="card card--hover">
+                                        <div className="space-between">
+                                                <h2 style={{ margin: 0 }}>{e.name}</h2>
+                                                <div className="muted">
+                                                    {e.location} • {e.lengthMeters}m
+                                                </div>
+
+                                                <div className="event-center">
+                                                    <div className="event-dates muted">
+                                                        <div>Closes: {formatDate(e.closingDate)}</div>
+                                                        <div>Starts: {formatDate(e.startDate)}</div>
+                                                        <div>Ends: {formatDate(e.endDate)}</div>
+                                                    </div>
+                                                </div>
+
+                                            <span className="badge">{status}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
+                                </Link>
+                            );
+                        })}
                     </div>
                 )}
             </main>

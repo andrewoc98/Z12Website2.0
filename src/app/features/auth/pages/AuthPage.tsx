@@ -116,6 +116,8 @@ export default function AuthPage() {
 
         if (!acceptedTerms) return false;
 
+        if (adminInvite) return true;
+
         if (role === "rower" && !dateOfBirth) return false;
 
         if (isAdminInvite) return true;
@@ -288,6 +290,7 @@ export default function AuthPage() {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
+                                    disabled={!!adminInvite}
                                 />
 
                                 <label>Password</label>
@@ -298,23 +301,26 @@ export default function AuthPage() {
                                 />
                                 {mode === "signin" && (<Link to="/forgot-password">Forgot password?</Link>)}
 
-                                {mode === "register" && (
+                                {mode === "register"  && (
                                     <>
                                         <label>Full name</label>
                                         <input
                                             value={fullName}
                                             onChange={(e) => setFullName(e.target.value)}
                                         />
-
-                                        <label>Role</label>
-                                        <select
-                                            value={role}
-                                            onChange={(e) => setRole(e.target.value as RoleChoice)}
-                                        >
-                                            <option value="rower">Rower</option>
-                                            <option value="coach">Coach</option>
-                                            <option value="host">Host</option>
-                                        </select>
+                                        {!adminInvite && (
+                                            <>
+                                                <label>Role</label>
+                                                <select
+                                                    value={role}
+                                                    onChange={(e) => setRole(e.target.value as RoleChoice)}
+                                                >
+                                                    <option value="rower">Rower</option>
+                                                    <option value="coach">Coach</option>
+                                                    <option value="host">Host</option>
+                                                </select>
+                                            </>
+                                        )}
 
                                         {role === "rower" && (
                                             <>
@@ -370,8 +376,10 @@ export default function AuthPage() {
                                                 />
                                                 <span>
                                                     By checking this, you agree to our{" "}
-                                                    <Link to="#">terms and conditions</Link>
-                                              </span>
+                                                    <Link to="/terms">terms and conditions</Link>{" "}
+                                                    and to our{" "}
+                                                    <Link to="/privacy">privacy policy</Link>
+</span>
                                             </label>
                                         </div>
                                     </>
@@ -418,7 +426,7 @@ export default function AuthPage() {
                                             </button>
 
                                             <div className="auth-links">
-
+                                                {!adminInvite && (
                                                 <div className="auth-register">
                                                     <span>Already have an account?</span>
 
@@ -428,7 +436,7 @@ export default function AuthPage() {
                                                     >
                                                         SIGN IN
                                                     </button>
-                                                </div>
+                                                </div>)}
 
                                             </div>
 

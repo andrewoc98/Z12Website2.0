@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { createAdminInvite } from "../api/users";
+import "../../profile/style/profile.css"
 
 export default function HostAdminInvite() {
     const { profile } = useAuth();
@@ -47,18 +48,27 @@ export default function HostAdminInvite() {
 
             <label>
                 Admin email
-                <input value={email} onChange={e => setEmail(e.target.value)} />
+                <input
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && onInvite()}
+                    placeholder="example@email.com"
+                />
             </label>
 
-            <button className="btn btn--brand" onClick={onInvite} disabled={busy}>
+            <button
+                className="btn btn--brand"
+                onClick={onInvite}
+                disabled={busy}
+            >
                 {busy ? "Generating…" : "Generate invite link"}
             </button>
 
             {inviteLink && (
                 <div className="panel panel--soft mt-2">
                     <p className="muted">Share this link:</p>
-                    <div className="row" style={{ gap: "0.5rem", alignItems: "center" }}>
-                        <code style={{ flex: 1, overflowX: "auto" }}>{inviteLink}</code>
+                    <div className="invite-link">
+                        <code>{inviteLink}</code>
                         <button className="btn btn--ghost" onClick={copyLink}>
                             {copied ? "Copied!" : "Copy"}
                         </button>

@@ -28,9 +28,6 @@ export default function ResultCard({ boat, rank }: ResultCardProps) {
     const formatElapsed = (ms: number) => {
 
         let totalSeconds = Math.floor(ms / 1000);
-        if(boat.adjustmentMs){
-            totalSeconds = totalSeconds+boat.adjustmentMs
-        }
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
         const tenths = Math.floor((ms % 1000) / 100);

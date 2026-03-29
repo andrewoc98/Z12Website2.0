@@ -1,3 +1,5 @@
+import type {EventDoc} from "../types.ts";
+
 export type Gender = "Men" | "Women" | "Mixed";
 export type BoatClass = "1x" | "2x" | "2-" | "4x+";
 
@@ -139,4 +141,34 @@ export function boatSizeFromBoatClass(bc: BoatClass): BoatSize {
         default:
             throw new Error(`Unknown boat class: ${bc}`);
     }
+}
+
+export function getEventStatus(e: EventDoc): "open" | "closed" | "running" | "finished" {
+    const now = new Date();
+
+    const start = e.startDate ? new Date(e.startDate) : null;
+    const end = e.endDate ? new Date(e.endDate) : null;
+    const close = e.closingDate ? new Date(e.closingDate) : null;
+
+    // Finished: after end date
+    if (end && now > end) return "finished";
+
+    // Running: between start and end
+    if (start && end && now >= start && now <= end) return "running";
+
+    // Closed: after closing date but before start
+    if (close && start && now > close && now < start) return "closed";
+
+    // Open: before closing date
+    if (close && now <= close) return "open";
+
+    return "finished";
+}
+
+export function formatDate(dateStr?: string) {
+    if (!dateStr) return "—";
+    return new Date(dateStr).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    });
 }
