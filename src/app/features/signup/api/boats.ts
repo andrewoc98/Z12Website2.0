@@ -272,6 +272,7 @@ export async function getInviteRequirements(
         throw new Error("eventId is required");
     }
     const boatsRef = collection(db, "events", eventId, "boats");
+
     const q = query(boatsRef, where("inviteCode", "==", code));
     const snap = await getDocs(q);
 

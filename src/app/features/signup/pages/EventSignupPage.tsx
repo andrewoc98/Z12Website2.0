@@ -271,7 +271,6 @@ export default function EventPageSignUp() {
                 adjustmentMs: 0,
             });
             await reloadBoats();
-            alert(needsCrew ? "Crew created! Share the invite link with teammates." : "Registered!");
         } catch (e: any) { setErr(e?.message ?? "Failed to sign up"); }
         finally { setBusy(false); }
     }
