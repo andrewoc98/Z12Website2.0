@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {Link, useLocation, useNavigate, useSearchParams} from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import {
     createUserWithEmailAndPassword,
@@ -82,6 +82,26 @@ export default function AuthPage() {
     const [adminInvite, setAdminInvite] = useState<any | null>(null);
 
     const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const loc = useLocation();
+
+    useEffect(() => {
+        if (loc.state) {
+            const state = loc.state as any;
+            setEmail(state.email || "");
+            setPassword(state.password || "");
+            setFullName(state.fullName || "");
+            setRole(state.role || "rower");
+            setGender(state.gender || "male");
+            setDateOfBirth(state.dateOfBirth || "");
+            setClub(state.club || "");
+            setLocation(state.location || "");
+            setAcceptedTerms(state.acceptedTerms || false);
+
+            if (state.mode === "register" || state.mode === "signin") {
+                setMode(state.mode);
+            }
+        }
+    }, [loc.state]);
 
     useEffect(() => {
         if (!inviteId) return;
@@ -130,7 +150,7 @@ export default function AuthPage() {
 
         return false;
 
-    }, [email, password, fullName, role, club, location, dateOfBirth, isAdminInvite]);
+    }, [email, password, fullName, role, club, location, dateOfBirth, isAdminInvite, acceptedTerms]);
 
     function clearForm() {
         setEmail("");
@@ -376,9 +396,41 @@ export default function AuthPage() {
                                                 />
                                                 <span>
                                                     By checking this, you agree to our{" "}
-                                                    <Link to="/terms">terms and conditions</Link>{" "}
+                                                    <Link
+                                                        to="/terms"
+                                                        state={{
+                                                            mode,
+                                                            email,
+                                                            password,
+                                                            fullName,
+                                                            role,
+                                                            gender,
+                                                            dateOfBirth,
+                                                            club,
+                                                            location,
+                                                            acceptedTerms,
+                                                        }}
+                                                    >
+                                                      terms and conditions
+                                                    </Link>{" "}
                                                     and to our{" "}
-                                                    <Link to="/privacy">privacy policy</Link>
+                                                    <Link
+                                                        to="/privacy"
+                                                        state={{
+                                                            mode,
+                                                            email,
+                                                            password,
+                                                            fullName,
+                                                            role,
+                                                            gender,
+                                                            dateOfBirth,
+                                                            club,
+                                                            location,
+                                                            acceptedTerms,
+                                                        }}
+                                                    >
+  privacy policy
+</Link>
 </span>
                                             </label>
                                         </div>
