@@ -275,3 +275,71 @@
     color: #FEB959;
     font-weight: 500;
 }
+
+/* PASSWORD WRAPPER */
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 50px; /* space for the eye icon */
+    background: transparent;
+    border: 2px solid #e4a84d;
+    border-radius: 12px;
+    padding: 14px;
+    color: white;
+    font-size: 16px;
+}
+
+.password-wrapper input:focus {
+    border-color: #f5b457;
+    outline: none;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: #FEB959;
+    padding: 0;
+    line-height: 1;
+    transition: transform 0.2s ease;
+}
+
+.toggle-password:hover {
+    transform: translateY(-50%) scale(1.2);
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-password svg {
+    width: 20px;
+    height: 20px;
+}
+
+.toggle-password .slash {
+    transition: opacity 0.2s ease;
+    opacity: 1;
+}
+
+.toggle-password.active .slash {
+    opacity: 0; /* hide the slash when showing password */
+}
