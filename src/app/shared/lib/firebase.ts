@@ -73,13 +73,13 @@ export async function sendParentConsentEmail(
 
     try {
         await emailjs.send(
-            "service_fxi2f0d",
+            import.meta.env.VITE_EMAILJS_SERVICE_ID,
             "template_fba80zn",
             {
                 to_email: parentEmail,
                 consent_link: consentLink,
             },
-            "vle3vgnfu1WnactzM"
+            import.meta.env.VITE_EMAILJS_PUBLIC_KEY
         );
 
         console.log("Parent consent email sent");
