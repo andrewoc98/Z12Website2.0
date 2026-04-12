@@ -34,3 +34,6 @@ dist/
 .env.local
 .env.production
 *z12-website-firebase-adminsdk*.json
+
+#other
+createTestEvent.js
