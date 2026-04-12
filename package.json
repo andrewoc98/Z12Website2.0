@@ -12,6 +12,7 @@
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.18",
     "dayjs": "^1.11.19",
+    "emailjs-com": "^3.2.0",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.1",
     "framer-motion": "^12.34.0",

@@ -17,22 +17,20 @@ import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage.tsx";
 import AboutPage from "./features/about/pages/AboutPage.tsx";
 import Terms from "./features/Terms/Terms.tsx";
 import Privacy from "./features/Privacy/Privacy.tsx";
-
+import ParentConsentPage from "./features/auth/pages/ParentConsentPage.tsx";
 
 export const router = createBrowserRouter([
-    {path: "/host/events/new", element: (
+    {
+        path: "/host/events/new",
+        element: (
             <RequireRole role="host">
                 <EventCreatePage />
             </RequireRole>
         ),
     },
     {
-        path: "/rower/events",
-        element: (
-            <RequireRole role="rower">
-                <RowerEventListPage />
-            </RequireRole>
-        ),
+        path: "/rower/events/:eventId/results",
+        element: <EventResultsPage />,
     },
     {
         path: "/rower/events/:eventId/signup",
@@ -43,15 +41,6 @@ export const router = createBrowserRouter([
         ),
     },
     {
-        path: "/rower/events/:eventId/results",
-        element: (
-            <RequireRole role="rower">
-                <EventResultsPage />
-            </RequireRole>
-        ),
-    },
-
-    {
         path: "/host/events",
         element: (
             <RequireRole role="host">
@@ -59,7 +48,6 @@ export const router = createBrowserRouter([
             </RequireRole>
         ),
     },
-
     {
         path: "/host/events/:eventId",
         element: (
@@ -68,7 +56,6 @@ export const router = createBrowserRouter([
             </RequireRole>
         ),
     },
-
     {
         path: "/rower/signup",
         element: (
@@ -93,13 +80,14 @@ export const router = createBrowserRouter([
             </RequireRole>
         ),
     },
-
     { path: "/", element: <HomePage /> },
+    { path: "/events", element: <RowerEventListPage /> },
     { path: "/about", element: <AboutPage /> },
     { path: "/auth", element: <AuthPage /> },
+    { path: "/parent-consent", element: <ParentConsentPage /> },
     { path: "/forgot-password", element: <ForgotPasswordPage /> },
-    {path: "/terms", element: <Terms/>},
-    {path: "/privacy", element: <Privacy/>},
+    { path: "/terms", element: <Terms /> },
+    { path: "/privacy", element: <Privacy /> },
     {
         path: "/community",
         element: (

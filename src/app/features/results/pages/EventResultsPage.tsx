@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
-import { listBoatsForEvent, getElapsedMs } from "../../signup/api/boats";
+import { listBoatsForEvent } from "../../signup/api/boats";
 import { getEventById } from "../api/results";
 import OverallResults from "../components/OverallResults";
 import CategoryResults from "../components/CategoryResults";
@@ -17,7 +17,21 @@ export default function EventResultsPage() {
     const [tab, setTab] = useState<"overall" | "category">("overall");
     const [selectedCategory, setSelectedCategory] = useState<string | "All">("All");
     const [page, setPage] = useState<number>(1);
-    const PAGE_SIZE = 10; // boats per page
+    const PAGE_SIZE = 10;
+
+    const toTimestamp = (value: number | Date | string | null | undefined): number | null => {
+        if (!value) return null;
+        if (typeof value === "number") return value;
+        if (value instanceof Date) return value.getTime();
+        const parsed = new Date(value);
+        return isNaN(parsed.getTime()) ? null : parsed.getTime();
+    };
+
+    const formatDate = (value: number | Date | string | null | undefined) => {
+        const ts = toTimestamp(value);
+        if (ts == null) return "—";
+        return new Date(ts).toDateString();
+    };
 
     async function refresh() {
         if (!eventId) return;
@@ -26,7 +40,6 @@ export default function EventResultsPage() {
         try {
             const e = await getEventById(eventId);
             setEvent(e);
-
             const b = await listBoatsForEvent(eventId);
             setBoats(b);
         } catch (e: any) {
@@ -38,15 +51,23 @@ export default function EventResultsPage() {
 
     useEffect(() => { refresh(); }, [eventId]);
 
-    // Finished boats with elapsed times
     const finishedBoats = useMemo(() => {
         return boats
-            .filter(b => b.startedAt && b.finishedAt)
-            .map(b => ({ ...b, elapsedMs: getElapsedMs(b)! }))
+            .map(b => {
+                const startMs = toTimestamp(b.startedAt);
+                const finishMs = toTimestamp(b.finishedAt);
+                if (startMs == null || finishMs == null) return null;
+                return {
+                    ...b,
+                    startedAt: startMs,
+                    finishedAt: finishMs,
+                    elapsedMs: finishMs - startMs
+                };
+            })
+            .filter((b): b is any => b !== null)
             .sort((a, b) => a.elapsedMs - b.elapsedMs);
     }, [boats]);
 
-    // Group boats by category
     const byCategory = useMemo(() => {
         const map = new Map<string, any[]>();
         for (const b of finishedBoats) {
@@ -64,36 +85,27 @@ export default function EventResultsPage() {
 
     const visibleBoats = useMemo(() => {
         if (!event?.resultsPublishMode || event.resultsPublishMode === "Live") {
-            // Live: show all finished boats immediately
             return finishedBoats;
         }
-
         if (event.resultsPublishMode === "Category") {
-            // Only show boats in categories that are fully finished
             const filteredByCategory: any[] = [];
             for (const [, boatsInCat] of byCategory.entries()) {
-                const allFinished = boatsInCat.every(b => b.finishedAt);
+                const allFinished = boatsInCat.every(b => toTimestamp(b.finishedAt) != null);
                 if (allFinished) filteredByCategory.push(...boatsInCat);
             }
             return filteredByCategory;
         }
-
         if (event.resultsPublishMode === "Event") {
-            // Only show results if ALL boats are finished
-            const allFinished = boats.every(b => b.finishedAt);
+            const allFinished = boats.every(b => toTimestamp(b.finishedAt) != null);
             return allFinished ? finishedBoats : [];
         }
-
-        return finishedBoats; // fallback
+        return finishedBoats;
     }, [event?.resultsPublishMode, finishedBoats, byCategory, boats]);
 
-    // Pagination slice
     const paginatedBoats = useMemo<Boat[]>(() => {
         const start = (page - 1) * PAGE_SIZE;
         const end = start + PAGE_SIZE;
-
         if (tab === "overall") return visibleBoats.slice(start, end);
-
         if (tab === "category") {
             if (selectedCategory === "All") {
                 const allBoats = Array.from(byCategory.values()).flat().filter(b => visibleBoats.includes(b));
@@ -103,30 +115,28 @@ export default function EventResultsPage() {
                 return boatsInCat.slice(start, end);
             }
         }
-
         return [];
     }, [tab, page, visibleBoats, byCategory, selectedCategory]);
 
-    // Total pages
     const totalPages = useMemo(() => {
         const totalItems = tab === "overall"
             ? visibleBoats.length
             : selectedCategory === "All"
                 ? Array.from(byCategory.values()).flat().filter(b => visibleBoats.includes(b)).length
                 : (byCategory.get(selectedCategory)?.filter(b => visibleBoats.includes(b)).length || 0);
-
         return Math.ceil(totalItems / PAGE_SIZE);
     }, [tab, byCategory, visibleBoats, selectedCategory]);
+
     return (
         <>
             <Navbar />
             <main className="results-page">
                 <div className="results-header">
-                    <Link to="/rower/events" className="btn-ghost">← Back to events</Link>
+                    <Link to="/events" className="btn-ghost">← Back to events</Link>
                     <h1>{event?.name} — Results</h1>
                     {event && (
                         <div className="event-meta">
-                            {event.location} • {new Date(event.startDate).toDateString()} → {new Date(event.endDate).toDateString()}
+                            {event.location} • {formatDate(event.startDate)} → {formatDate(event.endDate)}
                         </div>
                     )}
                     <div className="tab-buttons">
@@ -159,7 +169,7 @@ export default function EventResultsPage() {
                 ) : tab === "overall" ? (
                     <OverallResults boats={paginatedBoats} />
                 ) : (
-                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory}/>
+                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} />
                 )}
 
                 {((finishedBoats.length > PAGE_SIZE) && tab === "overall") && (

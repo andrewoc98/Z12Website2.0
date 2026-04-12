@@ -7,9 +7,9 @@ import {
     sendEmailVerification,
     signOut
 } from "firebase/auth";
-import { auth } from "../../../shared/lib/firebase";
+import {auth, createPendingUser, getUserProfile, sendParentConsentEmail} from "../../../shared/lib/firebase";
 import { fetchAdminInvite, markAdminInviteUsed, upsertUserProfile } from "../api/users";
-import { signInEmail } from "../api/auth";
+import {isMinor, signInEmail} from "../api/auth";
 import "../../../shared/styles/globals.css"
 import "../styles/auth.css"
 import Footer from "../../../shared/components/Footer/Footer.tsx";
@@ -19,6 +19,8 @@ type RoleChoice = "rower" | "host" | "coach";
 
 function friendlyError(message: string) {
     const m = (message || "").toLowerCase();
+    if (m.includes("auth/network-request-failed") || m.includes("network-request-failed") || m.includes("network error"))
+        return "No internet connection. Please check your network and try again.";
     if (m.includes("auth/invalid-credential") || m.includes("auth/wrong-password")) return "Incorrect email or password.";
     if (m.includes("auth/user-not-found")) return "No account found for that email.";
     if (m.includes("auth/email-already-in-use")) return "That email is already in use. Try signing in instead.";
@@ -62,7 +64,7 @@ export default function AuthPage() {
     };
 
     const [mode, setMode] = useState<Mode>("signin");
-
+    const [parentEmail, setParentEmail] = useState("")
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -82,7 +84,11 @@ export default function AuthPage() {
     const [adminInvite, setAdminInvite] = useState<any | null>(null);
 
     const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+    const [acceptedDataSharing, setAcceptedDataSharing] = useState(false);
+    const [acceptedPerformanceTracking, setAcceptedPerformanceTracking] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [successType, setSuccessType] = useState<"email" | "parent" | null>(null);
 
     const loc = useLocation();
 
@@ -129,6 +135,10 @@ export default function AuthPage() {
 
     const canRegister = useMemo(() => {
 
+        if (role === "rower" && isMinor(dateOfBirth)) {
+            if (!parentEmail || parentEmail.trim().length < 5) return false;
+        }
+
         const cleanEmail = email.trim();
         const name = normalizeFullName(fullName);
 
@@ -136,7 +146,10 @@ export default function AuthPage() {
         if (password.trim().length < 6) return false;
         if (name.length < 2) return false;
 
-        if (!acceptedTerms) return false;
+        if (!acceptedTerms || !acceptedPrivacy) return false;
+
+        if(role === "rower" && !acceptedPerformanceTracking)
+            return false;
 
         if (adminInvite) return true;
 
@@ -152,7 +165,7 @@ export default function AuthPage() {
 
         return false;
 
-    }, [email, password, fullName, role, club, location, dateOfBirth, isAdminInvite, acceptedTerms]);
+    }, [email, password, fullName, role, club, location, dateOfBirth, isAdminInvite, acceptedTerms, acceptedPrivacy, acceptedPerformanceTracking]);
 
     function clearForm() {
         setEmail("");
@@ -178,6 +191,13 @@ export default function AuthPage() {
                 setErr("Please verify your email before signing in.");
                 return;
             }
+            const profile = await getUserProfile(cred.user.uid);
+
+            if (profile?.status?.requiresParentalConsent) {
+                await signOut(auth);
+                setErr("Parental consent required before access.");
+                return;
+            }
 
             goAfterAuth();
 
@@ -197,6 +217,29 @@ export default function AuthPage() {
 
             const cleanEmail = email.trim().toLowerCase();
             const name = normalizeFullName(fullName);
+
+            const isMinorUser = role === "rower" && isMinor(dateOfBirth);
+
+            if (isMinorUser) {
+
+                if (!parentEmail || !parentEmail.includes("@")) {
+                    throw new Error("Parent/guardian email is required.");
+                }
+
+                const pendingId = await createPendingUser({
+                    email: cleanEmail,
+                    fullName: name,
+                    dateOfBirth,
+                    parentEmail,
+                    club,
+                });
+
+                await sendParentConsentEmail(parentEmail, pendingId);
+
+                setSuccessType("parent");
+                setVerificationSent(true);
+                return;
+            }
 
             const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
 
@@ -235,6 +278,34 @@ export default function AuthPage() {
                     club: club.trim(),
                 };
 
+                const now = new Date().toISOString();
+
+                profileBase.isMinor = false;
+
+                profileBase.consent = {
+                    termsAcceptedAt: now,
+                    privacyAcceptedAt: now,
+                    performanceTrackingAccepted: acceptedPerformanceTracking,
+                    dataSharingAccepted: acceptedDataSharing,
+                    givenBy: "self",
+                    givenByUid: cred.user.uid,
+                    updatedAt: now
+                };
+
+                profileBase.permissions = {
+                    shareWithCoaches: false,
+                    shareWithUniversities: false,
+                    shareWithFederations: false
+                };
+
+                profileBase.status = {
+                    isActive: true,
+                    isVerified: false
+                };
+
+                profileBase.createdAt = now;
+                profileBase.updatedAt = now;
+
             } else if (role === "coach") {
 
                 profileBase.roles.coach = {
@@ -254,7 +325,7 @@ export default function AuthPage() {
                 await markAdminInviteUsed(adminInvite.id);
 
             await signOut(auth);
-
+            setSuccessType("email");
             setVerificationSent(true);
 
         } catch (e: any) {
@@ -277,25 +348,38 @@ export default function AuthPage() {
                     {verificationSent ? (
 
                         <>
-                            <h3>Verify your email</h3>
+                            {successType === "email" && (
+                                <>
+                                    <h3>Verify your email</h3>
+                                    <p className="muted">
+                                        We've sent a verification link to <b>{email}</b>.
+                                        Please verify your account before signing in.
+                                    </p>
 
-                            <p className="muted">
-                                We've sent a verification link to <b>{email}</b>.
-                                Please check your inbox and verify your account before signing in.
-                            </p>
+                                    <div className="row auth-footer-actions">
+                                        <button
+                                            className="btn-primary"
+                                            onClick={() => {
+                                                clearForm();
+                                                setMode("signin");
+                                                setVerificationSent(false);
+                                            }}
+                                        >
+                                            Back to sign in
+                                        </button>
+                                    </div>
+                                </>
+                            )}
 
-                            <div className="row auth-footer-actions">
-                                <button
-                                    className="btn-primary"
-                                    onClick={() => {
-                                        clearForm();
-                                        setMode("signin");
-                                        setVerificationSent(false);
-                                    }}
-                                >
-                                    Back to sign in
-                                </button>
-                            </div>
+                            {successType === "parent" && (
+                                <>
+                                    <h3>Parental approval required</h3>
+                                    <p className="muted">
+                                        A consent request has been sent to <b>{parentEmail}</b>.
+                                        Your account will be activated once your parent or guardian approves it.
+                                    </p>
+                                </>
+                            )}
                         </>
 
                     ) : (
@@ -384,7 +468,16 @@ export default function AuthPage() {
                                                     value={dateOfBirth}
                                                     onChange={(e) => setDateOfBirth(e.target.value)}
                                                 />
-
+                                                {role === "rower" && isMinor(dateOfBirth) && (
+                                                    <>
+                                                        <label>Parent / Guardian Email</label>
+                                                        <input
+                                                            type="email"
+                                                            value={parentEmail}
+                                                            onChange={(e) => setParentEmail(e.target.value)}
+                                                        />
+                                                    </>
+                                                )}
                                                 <label>Club</label>
                                                 <input
                                                     value={club}
@@ -413,50 +506,23 @@ export default function AuthPage() {
                                             </>
                                         )}
                                         <div className="terms-checkbox">
-                                            <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={acceptedTerms}
-                                                    onChange={(e) => setAcceptedTerms(e.target.checked)}
-                                                />
-                                                <span>
-                                                    By checking this, you agree to our{" "}
-                                                    <Link
-                                                        to="/terms"
-                                                        state={{
-                                                            mode,
-                                                            email,
-                                                            password,
-                                                            fullName,
-                                                            role,
-                                                            gender,
-                                                            dateOfBirth,
-                                                            club,
-                                                            location,
-                                                            acceptedTerms,
-                                                        }}
-                                                    >
-                                                      terms and conditions
-                                                    </Link>{" "}
-                                                    and to our{" "}
-                                                    <Link
-                                                        to="/privacy"
-                                                        state={{
-                                                            mode,
-                                                            email,
-                                                            password,
-                                                            fullName,
-                                                            role,
-                                                            gender,
-                                                            dateOfBirth,
-                                                            club,
-                                                            location,
-                                                            acceptedTerms,
-                                                        }}
-                                                    >
-  privacy policy
-</Link>
-</span>
+                                            <label>
+                                                <input type="checkbox" checked={acceptedTerms} onChange={(e)=>setAcceptedTerms(e.target.checked)} />
+                                                I agree to the terms and conditions
+                                            </label>
+                                            <label>
+                                                <input type="checkbox" checked={acceptedPrivacy} onChange={(e)=>setAcceptedPrivacy(e.target.checked)} />
+                                                I agree to the privacy policy
+                                            </label>
+
+                                            <label>
+                                                <input type="checkbox" checked={acceptedDataSharing} onChange={(e)=>setAcceptedDataSharing(e.target.checked)} />
+                                                I agree to share my data with coaches/universities
+                                            </label>
+
+                                            <label>
+                                                <input type="checkbox" checked={acceptedPerformanceTracking} onChange={(e)=>setAcceptedPerformanceTracking(e.target.checked)} />
+                                                I agree to performance tracking
                                             </label>
                                         </div>
                                     </>

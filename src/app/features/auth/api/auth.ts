@@ -24,3 +24,10 @@ export async function signOutUser() {
 export async function resetPassword(email: string) {
     return sendPasswordResetEmail(auth, email);
 }
+
+export function isMinor(dateOfBirth: string) {
+    const today = new Date();
+    const dob = new Date(dateOfBirth);
+    const age = today.getFullYear() - dob.getFullYear();
+    return age < 17; 
+}

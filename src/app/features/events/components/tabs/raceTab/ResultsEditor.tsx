@@ -41,9 +41,10 @@ export default function ResultsEditor({ event, boats }: any) {
         }
     };
 
-    const formatTime = (timestamp: number | null) => {
-        if (!timestamp) return "—";
-        return dayjs(timestamp).format("HH:mm:ss.SSS");
+    const formatTime = (value: number | Date | string | null | undefined) => {
+        const ts = toTimestamp(value);
+        if (ts == null) return "—";
+        return dayjs(ts).format("HH:mm:ss.SSS");
     };
 
     const formatElapsed = (elapsedMs: number | null) => {
@@ -62,6 +63,17 @@ export default function ResultsEditor({ event, boats }: any) {
         return `${secondsFormatted}s`;
     };
 
+    const toTimestamp = (value: number | Date | string | null | undefined): number | null => {
+        if (!value) return null;
+
+        if (typeof value === "number") return value;
+
+        if (value instanceof Date) return value.getTime();
+
+        const parsed = dayjs(value);
+        return parsed.isValid() ? parsed.valueOf() : null;
+    };
+
     return (
         <div className="card results-editor">
             <h3>Results & Times</h3>
@@ -76,11 +88,14 @@ export default function ResultsEditor({ event, boats }: any) {
             </div>
 
             {boats.map((b: any) => {
-                const startMs = b.startedAt ?? null;  // already epoch
-                const finishMs = b.finishedAt ?? null; // already epoch
+                const startMs = toTimestamp(b.startedAt);
+                const finishMs = toTimestamp(b.finishedAt);
 
                 const adjustmentMs = (adjustments[b.id] || 0) * 1000;
-                const elapsed = startMs && finishMs ? finishMs - startMs + adjustmentMs : null;
+                const elapsed =
+                    startMs != null && finishMs != null
+                        ? finishMs - startMs + adjustmentMs
+                        : null;
 
                 return (
                     <div key={b.id} className="result-row">

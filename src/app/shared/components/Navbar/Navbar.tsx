@@ -35,6 +35,7 @@ export default function Navbar() {
         const base: NavItem[] = [{ to: "/", label: "Home" }];
 
         if (!user) {
+            base.push({ to: "/events", label: "Races" });
             base.push({ to: "/auth", label: "Login" });
             return base;
         }
@@ -42,7 +43,7 @@ export default function Navbar() {
         if (!rolesLoading) {
             base.push({ to: "/about", label: "About" });
 
-            if (hasRole("rower")) base.push({ to: "/rower/events", label: "Races" });
+            base.push({ to: "/events", label: "Races" });
             if (hasRole("host")) {
                 base.push({ to: "/host/events", label: "Manage Races" });
                 base.push({ to: "/host/events/new", label: "Create Race" });
