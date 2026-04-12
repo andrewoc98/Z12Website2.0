@@ -299,7 +299,7 @@ export default function EventPageSignUp() {
             <Navbar />
             <main className="event-signup-page">
                 <div className="page-container">
-                    <Link to="/rower/events" className="back-btn">← Back to events</Link>
+                    <Link to="/events" className="back-btn">← Back to events</Link>
 
                     {loadingEvent ? <div className="card auth-guard-loading"><p className="muted">Loading event…</p></div> :
                         err ? <div className="card auth-error"><div className="auth-error-title">Something went wrong</div><div className="auth-error-msg">{err}</div></div> :
