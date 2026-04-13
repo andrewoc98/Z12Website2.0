@@ -4,7 +4,7 @@ import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useAuth } from "../../../providers/AuthProvider";
 import CategoryPicker from "../components/CategoryPicker";
 import { buildDefaultCategories } from "../lib/categories";
-import { categoriesFromIds, createEvent, dateInputToTimestampLocalMidday } from "../api/events";
+import { categoriesFromIds, createEvent, dateInputToTimestampStartOfDay,dateInputToTimestampEndOfDay } from "../api/events";
 import type { EventStatus } from "../types";
 
 export default function EventCreatePage() {
@@ -72,9 +72,9 @@ export default function EventCreatePage() {
         setErr(null);
 
         try {
-            const startAt = dateInputToTimestampLocalMidday(startDate);
-            const endAt = dateInputToTimestampLocalMidday(endDate);
-            const closeAt = dateInputToTimestampLocalMidday(closingDate);
+            const startAt = dateInputToTimestampStartOfDay(startDate);
+            const endAt = dateInputToTimestampEndOfDay(endDate);
+            const closeAt = dateInputToTimestampStartOfDay(closingDate);
 
             const startMillis = startAt.toMillis();
             const endMillis = endAt.toMillis();

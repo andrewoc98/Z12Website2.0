@@ -29,10 +29,16 @@ export function categoriesFromIds(ids: string[]): EventCategory[] {
     return unique.map(toCategory);
 }
 
-export function dateInputToTimestampLocalMidday(dateStr: string): Timestamp {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    const dt = new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0, 0);
-    return Timestamp.fromDate(dt);
+export function dateInputToTimestampStartOfDay(dateStr: string): Timestamp {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const d = new Date(year, month - 1, day, 0, 0, 0, 0);
+    return Timestamp.fromDate(d);
+}
+
+export function dateInputToTimestampEndOfDay(dateStr: string): Timestamp {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const d = new Date(year, month - 1, day, 23, 59, 0, 0);
+    return Timestamp.fromDate(d);
 }
 
 // --------------------

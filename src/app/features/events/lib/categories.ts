@@ -169,6 +169,5 @@ export function formatDate(dateStr?: string) {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleString(undefined, {
         dateStyle: "medium",
-        timeStyle: "short",
     });
 }
