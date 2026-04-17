@@ -735,6 +735,7 @@
 .resend-verification p b {
     color: #FEB959;
     font-weight: 600;
+    word-break: break-all;
 }
 
 .resend-verification .btn-secondary {
