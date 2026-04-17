@@ -57,6 +57,7 @@ export type UserProfile = {
                 best500m?: number;
                 best2000m?: number;
                 best6000m?: number;
+                best10000m?: number;
             };
         };
 

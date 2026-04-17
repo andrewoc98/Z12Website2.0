@@ -6,7 +6,6 @@ export function AthleteStats({ unit }: { unit: "metric" | "imperial" }) {
     const { profile } = useAuth();
     const stats = profile?.roles?.rower?.stats;
 
-    // Returns formatted value or "-"
     const safeLength = (val?: number) => val != null ? formatLength(val, unit) : "-";
     const safeWeight = (val?: number) => val != null ? formatWeight(val, unit) : "-";
 

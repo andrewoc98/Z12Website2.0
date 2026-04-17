@@ -1,8 +1,22 @@
-import {collection, query, where, getDocs, addDoc, orderBy, doc, getDoc} from "firebase/firestore";
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    addDoc,
+    orderBy,
+    doc,
+    getDoc,
+    serverTimestamp,
+    setDoc,
+    updateDoc,
+    deleteField,
+    deleteDoc
+} from "firebase/firestore";
 import { startAt, endAt, limit} from "firebase/firestore";
-import { db } from "../../../shared/lib/firebase";
+import { db, auth } from "../../../shared/lib/firebase";
 import type {UserProfile} from "../../auth/types.ts";
-
+import { deleteUser } from "firebase/auth";
 
 async function getProfilesByIds(uids: string[]): Promise<UserProfile[]> {
     if (!uids.length) return [];
@@ -107,4 +121,56 @@ export function formatTime(seconds: number) {
         const s = (seconds % 60).toFixed(1).padStart(4, "0"); // ensures "05.0" format
         return `${m}:${s}`;
     }
+}
+
+export async function upsertUserProfile(uid: string, profile: Partial<UserProfile>) {
+    return setDoc(
+        doc(db, "users", uid),
+        { ...profile, updatedAt: serverTimestamp() },
+        { merge: true }
+    );
+}
+
+export async function removeUserRole(uid: string, role: keyof UserProfile["roles"]) {
+    return updateDoc(
+        doc(db, "users", uid),
+        {
+            [`roles.${role}`]: deleteField(),
+            updatedAt: serverTimestamp(),
+        }
+    );
+}
+export async function saveUserRole(
+    uid: string,
+    role: keyof UserProfile["roles"],
+    data: NonNullable<UserProfile["roles"][typeof role]>
+) {
+    return updateDoc(
+        doc(db, "users", uid),
+        {
+            [`roles.${role}`]: data,
+            updatedAt: serverTimestamp(),
+        }
+    );
+}
+
+// Core fields only — never touches roles
+export async function saveCoreProfile(uid: string, data: {
+    fullName: string;
+    displayName: string;
+    dateOfBirth: string;
+}) {
+    return updateDoc(
+        doc(db, "users", uid),
+        { ...data, updatedAt: serverTimestamp() }
+    );
+}
+
+export async function deleteUserAccount(uid: string) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) throw new Error("No authenticated user found.");
+
+    await deleteDoc(doc(db, "users", uid));
+
+    await deleteUser(currentUser);
 }
