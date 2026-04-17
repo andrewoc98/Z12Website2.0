@@ -297,6 +297,10 @@ export default function AuthPage() {
     const [verificationSent, setVerificationSent] = useState(false);
     const [successType, setSuccessType] = useState<"email" | "parent" | null>(null);
     const [adminInvite, setAdminInvite] = useState<any | null>(null);
+    const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+    const [resendCooldown, setResendCooldown] = useState(0);
+    const [resendCount, setResendCount] = useState(0);
+    const [resendSent, setResendSent] = useState(false);
 
     // ── Wizard state ─────────────────────────────────────────────────────────────
     const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
@@ -375,11 +379,15 @@ export default function AuthPage() {
     }
 
     async function onSignIn() {
-        setErr(null); setBusy(true);
+        setErr(null);
+        setUnverifiedEmail(null);
+        setResendSent(false);
+        setBusy(true);
         try {
             const cred = await signInEmail(email.trim(), password);
             if (!cred.user.emailVerified) {
                 await signOut(auth);
+                setUnverifiedEmail(email.trim()); // reveal resend UI
                 setErr("Please verify your email before signing in.");
                 return;
             }
@@ -392,6 +400,34 @@ export default function AuthPage() {
             goAfterAuth();
         } catch (e: any) {
             setErr(friendlyError(e?.message ?? "Sign-in failed"));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function onResendVerification() {
+        if (resendCooldown > 0 || resendCount >= 3) return;
+        setErr(null);
+        setResendSent(false);
+        setBusy(true);
+        try {
+            // Re-authenticate to get a live credential — proves they know the password
+            const cred = await signInEmail(unverifiedEmail!, password);
+            await sendEmailVerification(cred.user);
+            await signOut(auth);
+            setResendSent(true);
+            setResendCount((c) => c + 1);
+
+            // Start 60-second cooldown
+            let secs = 60;
+            setResendCooldown(secs);
+            const timer = setInterval(() => {
+                secs -= 1;
+                setResendCooldown(secs);
+                if (secs <= 0) clearInterval(timer);
+            }, 1000);
+        } catch (e: any) {
+            setErr(friendlyError(e?.message ?? "Could not resend verification email."));
         } finally {
             setBusy(false);
         }
@@ -545,6 +581,38 @@ export default function AuthPage() {
                                 <>
                                     <h3>LOGIN</h3>
                                     {err && <p className="error">{err}</p>}
+
+                                    {unverifiedEmail && (
+                                        <div className="resend-verification">
+                                            {resendCount >= 3 ? (
+                                                <p className="muted">
+                                                    Maximum resend attempts reached. Check your spam folder or contact support.
+                                                </p>
+                                            ) : resendSent ? (
+                                                <p className="muted">
+                                                    Verification email sent to <b>{unverifiedEmail}</b>.
+                                                    {` Please wait to resend again`}
+                                                </p>
+                                            ) : (
+                                                <p className="muted">
+                                                    Didn't receive a verification email?
+                                                </p>
+                                            )}
+                                            {resendCount < 3 && (
+                                                <button
+                                                    className="btn-secondary"
+                                                    disabled={resendCooldown > 0 || busy}
+                                                    onClick={onResendVerification}
+                                                >
+                                                    {resendCooldown > 0
+                                                        ? `Resend in ${resendCooldown}s`
+                                                        : resendSent
+                                                            ? "Resend again"
+                                                            : "Resend verification email"}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className="form">
                                         <label>Email</label>
