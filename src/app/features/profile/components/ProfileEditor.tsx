@@ -447,12 +447,13 @@ function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
                     placeholder="Shown in UI (defaults to full name)"
                 />
             </Field>
+            {profile.roles.rower && (
             <Field label="Date of birth">
                 <DateOfBirthInput
                     value={dateOfBirth}
                     onChange={(date) => setDateOfBirth(date)}
                 />
-            </Field>
+            </Field>)}
             {msg && <Toast msg={msg} type={msgType} />}
             <div className="panel-actions">
                 <button
