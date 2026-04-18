@@ -40,67 +40,72 @@ export const checkEmailExists = onCall(async (request) => {
     }
 });
 
-export const sendParentConsentEmail = onCall(async (request) => {
-    const { parentEmail, consentLink, childName } = request.data ?? {};
+export const sendParentConsentEmail = onCall(
+    { secrets: ["BREVO_API_KEY"] },
+    async (request) => {
+        const { parentEmail, consentLink, childName } = request.data ?? {};
 
-    if (!parentEmail || !consentLink || !childName) {
-        throw new HttpsError("invalid-argument", "Missing parentEmail, consentLink, or childName.");
+        if (!parentEmail || !consentLink || !childName) {
+            throw new HttpsError("invalid-argument", "Missing parentEmail, consentLink, or childName.");
+        }
+
+        try {
+            const client = getEmailClient();
+            await client.transactionalEmails.sendTransacEmail(
+                buildEmail(parentEmail, "Parental Consent Required – Z12 Challenge", parentConsentTemplate(childName, consentLink))
+            );
+        } catch (err) {
+            console.error('Brevo error:', err);
+            throw new HttpsError("internal", "Failed to send parent consent email.");
+        }
     }
+);
 
-    try {
-        const client = getEmailClient();
-        await client.transactionalEmails.sendTransacEmail(
-            buildEmail(parentEmail, "Parental Consent Required – Z12 Challenge", parentConsentTemplate(childName, consentLink))
-        );
-    } catch (err) {
-        console.error('Brevo error:', err);
-        throw new HttpsError("internal", "Failed to send parent consent email.");
+export const sendVerificationEmail = onCall(
+    { secrets: ["BREVO_API_KEY", "APP_URL"] },
+    async (request) => {
+        const { email } = request.data ?? {};
+
+        if (!email) {
+            throw new HttpsError("invalid-argument", "Missing email.");
+        }
+
+        try {
+            const verificationLink = await admin.auth().generateEmailVerificationLink(email);
+            const client = getEmailClient();
+            await client.transactionalEmails.sendTransacEmail(
+                buildEmail(email, "Verify your Z12 Challenge account", verifyEmailTemplate(verificationLink))
+            );
+        } catch (err) {
+            console.error('Brevo error:', err);
+            throw new HttpsError("internal", "Failed to send verification email.");
+        }
     }
-});
+);
 
-export const sendVerificationEmail = onCall(async (request) => {
-    const { email } = request.data ?? {};
-    console.log("sendVerificationEmail called with:", email);
+export const sendPasswordResetEmail = onCall(
+    { secrets: ["BREVO_API_KEY", "APP_URL"] },
+    async (request) => {
+        const { email } = request.data ?? {};
 
-    if (!email) {
-        throw new HttpsError("invalid-argument", "Missing email.");
+        if (!email) {
+            throw new HttpsError("invalid-argument", "Missing email.");
+        }
+
+        try {
+            const APP_URL = process.env.APP_URL ?? "https://www.z12challenge.com";
+            const firebaseResetLink = await admin.auth().generatePasswordResetLink(email);
+            const oobCode = new URL(firebaseResetLink).searchParams.get("oobCode");
+            const resetLink = `${APP_URL}/reset-password?oobCode=${oobCode}`;
+
+            const client = getEmailClient();
+            await client.transactionalEmails.sendTransacEmail(
+                buildEmail(email, "Reset your Z12 Challenge password", resetPasswordTemplate(resetLink))
+            );
+        } catch (err: any) {
+            if (err?.code === "auth/user-not-found") return;
+            console.error('Brevo error:', err);
+            throw new HttpsError("internal", "Failed to send password reset email.");
+        }
     }
-
-    try {
-        console.log("Generating verification link...");
-        const verificationLink = await admin.auth().generateEmailVerificationLink(email);
-        console.log("Link generated:", verificationLink);
-
-        const client = getEmailClient();
-        await client.transactionalEmails.sendTransacEmail(
-            buildEmail(email, "Verify your Z12 Challenge account", verifyEmailTemplate(verificationLink))
-        );
-        console.log("Verification email sent successfully");
-    } catch (err) {
-        console.error('Brevo error:', err);
-        throw new HttpsError("internal", "Failed to send verification email.");
-    }
-});
-
-export const sendPasswordResetEmail = onCall(async (request) => {
-    const { email } = request.data ?? {};
-
-    if (!email) {
-        throw new HttpsError("invalid-argument", "Missing email.");
-    }
-
-    try {
-        const firebaseResetLink = await admin.auth().generatePasswordResetLink(email);
-        const oobCode = new URL(firebaseResetLink).searchParams.get("oobCode");
-        const resetLink = `${process.env.APP_URL}/reset-password?oobCode=${oobCode}`;
-
-        const client = getEmailClient();
-        await client.transactionalEmails.sendTransacEmail(
-            buildEmail(email, "Reset your Z12 Challenge password", resetPasswordTemplate(resetLink))
-        );
-    } catch (err: any) {
-        if (err?.code === "auth/user-not-found") return;
-        console.error('Brevo error:', err);
-        throw new HttpsError("internal", "Failed to send password reset email.");
-    }
-});
+);
