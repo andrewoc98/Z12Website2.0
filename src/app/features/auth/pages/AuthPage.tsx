@@ -176,8 +176,6 @@ function StepRoleDetails({
                                 <option value="male">Male</option>
                                 <option value="female">Female</option>
                             </select>
-
-                            <label>Date of Birth</label>
                             <DateOfBirthInput
                                 value={d.rower.dateOfBirth}
                                 onChange={(date) => patch("rower", { dateOfBirth: date })}
@@ -254,11 +252,6 @@ function StepConsent({
                 <span className="required-badge">Required</span>
             </label>
 
-            <label>
-                <input type="checkbox" checked={acceptedDataSharing} onChange={(e) => setAcceptedDataSharing(e.target.checked)} />
-                I agree to share my data with coaches/universities
-                <span className="optional-badge">Optional</span>
-            </label>
             {selectedRoles.includes("rower") && (
                 <label>
                     <input type="checkbox" checked={acceptedPerformanceTracking} onChange={(e) => setAcceptedPerformanceTracking(e.target.checked)} />
@@ -266,6 +259,11 @@ function StepConsent({
                     <span className="required-badge">Required</span>
                 </label>
             )}
+            <label>
+                <input type="checkbox" checked={acceptedDataSharing} onChange={(e) => setAcceptedDataSharing(e.target.checked)} />
+                I agree to share my data with coaches/universities
+                <span className="optional-badge">Optional</span>
+            </label>
         </div>
     );
 }
@@ -653,7 +651,7 @@ export default function AuthPage() {
                                                 <div className="auth-links">
                                                     <div className="auth-register">
                                                         <span>Don't have an account?</span>
-                                                        <button className="btn-secondary" onClick={() => { setMode("register"); setWizardStep(1); }}>
+                                                        <button className="btn-secondary" onClick={() => { setMode("register"); setWizardStep(1); setErr(null) }}>
                                                             CREATE ONE
                                                         </button>
                                                     </div>

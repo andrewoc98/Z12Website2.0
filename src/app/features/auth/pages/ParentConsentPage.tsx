@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import {
     createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
     updateProfile,
     sendEmailVerification,
     signOut,
@@ -13,17 +14,59 @@ import Navbar from "../../../shared/components/Navbar/Navbar";
 import Footer from "../../../shared/components/Footer/Footer";
 import "../styles/auth.css";
 import type { PendingUser } from "../types.ts";
-import {EyeIcon} from "../components/EyeIcon.tsx";
+import { EyeIcon } from "../components/EyeIcon.tsx";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../../shared/lib/firebase";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function friendlyError(message: string) {
     const m = (message || "").toLowerCase();
-    if (m.includes("auth/email-already-in-use")) return "A guardian account already exists for this email. Try signing in instead.";
-    if (m.includes("auth/weak-password")) return "Password must be at least 6 characters.";
-    if (m.includes("auth/invalid-email")) return "Please enter a valid email address.";
+    if (m.includes("auth/wrong-password") || m.includes("auth/invalid-credential"))
+        return "Incorrect password. Please try again.";
+    if (m.includes("auth/too-many-requests"))
+        return "Too many attempts. Please wait a moment and try again.";
+    if (m.includes("auth/weak-password"))
+        return "Password must be at least 6 characters.";
+    if (m.includes("auth/invalid-email"))
+        return "Please enter a valid email address.";
     return message || "Something went wrong.";
 }
 
-type Step = "consent" | "register" | "done";
+type Step = "consent" | "account" | "done";
+
+// ─── Password field with toggle ───────────────────────────────────────────────
+
+function PasswordInput({
+                           value,
+                           onChange,
+                           placeholder,
+                       }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+}) {
+    const [show, setShow] = useState(false);
+    return (
+        <div className="password-wrapper">
+            <input
+                type={show ? "text" : "password"}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder ?? "Password"}
+            />
+            <button
+                type="button"
+                className={`toggle-password ${show ? "active" : ""}`}
+                onClick={() => setShow((v) => !v)}
+            >
+                <EyeIcon />
+            </button>
+        </div>
+    );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ParentConsentPage() {
     const [searchParams] = useSearchParams();
@@ -33,98 +76,152 @@ export default function ParentConsentPage() {
     const [pendingUser, setPendingUser] = useState<PendingUser | null>(null);
 
     // UI state
-    const [step, setStep] = useState<Step>("consent");
+    const [step, setStep]       = useState<Step>("consent");
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [busy, setBusy] = useState(false);
+    const [error, setError]     = useState<string | null>(null);
+    const [busy, setBusy]       = useState(false);
 
     // Consent checkboxes
-    const [termsAccepted, setTermsAccepted] = useState(false);
-    const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [termsAccepted, setTermsAccepted]                           = useState(false);
+    const [privacyAccepted, setPrivacyAccepted]                       = useState(false);
     const [performanceTrackingAccepted, setPerformanceTrackingAccepted] = useState(false);
-    const [dataSharingAccepted, setDataSharingAccepted] = useState(false);
+    const [dataSharingAccepted, setDataSharingAccepted]               = useState(false);
 
-    // Guardian registration fields
-    const [guardianName, setGuardianName] = useState("");
+    // Account step — shared
     const [guardianEmail, setGuardianEmail] = useState("");
-    const [guardianPassword, setGuardianPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
 
-    // ── Fetch pending user ──────────────────────────────────────────────────────
+    // "existing account" branch
+    const [accountExists, setAccountExists]   = useState<boolean | null>(null); // null = not yet checked
+    const [checkingEmail, setCheckingEmail]   = useState(false);
+    const [guardianPassword, setGuardianPassword] = useState("");
+
+    // "new account" branch
+    const [guardianName, setGuardianName]         = useState("");
+    const [newPassword, setNewPassword]           = useState("");
+    const [confirmPassword, setConfirmPassword]   = useState("");
+
+    // ── Fetch pending user ────────────────────────────────────────────────────
     useEffect(() => {
         if (!token) {
             setError("Invalid or missing consent token.");
             setLoading(false);
             return;
         }
-
-        const fetchPendingUser = async () => {
+        (async () => {
             try {
-                const docRef = doc(db, "pendingUsers", token);
-                const docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) throw new Error("Consent link not found or already used.");
-                const data = docSnap.data() as PendingUser;
+                const snap = await getDoc(doc(db, "pendingUsers", token));
+                if (!snap.exists()) throw new Error("Consent link not found or already used.");
+                const data = snap.data() as PendingUser;
                 setPendingUser(data);
-                // Pre-fill guardian email from the address we emailed
                 setGuardianEmail(data.parentEmail ?? "");
             } catch (e: any) {
                 setError(e.message);
             } finally {
                 setLoading(false);
             }
-        };
-
-        fetchPendingUser();
+        })();
     }, [token]);
 
-    // ── Step 1: Accept consents ─────────────────────────────────────────────────
-    const canProceedToRegister =
-        termsAccepted && privacyAccepted && performanceTrackingAccepted;
+    // ── Step 1: consent validation ────────────────────────────────────────────
+    const canProceedToAccount = termsAccepted && privacyAccepted && performanceTrackingAccepted;
 
-    const onConsentNext = () => {
-        if (!canProceedToRegister) {
+    function onConsentNext() {
+        if (!canProceedToAccount) {
             setError("Please accept all required consents before continuing.");
             return;
         }
         setError(null);
-        setStep("register");
-    };
+        setStep("account");
+    }
 
-    // ── Step 2: Create guardian account + approve child ─────────────────────────
-    const canRegister =
-        guardianName.trim().length >= 2 &&
-        guardianEmail.trim().length > 5 &&
-        guardianPassword.length >= 6 &&
-        guardianPassword === confirmPassword;
-
-    const onRegisterAndApprove = async () => {
-        if (!pendingUser || !token) return;
-        if (guardianPassword !== confirmPassword) {
-            setError("Passwords do not match.");
+    async function checkEmail() {
+        const email = guardianEmail.trim().toLowerCase();
+        if (!email || !email.includes("@")) {
+            setError("Please enter a valid email address.");
             return;
         }
+        setError(null);
+        setCheckingEmail(true);
+        try {
+            const checkEmailExists = httpsCallable(functions, "checkEmailExists");
+            const result = await checkEmailExists({ email });
+            setAccountExists((result.data as { exists: boolean }).exists);
+        } catch (e: any) {
+            setError(friendlyError(e?.message ?? "Could not check email."));
+        } finally {
+            setCheckingEmail(false);
+        }
+    }
 
+    // Reset account-check state when email changes
+    function onEmailChange(v: string) {
+        setGuardianEmail(v);
+        setAccountExists(null);
+        setError(null);
+    }
+
+    // ── Validation per branch ─────────────────────────────────────────────────
+    const canSignInAndApprove =
+        accountExists === true &&
+        guardianPassword.length >= 6;
+
+    const canRegisterAndApprove =
+        accountExists === false &&
+        guardianName.trim().length >= 2 &&
+        newPassword.length >= 6 &&
+        newPassword === confirmPassword;
+
+    // ── Shared approve logic (called after auth) ──────────────────────────────
+    async function approveChild(guardianUid: string) {
+        await onApproveAndCreate(pendingUser!, token!, {
+            termsAccepted,
+            privacyAccepted,
+            performanceTrackingAccepted,
+            dataSharingAccepted,
+            guardianUid,
+        });
+    }
+
+    // ── Existing guardian: sign in → approve ─────────────────────────────────
+    async function onSignInAndApprove() {
+        if (!pendingUser || !token) return;
         setBusy(true);
         setError(null);
-
         try {
-            // 1. Create Firebase auth account for guardian
-            const cred = await createUserWithEmailAndPassword(
+            const cred = await signInWithEmailAndPassword(
                 auth,
                 guardianEmail.trim().toLowerCase(),
                 guardianPassword
             );
+            await approveChild(cred.user.uid);
+            await signOut(auth);
+            setStep("done");
+        } catch (e: any) {
+            setError(friendlyError(e?.message ?? "Sign-in failed."));
+        } finally {
+            setBusy(false);
+        }
+    }
 
+    // ── New guardian: create account → approve ────────────────────────────────
+    async function onRegisterAndApprove() {
+        if (!pendingUser || !token) return;
+        if (newPassword !== confirmPassword) {
+            setError("Passwords do not match.");
+            return;
+        }
+        setBusy(true);
+        setError(null);
+        try {
+            const cleanEmail = guardianEmail.trim().toLowerCase();
+            const cred = await createUserWithEmailAndPassword(auth, cleanEmail, newPassword);
             await updateProfile(cred.user, { displayName: guardianName.trim() });
             await sendEmailVerification(cred.user);
 
-            // 2. Write guardian profile to Firestore
             const now = new Date().toISOString();
             await upsertUserProfile(cred.user.uid, {
                 uid: cred.user.uid,
-                email: cred.user.email ?? guardianEmail.trim().toLowerCase(),
+                email: cred.user.email ?? cleanEmail,
                 fullName: guardianName.trim(),
                 displayName: guardianName.trim(),
                 primaryRole: "guardian",
@@ -142,16 +239,12 @@ export default function ParentConsentPage() {
                     shareWithUniversities: false,
                     shareWithFederations: false,
                 },
-                status: {
-                    isActive: true,
-                    isVerified: false,
-                    requiresParentalConsent: false,
-                },
+                status: { isActive: true, isVerified: false, requiresParentalConsent: false },
                 consent: {
                     termsAcceptedAt: now,
                     privacyAcceptedAt: now,
-                    performanceTrackingAccepted: performanceTrackingAccepted,
-                    dataSharingAccepted: dataSharingAccepted,
+                    performanceTrackingAccepted,
+                    dataSharingAccepted,
                     givenBy: "self",
                     givenByUid: cred.user.uid,
                     updatedAt: now,
@@ -160,30 +253,25 @@ export default function ParentConsentPage() {
                 updatedAt: now,
             });
 
-            // 3. Approve and activate the child's pending account
-            await onApproveAndCreate(pendingUser, token, {
-                termsAccepted,
-                privacyAccepted,
-                performanceTrackingAccepted,
-                dataSharingAccepted,
-                guardianUid: cred.user.uid,
-            });
-
-            // 4. Sign out — guardian verifies their own email before logging in
+            await approveChild(cred.user.uid);
             await signOut(auth);
-
             setStep("done");
         } catch (e: any) {
             setError(friendlyError(e?.message ?? "Registration failed."));
         } finally {
             setBusy(false);
         }
-    };
+    }
 
-    // ── Render ──────────────────────────────────────────────────────────────────
+    // ── Render ────────────────────────────────────────────────────────────────
     if (loading) return <p>Loading…</p>;
     if (error && !pendingUser) return <p className="error">{error}</p>;
     if (!pendingUser) return null;
+
+    const accountStepLabel =
+        accountExists === true  ? "Sign In" :
+            accountExists === false ? "Create Account" :
+                "Your Account";
 
     return (
         <>
@@ -191,24 +279,24 @@ export default function ParentConsentPage() {
             <main className="page-content">
                 <div className="card auth-card">
 
-                    {/* ── Step indicator ── */}
+                    {/* ── Step indicator ───────────────────────────────────── */}
                     {step !== "done" && (
                         <div className="consent-steps">
                             <span className={`consent-step ${step === "consent" ? "active" : "complete"}`}>
                                 1. Review &amp; Consent
                             </span>
                             <span className="consent-step-divider">›</span>
-                            <span className={`consent-step ${step === "register" ? "active" : ""}`}>
-                                2. Create Guardian Account
+                            <span className={`consent-step ${step === "account" ? "active" : ""}`}>
+                                2. {accountStepLabel}
                             </span>
                         </div>
                     )}
 
                     {error && <p className="error">{error}</p>}
 
-                    {/* ════════════════════════════════════════════
+                    {/* ══════════════════════════════════════════════
                         STEP 1 — Review child details + give consent
-                    ════════════════════════════════════════════ */}
+                    ══════════════════════════════════════════════ */}
                     {step === "consent" && (
                         <>
                             <h3>Parental Consent</h3>
@@ -217,49 +305,34 @@ export default function ParentConsentPage() {
                                 to activate your child's account.
                             </p>
 
-                            <div className="auth-register">
-                                <span><b>{pendingUser.fullName}</b></span>
-                                <span>{pendingUser.email}</span>
-                                <span>{pendingUser.club}</span>
+                            <div className="consent-child-summary">
+                                <span className="consent-child-name">{pendingUser.fullName}</span>
+                                <span className="consent-child-meta">{pendingUser.email}</span>
+                                <span className="consent-child-meta">{pendingUser.club}</span>
                             </div>
 
                             <div className="terms-checkbox">
                                 <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={termsAccepted}
-                                        onChange={e => setTermsAccepted(e.target.checked)}
-                                    />
+                                    <input type="checkbox" checked={termsAccepted}
+                                           onChange={e => setTermsAccepted(e.target.checked)} />
                                     I agree to the <a href="/terms" target="_blank">Terms of Service</a>{" "}
                                     <span className="required-badge">Required</span>
                                 </label>
-
                                 <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={privacyAccepted}
-                                        onChange={e => setPrivacyAccepted(e.target.checked)}
-                                    />
+                                    <input type="checkbox" checked={privacyAccepted}
+                                           onChange={e => setPrivacyAccepted(e.target.checked)} />
                                     I agree to the <a href="/privacy" target="_blank">Privacy Policy</a>{" "}
                                     <span className="required-badge">Required</span>
                                 </label>
-
                                 <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={performanceTrackingAccepted}
-                                        onChange={e => setPerformanceTrackingAccepted(e.target.checked)}
-                                    />
+                                    <input type="checkbox" checked={performanceTrackingAccepted}
+                                           onChange={e => setPerformanceTrackingAccepted(e.target.checked)} />
                                     I consent to performance tracking{" "}
                                     <span className="required-badge">Required</span>
                                 </label>
-
                                 <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={dataSharingAccepted}
-                                        onChange={e => setDataSharingAccepted(e.target.checked)}
-                                    />
+                                    <input type="checkbox" checked={dataSharingAccepted}
+                                           onChange={e => setDataSharingAccepted(e.target.checked)} />
                                     I consent to data sharing with coaches / universities{" "}
                                     <span className="optional-badge">Optional</span>
                                 </label>
@@ -269,7 +342,7 @@ export default function ParentConsentPage() {
                                 <button
                                     className="auth-login-btn"
                                     onClick={onConsentNext}
-                                    disabled={!canProceedToRegister}
+                                    disabled={!canProceedToAccount}
                                 >
                                     Continue →
                                 </button>
@@ -277,111 +350,198 @@ export default function ParentConsentPage() {
                         </>
                     )}
 
-                    {/* ════════════════════════════════════════════
-                        STEP 2 — Guardian account registration
-                    ════════════════════════════════════════════ */}
-                    {step === "register" && (
+                    {/* ══════════════════════════════════════════════
+                        STEP 2 — Account (existing or new)
+                    ══════════════════════════════════════════════ */}
+                    {step === "account" && (
                         <>
-                            <h3>Create Your Guardian Account</h3>
-                            <p className="muted">
-                                Create an account so you can manage your child's profile
-                                and update consents at any time.
-                            </p>
+                            {/* ── Email entry + check ───────────────────────── */}
+                            <h3>
+                                {accountExists === true  ? "Sign In to Approve" :
+                                    accountExists === false ? "Create Your Guardian Account" :
+                                        "Your Email"}
+                            </h3>
+
+                            {accountExists === null && (
+                                <p className="muted">
+                                    Enter the email address you'd like to use as guardian.
+                                    We'll check if you already have an account.
+                                </p>
+                            )}
+
+                            {accountExists === true && (
+                                <p className="muted">
+                                    We found an existing account for <b>{guardianEmail}</b>.
+                                    Sign in below to approve your child's registration.
+                                </p>
+                            )}
+
+                            {accountExists === false && (
+                                <p className="muted">
+                                    No account found for <b>{guardianEmail}</b>.
+                                    Create one below to manage your child's profile.
+                                </p>
+                            )}
 
                             <div className="form">
-                                <label>Full Name</label>
-                                <input
-                                    type="text"
-                                    value={guardianName}
-                                    onChange={e => setGuardianName(e.target.value)}
-                                    placeholder="Your full name"
-                                />
 
+                                {/* Email row — always shown, locked after check */}
                                 <label>Email</label>
-                                <input
-                                    type="email"
-                                    value={guardianEmail}
-                                    onChange={e => setGuardianEmail(e.target.value)}
-                                    placeholder="Your email address"
-                                />
-
-                                <label>Password</label>
-                                <div className="password-wrapper">
+                                <div className="email-check-row">
                                     <input
-                                        type={showPassword ? "text" : "password"}
-                                        value={guardianPassword}
-                                        onChange={e => setGuardianPassword(e.target.value)}
-                                        placeholder="At least 6 characters"
+                                        type="email"
+                                        value={guardianEmail}
+                                        onChange={(e) => onEmailChange(e.target.value)}
+                                        placeholder="your@email.com"
+                                        disabled={accountExists !== null}
                                     />
-                                    <button
-                                        type="button"
-                                        className={`toggle-password ${showPassword ? "active" : ""}`}
-                                        onClick={() => setShowPassword(v => !v)}
-                                    >
-                                        <EyeIcon />
-                                    </button>
+                                    {accountExists !== null && (
+                                        <button
+                                            type="button"
+                                            className="btn-secondary email-change-btn"
+                                            onClick={() => {
+                                                setAccountExists(null);
+                                                setGuardianPassword("");
+                                                setNewPassword("");
+                                                setConfirmPassword("");
+                                                setError(null);
+                                            }}
+                                        >
+                                            Change
+                                        </button>
+                                    )}
                                 </div>
 
-                                <label>Confirm Password</label>
-                                <div className="password-wrapper">
-                                    <input
-                                        type={showConfirm ? "text" : "password"}
-                                        value={confirmPassword}
-                                        onChange={e => setConfirmPassword(e.target.value)}
-                                        placeholder="Repeat password"
-                                    />
+                                {/* Check email button */}
+                                {accountExists === null && (
                                     <button
                                         type="button"
-                                        className={`toggle-password ${showConfirm ? "active" : ""}`}
-                                        onClick={() => setShowConfirm(v => !v)}
+                                        className="auth-login-btn"
+                                        onClick={checkEmail}
+                                        disabled={checkingEmail || guardianEmail.trim().length < 5}
+                                        style={{ marginTop: "0.5rem" }}
                                     >
-                                        <EyeIcon />
+                                        {checkingEmail ? "Checking…" : "Continue →"}
                                     </button>
-                                </div>
-
-                                {confirmPassword.length > 0 && guardianPassword !== confirmPassword && (
-                                    <p className="error error--no-top-margin">Passwords do not match.</p>
                                 )}
 
-                                <div className="auth-row auth-row--actions">
-                                    <button
-                                        className="btn-secondary"
-                                        onClick={() => { setError(null); setStep("consent"); }}
-                                        disabled={busy}
-                                    >
-                                        ← Back
-                                    </button>
+                                {/* ── Existing account: sign-in fields ─────── */}
+                                {accountExists === true && (
+                                    <>
+                                        <label>Password</label>
+                                        <PasswordInput
+                                            value={guardianPassword}
+                                            onChange={setGuardianPassword}
+                                            placeholder="Your password"
+                                        />
 
+                                        <div className="auth-row auth-row--actions" style={{ marginTop: "1rem" }}>
+                                            <button
+                                                type="button"
+                                                className="btn-secondary"
+                                                onClick={() => { setAccountExists(null); setError(null); }}
+                                                disabled={busy}
+                                            >
+                                                ← Back
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="auth-login-btn"
+                                                onClick={onSignInAndApprove}
+                                                disabled={!canSignInAndApprove || busy}
+                                            >
+                                                {busy ? "Approving…" : "Sign In & Approve"}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* ── New account: registration fields ─────── */}
+                                {accountExists === false && (
+                                    <>
+                                        <label>Full Name</label>
+                                        <input
+                                            type="text"
+                                            value={guardianName}
+                                            onChange={(e) => setGuardianName(e.target.value)}
+                                            placeholder="Your full name"
+                                        />
+
+                                        <label>Password</label>
+                                        <PasswordInput
+                                            value={newPassword}
+                                            onChange={setNewPassword}
+                                            placeholder="At least 6 characters"
+                                        />
+
+                                        <label>Confirm Password</label>
+                                        <PasswordInput
+                                            value={confirmPassword}
+                                            onChange={setConfirmPassword}
+                                            placeholder="Repeat password"
+                                        />
+
+                                        {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                                            <p className="error error--no-top-margin">Passwords do not match.</p>
+                                        )}
+
+                                        <div className="auth-row auth-row--actions" style={{ marginTop: "1rem" }}>
+                                            <button
+                                                type="button"
+                                                className="btn-secondary"
+                                                onClick={() => { setAccountExists(null); setError(null); }}
+                                                disabled={busy}
+                                            >
+                                                ← Back
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="auth-login-btn"
+                                                onClick={onRegisterAndApprove}
+                                                disabled={!canRegisterAndApprove || busy}
+                                            >
+                                                {busy ? "Creating account…" : "Approve & Create Account"}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+
+                            </div>
+
+                            {/* Back to consent */}
+                            {accountExists === null && (
+                                <div style={{ marginTop: "0.75rem" }}>
                                     <button
-                                        className="auth-login-btn"
-                                        onClick={onRegisterAndApprove}
-                                        disabled={!canRegister || busy}
+                                        type="button"
+                                        className="btn-secondary"
+                                        onClick={() => { setStep("consent"); setError(null); }}
                                     >
-                                        {busy ? "Creating account…" : "Approve & Create Account"}
+                                        ← Back to consent
                                     </button>
                                 </div>
-                            </div>
+                            )}
                         </>
                     )}
 
-                    {/* ════════════════════════════════════════════
+                    {/* ══════════════════════════════════════════════
                         STEP 3 — Success
-                    ════════════════════════════════════════════ */}
+                    ══════════════════════════════════════════════ */}
                     {step === "done" && (
                         <>
                             <h3>All Done! ✓</h3>
                             <p>
-                                You've successfully given consent and created your guardian account.
+                                You've successfully given consent
+                                {accountExists === false && " and created your guardian account"}.
                             </p>
                             <p className="muted">
-                                <b>{pendingUser.fullName}'s</b> account is now active. We've sent
-                                a verification link to <b>{guardianEmail}</b> — please verify your
-                                own email before signing in.
+                                <b>{pendingUser.fullName}'s</b> account is now active.
+                                {accountExists === false && (
+                                    <> We've sent a verification link to <b>{guardianEmail}</b> — please
+                                        verify your email before signing in.</>
+                                )}
                             </p>
                             <div className="auth-row auth-row--done">
-                                <a className="auth-login-btn" href="/auth">
-                                    Go to Sign In
-                                </a>
+                                <a className="auth-login-btn" href="/auth">Go to Sign In</a>
                             </div>
                         </>
                     )}

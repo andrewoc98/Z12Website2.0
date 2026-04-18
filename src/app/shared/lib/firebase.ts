@@ -20,8 +20,8 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const useEmulators = import.meta.env.VITE_USE_EMULATORS === "false";
-const functionsPort = Number(import.meta.env.VITE_FUNCTIONS_EMULATOR_PORT || "5002");
+const useEmulators = import.meta.env.VITE_USE_EMULATORS === "true";
+const functionsPort = Number(import.meta.env.VITE_FUNCTIONS_EMULATOR_PORT || "5003");
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
@@ -32,6 +32,9 @@ if (useEmulators) {
     connectAuthEmulator(auth, "http://localhost:9099");
     connectFirestoreEmulator(db, "localhost", 8080);
     connectFunctionsEmulator(functions, "localhost", functionsPort);
+    console.log("🔧 Emulators connected — functions on port", functionsPort);
+} else {
+    console.log("🚀 Using production Firebase");
 }
 
 export async function createPendingUser(data: {
