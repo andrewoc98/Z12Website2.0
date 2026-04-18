@@ -7,6 +7,10 @@ import { resetPasswordTemplate } from './emailTemplates';
 
 admin.initializeApp();
 
+const APP_URL = process.env.FUNCTIONS_EMULATOR === "true"
+    ? "http://localhost:5173"
+    : "https://www.z12challenge.com";
+
 function getEmailClient() {
     return new BrevoClient({
         apiKey: process.env.BREVO_API_KEY ?? "",
@@ -52,7 +56,11 @@ export const sendParentConsentEmail = onCall(
         try {
             const client = getEmailClient();
             await client.transactionalEmails.sendTransacEmail(
-                buildEmail(parentEmail, "Parental Consent Required – Z12 Challenge", parentConsentTemplate(childName, consentLink))
+                buildEmail(
+                    parentEmail,
+                    "Parental Consent Required – Z12 Challenge",
+                    parentConsentTemplate(childName, consentLink)
+                )
             );
         } catch (err) {
             console.error('Brevo error:', err);
@@ -62,7 +70,7 @@ export const sendParentConsentEmail = onCall(
 );
 
 export const sendVerificationEmail = onCall(
-    { secrets: ["BREVO_API_KEY", "APP_URL"] },
+    { secrets: ["BREVO_API_KEY"] },
     async (request) => {
         const { email } = request.data ?? {};
 
@@ -71,10 +79,17 @@ export const sendVerificationEmail = onCall(
         }
 
         try {
-            const verificationLink = await admin.auth().generateEmailVerificationLink(email);
+            const verificationLink = await admin.auth().generateEmailVerificationLink(email, {
+                url: `${APP_URL}/auth`,
+            });
+
             const client = getEmailClient();
             await client.transactionalEmails.sendTransacEmail(
-                buildEmail(email, "Verify your Z12 Challenge account", verifyEmailTemplate(verificationLink))
+                buildEmail(
+                    email,
+                    "Verify your Z12 Challenge account",
+                    verifyEmailTemplate(verificationLink)
+                )
             );
         } catch (err) {
             console.error('Brevo error:', err);
@@ -84,7 +99,7 @@ export const sendVerificationEmail = onCall(
 );
 
 export const sendPasswordResetEmail = onCall(
-    { secrets: ["BREVO_API_KEY", "APP_URL"] },
+    { secrets: ["BREVO_API_KEY"] },
     async (request) => {
         const { email } = request.data ?? {};
 
@@ -93,14 +108,17 @@ export const sendPasswordResetEmail = onCall(
         }
 
         try {
-            const APP_URL = process.env.APP_URL ?? "https://www.z12challenge.com";
             const firebaseResetLink = await admin.auth().generatePasswordResetLink(email);
             const oobCode = new URL(firebaseResetLink).searchParams.get("oobCode");
             const resetLink = `${APP_URL}/reset-password?oobCode=${oobCode}`;
 
             const client = getEmailClient();
             await client.transactionalEmails.sendTransacEmail(
-                buildEmail(email, "Reset your Z12 Challenge password", resetPasswordTemplate(resetLink))
+                buildEmail(
+                    email,
+                    "Reset your Z12 Challenge password",
+                    resetPasswordTemplate(resetLink)
+                )
             );
         } catch (err: any) {
             if (err?.code === "auth/user-not-found") return;
