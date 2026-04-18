@@ -18,6 +18,7 @@ import AboutPage from "./features/about/pages/AboutPage.tsx";
 import Terms from "./features/Terms/Terms.tsx";
 import Privacy from "./features/Privacy/Privacy.tsx";
 import ParentConsentPage from "./features/auth/pages/ParentConsentPage.tsx";
+import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage.tsx";
 
 export const router = createBrowserRouter([
     {
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
     { path: "/forgot-password", element: <ForgotPasswordPage /> },
     { path: "/terms", element: <Terms /> },
     { path: "/privacy", element: <Privacy /> },
+    { path: "/reset-password", element: <ResetPasswordPage /> },
     {
         path: "/community",
         element: (

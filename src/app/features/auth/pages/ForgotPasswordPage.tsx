@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
-import { resetPassword } from "../api/auth";
+import {sendPasswordResetEmail} from "../../../shared/lib/firebase.ts";
 
 function friendlyError(message: string) {
     const m = (message || "").toLowerCase();
@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
         setErr(null);
 
         try {
-            await resetPassword(email.trim());
+            await sendPasswordResetEmail(email.trim());
             setSent(true);
         } catch (e: any) {
             setErr(friendlyError(e?.message));

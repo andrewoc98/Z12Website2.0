@@ -5,14 +5,13 @@ import {
     createUserWithEmailAndPassword,
     fetchSignInMethodsForEmail,
     updateProfile,
-    sendEmailVerification,
     signOut,
 } from "firebase/auth";
 import {
     auth,
     createPendingUser,
     getUserProfile,
-    sendParentConsentEmail,
+    sendParentConsentEmail, sendVerificationEmail,
 } from "../../../shared/lib/firebase";
 import { fetchAdminInvite, markAdminInviteUsed, upsertUserProfile } from "../api/users";
 import { isMinor, signInEmail } from "../api/auth";
@@ -410,9 +409,7 @@ export default function AuthPage() {
         setBusy(true);
         try {
             // Re-authenticate to get a live credential — proves they know the password
-            const cred = await signInEmail(unverifiedEmail!, password);
-            await sendEmailVerification(cred.user);
-            await signOut(auth);
+            await sendVerificationEmail(unverifiedEmail!);
             setResendSent(true);
             setResendCount((c) => c + 1);
 
@@ -451,7 +448,7 @@ export default function AuthPage() {
                     parentEmail: r.parentEmail,
                     club: r.club,
                 });
-                await sendParentConsentEmail(r.parentEmail, pendingId);
+                await sendParentConsentEmail(r.parentEmail, pendingId, name);
                 setSuccessType("parent");
                 setVerificationSent(true);
                 return;
@@ -465,7 +462,7 @@ export default function AuthPage() {
 
             const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
             await updateProfile(cred.user, { displayName: name });
-            await sendEmailVerification(cred.user);
+            await sendVerificationEmail(cleanEmail);
 
             const now = new Date().toISOString();
 

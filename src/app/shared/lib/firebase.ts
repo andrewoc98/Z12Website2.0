@@ -1,14 +1,13 @@
 import { initializeApp } from "firebase/app";
-import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+import {getFunctions, connectFunctionsEmulator, httpsCallable} from "firebase/functions";
 import {
     getAuth,
     connectAuthEmulator,
     createUserWithEmailAndPassword,
     updateProfile,
-    sendEmailVerification, signOut
+    signOut, sendEmailVerification
 } from "firebase/auth";
 import {getFirestore, connectFirestoreEmulator, setDoc, doc, getDoc, serverTimestamp} from "firebase/firestore";
-import emailjs from "emailjs-com";
 import type {ConsentOptions, PendingUser} from "../../features/auth/types.ts";
 
 const firebaseConfig = {
@@ -70,25 +69,29 @@ export async function getUserProfile(uid: string) {
 
 export async function sendParentConsentEmail(
     parentEmail: string,
-    pendingUserId: string
+    pendingUserId: string,
+    childName: string
 ) {
     const consentLink = `${window.location.origin}/parent-consent?token=${pendingUserId}`;
+    const callSendEmail = httpsCallable(functions, 'sendParentConsentEmail');
 
     try {
-        await emailjs.send(
-            import.meta.env.VITE_EMAILJS_SERVICE_ID,
-            "template_fba80zn",
-            {
-                to_email: parentEmail,
-                consent_link: consentLink,
-            },
-            import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-        );
-
-        console.log("Parent consent email sent");
+        await callSendEmail({ parentEmail, consentLink, childName });
+        console.log('Parent consent email sent');
     } catch (err) {
-        console.error("Email failed:", err);
-        throw new Error("Failed to send parent consent email");
+        console.error('Email failed:', err);
+        throw new Error('Failed to send parent consent email');
+    }
+}
+
+export async function sendVerificationEmail(email: string) {
+    const callSendVerification = httpsCallable(functions, 'sendVerificationEmail');
+    try {
+        await callSendVerification({ email });
+        console.log('Verification email sent');
+    } catch (err) {
+        console.error('Verification email failed:', err);
+        throw new Error('Failed to send verification email');
     }
 }
 
@@ -160,3 +163,13 @@ export const onApproveAndCreate = async (
 
     return { uid: cred.user.uid, email: cred.user.email };
 };
+
+export async function sendPasswordResetEmail(email: string) {
+    const callReset = httpsCallable(functions, 'sendPasswordResetEmail');
+    try {
+        await callReset({ email });
+    } catch (err) {
+        console.error('Password reset failed:', err);
+        throw new Error('Failed to send password reset email');
+    }
+}
