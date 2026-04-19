@@ -145,7 +145,8 @@ export default function ParentConsentPage() {
         try {
             const checkEmailExists = httpsCallable(functions, "checkEmailExists");
             const result = await checkEmailExists({ email });
-            setAccountExists((result.data as { exists: boolean }).exists);
+            const data = (result.data as any);
+            setAccountExists(data?.exists ?? data?.data?.exists);
         } catch (e: any) {
             setError(friendlyError(e?.message ?? "Could not check email."));
         } finally {
