@@ -4,12 +4,18 @@ import { BrevoClient, BrevoEnvironment } from "@getbrevo/brevo";
 import { parentConsentTemplate } from './emailTemplates';
 import { verifyEmailTemplate } from './emailTemplates';
 import { resetPasswordTemplate } from './emailTemplates';
+import {onDocumentWritten} from "firebase-functions/firestore";
 
 admin.initializeApp();
+const db = admin.firestore();
 
 const APP_URL = process.env.FUNCTIONS_EMULATOR === "true"
     ? "http://localhost:5173"
     : "https://www.z12challenge.com";
+
+const callableOptions = {
+    cors: ["https://www.z12challenge.com", "http://localhost:5173"],
+};
 
 function getEmailClient() {
     return new BrevoClient({
@@ -27,8 +33,7 @@ function buildEmail(to: string, subject: string, html: string) {
     };
 }
 
-export const checkEmailExists = onCall(async (request) => {
-    console.log("RAW request.data:", JSON.stringify(request.data));
+export const checkEmailExists = onCall(callableOptions, async (request) => {
     const email = ((request.data?.email) ?? "").trim().toLowerCase();
 
     if (!email) {
@@ -44,7 +49,7 @@ export const checkEmailExists = onCall(async (request) => {
     }
 });
 
-export const sendParentConsentEmail = onCall(async (request) => {
+export const sendParentConsentEmail = onCall(callableOptions, async (request) => {
     const { parentEmail, consentLink, childName } = request.data ?? {};
 
     if (!parentEmail || !consentLink || !childName) {
@@ -66,7 +71,7 @@ export const sendParentConsentEmail = onCall(async (request) => {
     }
 });
 
-export const sendVerificationEmail = onCall(async (request) => {
+export const sendVerificationEmail = onCall(callableOptions, async (request) => {
     const { email } = request.data ?? {};
 
     if (!email) {
@@ -92,7 +97,7 @@ export const sendVerificationEmail = onCall(async (request) => {
     }
 });
 
-export const sendPasswordResetEmail = onCall(async (request) => {
+export const sendPasswordResetEmail = onCall(callableOptions, async (request) => {
     const { email } = request.data ?? {};
 
     if (!email) {
@@ -117,4 +122,77 @@ export const sendPasswordResetEmail = onCall(async (request) => {
         console.error('Brevo error:', err);
         throw new HttpsError("internal", "Failed to send password reset email.");
     }
+});
+
+export const computeElapsedMs = onDocumentWritten(
+    "events/{eventId}/boats/{boatId}",
+    async (event) => {
+        const after = event.data?.after?.data();
+        if (!after) return; // document was deleted
+
+        const { startedAt, finishedAt, adjustmentMs, elapsedMs: currentElapsedMs } = after;
+
+        // Only proceed if boat is finished
+        if (!startedAt || !finishedAt) return;
+
+        const startMs = typeof startedAt === "number"
+            ? startedAt
+            : startedAt.toMillis?.() ?? null;
+
+        const finishMs = typeof finishedAt === "number"
+            ? finishedAt
+            : finishedAt.toMillis?.() ?? null;
+
+        if (startMs === null || finishMs === null) return;
+
+        const newElapsedMs = (finishMs - startMs) + ((adjustmentMs ?? 0) * 1000);
+
+        if (currentElapsedMs === newElapsedMs) return;
+
+        await event.data!.after.ref.update({ elapsedMs: newElapsedMs });
+    }
+);
+
+export const getEventResults = onCall(async (request) => {
+    const {
+        eventId,
+        pageSize = 10,
+        lastDocId = null,
+        category = null,
+    } = request.data;
+
+    if (!eventId) throw new HttpsError("invalid-argument", "eventId is required");
+
+    let q = db
+        .collectionGroup("boats")
+        .where("eventId", "==", eventId)
+        .where("status", "==", "finished")
+        .orderBy("elapsedMs")
+        .limit(pageSize);
+
+    if (category) {
+        q = q.where("categoryName", "==", category);
+    }
+
+    if (lastDocId) {
+        const lastDoc = await db
+            .collectionGroup("boats")
+            .where("eventId", "==", eventId)
+            .where(/* find by id */ "__name__", "==", db.doc(`events/${eventId}/boats/${lastDocId}`))
+            .limit(1)
+            .get();
+
+        if (!lastDoc.empty) {
+            q = q.startAfter(lastDoc.docs[0]);
+        }
+    }
+
+    const snap = await q.get();
+    const boats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    return {
+        boats,
+        hasMore: snap.docs.length === pageSize,
+        lastDocId: snap.docs.at(-1)?.id ?? null,
+    };
 });

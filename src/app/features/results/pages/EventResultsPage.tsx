@@ -1,131 +1,124 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import Navbar from "../../../shared/components/Navbar/Navbar";
-import { listBoatsForEvent } from "../../signup/api/boats";
-import { getEventById } from "../api/results";
+import { getEventById, fetchRowersByUids } from "../api/results";
 import OverallResults from "../components/OverallResults";
 import CategoryResults from "../components/CategoryResults";
 import "../style/EventResultsPage.css";
-import type {Boat} from "../components/ResultCard.tsx";
+import type { Boat } from "../components/ResultCard.tsx";
+
+const functions = getFunctions();
+const getEventResults = httpsCallable(functions, "getEventResults");
+
+const PAGE_SIZE = 10;
 
 export default function EventResultsPage() {
     const { eventId } = useParams<{ eventId: string }>();
+
     const [event, setEvent] = useState<any>(null);
-    const [boats, setBoats] = useState<any[]>([]);
+    const [boats, setBoats] = useState<Boat[]>([]);
+    const [rowerMap, setRowerMap] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
     const [tab, setTab] = useState<"overall" | "category">("overall");
-    const [selectedCategory, setSelectedCategory] = useState<string | "All">("All");
-    const [page, setPage] = useState<number>(1);
-    const PAGE_SIZE = 10;
+    const [selectedCategory, setSelectedCategory] = useState<string>("All");
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [lastDocId, setLastDocId] = useState<string | null>(null);
 
-    const toTimestamp = (value: number | Date | string | null | undefined): number | null => {
-        if (!value) return null;
-        if (typeof value === "number") return value;
-        if (value instanceof Date) return value.getTime();
-        const parsed = new Date(value);
-        return isNaN(parsed.getTime()) ? null : parsed.getTime();
-    };
+    // Load event metadata once
+    useEffect(() => {
+        if (!eventId) return;
+        getEventById(eventId).then(setEvent).catch(console.error);
+    }, [eventId]);
 
-    const formatDate = (value: number | Date | string | null | undefined) => {
-        const ts = toTimestamp(value);
-        if (ts == null) return "—";
-        return new Date(ts).toDateString();
-    };
-
-    async function refresh() {
+    const loadPage = useCallback(async (opts: {
+        pageNum: number;
+        lastDocId: string | null;
+        category: string;
+    }) => {
         if (!eventId) return;
         setErr(null);
         setLoading(true);
         try {
-            const e = await getEventById(eventId);
-            setEvent(e);
-            const b = await listBoatsForEvent(eventId);
-            setBoats(b);
+            const result: any = await getEventResults({
+                eventId,
+                pageSize: PAGE_SIZE,
+                lastDocId: opts.pageNum === 1 ? null : opts.lastDocId,
+                category: opts.category === "All" ? null : opts.category,
+            });
+
+            const newBoats: Boat[] = result.data.boats;
+            setBoats(newBoats);
+            setHasMore(result.data.hasMore);
+            setLastDocId(result.data.lastDocId);
+
+            // Fetch rower names only for this page (max 40 reads)
+            const allUids = newBoats.flatMap((b: any) => b.rowerUids ?? []);
+            const map = await fetchRowersByUids(allUids);
+            setRowerMap(map);
         } catch (e: any) {
             setErr(e?.message ?? "Failed to load results");
         } finally {
             setLoading(false);
         }
-    }
+    }, [eventId]);
 
-    useEffect(() => { refresh(); }, [eventId]);
+    // Initial load
+    useEffect(() => {
+        loadPage({ pageNum: 1, lastDocId: null, category: "All" });
+    }, [eventId]);
 
-    const finishedBoats = useMemo(() => {
-        return boats
-            .map(b => {
-                const startMs = toTimestamp(b.startedAt);
-                const finishMs = toTimestamp(b.finishedAt);
-                if (startMs == null || finishMs == null) return null;
-                return {
-                    ...b,
-                    startedAt: startMs,
-                    finishedAt: finishMs,
-                    elapsedMs: finishMs - startMs
-                };
-            })
-            .filter((b): b is any => b !== null)
-            .sort((a, b) => a.elapsedMs - b.elapsedMs);
+    const handleRefresh = () => {
+        setPage(1);
+        setLastDocId(null);
+        loadPage({ pageNum: 1, lastDocId: null, category: selectedCategory });
+    };
+
+    const handlePrev = () => {
+        // Re-fetch from beginning up to previous page
+        // Simplest approach: go back to page 1 and step forward
+        // For now, reset to page 1 (cursor-based pagination doesn't support backwards easily)
+        setPage(1);
+        setLastDocId(null);
+        loadPage({ pageNum: 1, lastDocId: null, category: selectedCategory });
+    };
+
+    const handleNext = () => {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        loadPage({ pageNum: nextPage, lastDocId, category: selectedCategory });
+    };
+
+    const handleCategoryChange = (cat: string) => {
+        setSelectedCategory(cat);
+        setPage(1);
+        setLastDocId(null);
+        loadPage({ pageNum: 1, lastDocId: null, category: cat });
+    };
+
+    const handleTabChange = (newTab: "overall" | "category") => {
+        setTab(newTab);
+        setPage(1);
+        setLastDocId(null);
+        setSelectedCategory("All");
+        loadPage({ pageNum: 1, lastDocId: null, category: "All" });
+    };
+
+    // Derive categories from loaded boats for the filter dropdown
+    const categories = useMemo(() => {
+        const cats = new Set(boats.map((b: any) => b.categoryName ?? b.category ?? "—"));
+        return Array.from(cats);
     }, [boats]);
 
-    const byCategory = useMemo(() => {
-        const map = new Map<string, any[]>();
-        for (const b of finishedBoats) {
-            const cat = b.categoryName ?? b.category ?? "—";
-            const list = map.get(cat) ?? [];
-            list.push(b);
-            map.set(cat, list);
-        }
-        for (const [cat, list] of map.entries()) {
-            list.sort((a, b) => a.elapsedMs - b.elapsedMs);
-            map.set(cat, list);
-        }
-        return map;
-    }, [finishedBoats]);
-
-    const visibleBoats = useMemo(() => {
-        if (!event?.resultsPublishMode || event.resultsPublishMode === "Live") {
-            return finishedBoats;
-        }
-        if (event.resultsPublishMode === "Category") {
-            const filteredByCategory: any[] = [];
-            for (const [, boatsInCat] of byCategory.entries()) {
-                const allFinished = boatsInCat.every(b => toTimestamp(b.finishedAt) != null);
-                if (allFinished) filteredByCategory.push(...boatsInCat);
-            }
-            return filteredByCategory;
-        }
-        if (event.resultsPublishMode === "Event") {
-            const allFinished = boats.every(b => toTimestamp(b.finishedAt) != null);
-            return allFinished ? finishedBoats : [];
-        }
-        return finishedBoats;
-    }, [event?.resultsPublishMode, finishedBoats, byCategory, boats]);
-
-    const paginatedBoats = useMemo<Boat[]>(() => {
-        const start = (page - 1) * PAGE_SIZE;
-        const end = start + PAGE_SIZE;
-        if (tab === "overall") return visibleBoats.slice(start, end);
-        if (tab === "category") {
-            if (selectedCategory === "All") {
-                const allBoats = Array.from(byCategory.values()).flat().filter(b => visibleBoats.includes(b));
-                return allBoats.slice(start, end);
-            } else {
-                const boatsInCat = (byCategory.get(selectedCategory) || []).filter(b => visibleBoats.includes(b));
-                return boatsInCat.slice(start, end);
-            }
-        }
-        return [];
-    }, [tab, page, visibleBoats, byCategory, selectedCategory]);
-
-    const totalPages = useMemo(() => {
-        const totalItems = tab === "overall"
-            ? visibleBoats.length
-            : selectedCategory === "All"
-                ? Array.from(byCategory.values()).flat().filter(b => visibleBoats.includes(b)).length
-                : (byCategory.get(selectedCategory)?.filter(b => visibleBoats.includes(b)).length || 0);
-        return Math.ceil(totalItems / PAGE_SIZE);
-    }, [tab, byCategory, visibleBoats, selectedCategory]);
+    const formatDate = (value: number | Date | string | null | undefined) => {
+        if (!value) return "—";
+        const ts = typeof value === "number" ? value
+            : value instanceof Date ? value.getTime()
+                : new Date(value).getTime();
+        return isNaN(ts) ? "—" : new Date(ts).toDateString();
+    };
 
     return (
         <>
@@ -140,17 +133,34 @@ export default function EventResultsPage() {
                         </div>
                     )}
                     <div className="tab-buttons">
-                        <button className="btn-primary" disabled={tab === "overall"} onClick={() => { setTab("overall"); setPage(1); }}>Overall</button>
-                        <button className="btn-primary" disabled={tab === "category"} onClick={() => { setTab("category"); setPage(1); }}>By Category</button>
-                        <button className="btn-primary" onClick={refresh}>Refresh</button>
+                        <button
+                            className="btn-primary"
+                            disabled={tab === "overall"}
+                            onClick={() => handleTabChange("overall")}
+                        >
+                            Overall
+                        </button>
+                        <button
+                            className="btn-primary"
+                            disabled={tab === "category"}
+                            onClick={() => handleTabChange("category")}
+                        >
+                            By Category
+                        </button>
+                        <button className="btn-primary" onClick={handleRefresh}>
+                            Refresh
+                        </button>
                     </div>
 
                     {tab === "category" && (
                         <div className="category-filter">
                             <label>Filter by category: </label>
-                            <select value={selectedCategory} onChange={e => { setSelectedCategory(e.target.value); setPage(1); }}>
+                            <select
+                                value={selectedCategory}
+                                onChange={e => handleCategoryChange(e.target.value)}
+                            >
                                 <option value="All">All</option>
-                                {Array.from(byCategory.keys()).map(cat => (
+                                {categories.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
@@ -164,21 +174,35 @@ export default function EventResultsPage() {
                     <p>Loading results…</p>
                 ) : err ? (
                     <p className="error">{err}</p>
-                ) : finishedBoats.length === 0 ? (
+                ) : boats.length === 0 ? (
                     <p>No finished results yet.</p>
                 ) : tab === "overall" ? (
-                    <OverallResults boats={paginatedBoats} />
+                    <OverallResults boats={boats} rowerMap={rowerMap} />
                 ) : (
-                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} />
+                    <CategoryResults
+                        boats={boats}
+                        rowerMap={rowerMap}
+                        selectedCategory={selectedCategory}
+                    />
                 )}
 
-                {((finishedBoats.length > PAGE_SIZE) && tab === "overall") && (
-                    <div className="pagination">
-                        <button className="btn-primary" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-                        <span>Page {page} of {totalPages}</span>
-                        <button className="btn-primary" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
-                    </div>
-                )}
+                <div className="pagination">
+                    <button
+                        className="btn-primary"
+                        disabled={page === 1 || loading}
+                        onClick={handlePrev}
+                    >
+                        Previous
+                    </button>
+                    <span>Page {page}</span>
+                    <button
+                        className="btn-primary"
+                        disabled={!hasMore || loading}
+                        onClick={handleNext}
+                    >
+                        Next
+                    </button>
+                </div>
             </main>
         </>
     );

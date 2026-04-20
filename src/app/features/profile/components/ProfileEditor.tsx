@@ -164,20 +164,31 @@ function RowerPanel({ rower, onSave, onRemove }: {
     async function handleSave() {
         setSaving(true);
         try {
+            const rawStats = {
+                heightCm:   Number(stats.heightCm)   || undefined,
+                wingspanCm: Number(stats.wingspanCm) || undefined,
+                weightKg:   Number(stats.weightKg)   || undefined,
+            };
+            const rawPerf = {
+                best100m:   parseTime(perf.best100m),
+                best500m:   parseTime(perf.best500m),
+                best2000m:  parseTime(perf.best2000m),
+                best6000m:  parseTime(perf.best6000m),
+                best10000m: parseTime(perf.best10000m),
+            };
+
+            // Remove undefined keys so Firestore/your API doesn't choke on them
+            const cleanedStats = Object.fromEntries(
+                Object.entries(rawStats).filter(([, v]) => v !== undefined)
+            );
+            const cleanedPerf = Object.fromEntries(
+                Object.entries(rawPerf).filter(([, v]) => v !== undefined)
+            );
+
             await onSave({
                 club: club.trim(),
-                stats: {
-                    heightCm:   Number(stats.heightCm)   || undefined,
-                    wingspanCm: Number(stats.wingspanCm) || undefined,
-                    weightKg:   Number(stats.weightKg)   || undefined,
-                },
-                performances: {
-                    best100m:   parseTime(perf.best100m),
-                    best500m:   parseTime(perf.best500m),
-                    best2000m:  parseTime(perf.best2000m),
-                    best6000m:  parseTime(perf.best6000m),
-                    best10000m: parseTime(perf.best10000m),
-                },
+                stats: cleanedStats,
+                performances: cleanedPerf,
             });
             notify("Rower saved.");
         } catch (e: any) {
