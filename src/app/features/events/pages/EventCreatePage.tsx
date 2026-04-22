@@ -6,6 +6,7 @@ import CategoryPicker from "../components/CategoryPicker";
 import { buildDefaultCategories } from "../lib/categories";
 import { categoriesFromIds, createEvent, dateInputToTimestampStartOfDay,dateInputToTimestampEndOfDay } from "../api/events";
 import type { EventStatus } from "../types";
+import InfoTooltip from "../../../shared/components/Infotooltip/Infotooltip.tsx";
 
 export default function EventCreatePage() {
     const { user, profile } = useAuth() as any;
@@ -128,39 +129,59 @@ export default function EventCreatePage() {
                 <h1>Create Event</h1>
 
                 <div className="card">
-                    <label>
-                        Name
+                    <label className="event-form">
+                        <span>
+                            Name
+                            <InfoTooltip text="The public name of the event shown to all participants." position="right" />
+                        </span>
                         <input value={name} onChange={(e) => setName(e.target.value)} />
                     </label>
 
-                    <label>
-                        Location
+                    <label className="event-form">
+                        <span>
+                            Location
+                            <InfoTooltip text="The city, venue or general area where the event takes place." position="right" />
+                        </span>
                         <input value={location} onChange={(e) => setLocation(e.target.value)} />
                     </label>
 
-                    <label>
-                        Description
+                    <label className="event-form">
+                        <span>
+                            Description
+                            <InfoTooltip text="Optional details about the event shown on the event page." position="right" />
+                        </span>
                         <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
                     </label>
 
                     <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 10 }}>
-                        <label>
-                            Start Date
+                        <label className="event-form">
+                            <span>
+                                Start Date
+                                <InfoTooltip text="The date the event begins." position="right" />
+                            </span>
                             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                         </label>
 
-                        <label>
-                            End Date
+                        <label className="event-form">
+                            <span>
+                                End Date
+                                <InfoTooltip text="The last day of the event. Must be on or after the start date." position="right" />
+                            </span>
                             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                         </label>
 
-                        <label>
-                            Closing Date
+                        <label className="event-form">
+                            <span>
+                                Closing Date
+                                <InfoTooltip text="The last day athletes can register. Must be before the start date." position="right" />
+                            </span>
                             <input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} />
                         </label>
-
-                        <label>
-                            Length (meters)
+                        <label className="event-form">
+                            <span>
+                                Length (meters)
+                                <InfoTooltip text="The total race distance in meters, e.g. 5000 for a 5K." position="right" />
+                            </span>
                             <input type="number" value={lengthMeters} onChange={(e) => setLengthMeters(Number(e.target.value))} />
                         </label>
                     </div>

@@ -70,14 +70,16 @@ function AddRoleForm({ role, onSave, onCancel }: {
     onSave: (data: any) => Promise<void>;
     onCancel: () => void;
 }) {
-    const [club,     setClub]     = useState("");
-    const [location, setLocation] = useState("");
-    const [saving,   setSaving]   = useState(false);
-    const [err,      setErr]      = useState<string | null>(null);
+    const [club,        setClub]        = useState("");
+    const [location,    setLocation]    = useState("");
+    const [dateOfBirth, setDateOfBirth] = useState("");
+    const [saving,      setSaving]      = useState(false);
+    const [err,         setErr]         = useState<string | null>(null);
 
     const canSubmit =
-        (role !== "host" && club.trim().length >= 2) ||
-        (role === "host" && location.trim().length >= 2);
+        (role === "host"  && location.trim().length >= 2) ||
+        (role === "coach" && club.trim().length >= 2) ||
+        (role === "rower" && club.trim().length >= 2 && dateOfBirth.trim().length > 0);
 
     async function handleSave() {
         setErr(null);
@@ -85,7 +87,7 @@ function AddRoleForm({ role, onSave, onCancel }: {
         try {
             const data = role === "host"
                 ? { location: location.trim() }
-                : { club: club.trim(), stats: {}, performances: {} };
+                : { club: club.trim(), dateOfBirth, stats: {}, performances: {} };
             await onSave(data);
         } catch (e: any) {
             setErr(e?.message ?? "Failed to add role.");
@@ -95,7 +97,15 @@ function AddRoleForm({ role, onSave, onCancel }: {
 
     return (
         <div className="add-role-form">
-            {role !== "host" ? (
+            {role === "host" ? (
+                <Field label="Location">
+                    <input
+                        value={location}
+                        onChange={e => setLocation(e.target.value)}
+                        placeholder="Event location"
+                    />
+                </Field>
+            ) : (
                 <Field label="Club">
                     <input
                         value={club}
@@ -103,12 +113,13 @@ function AddRoleForm({ role, onSave, onCancel }: {
                         placeholder={role === "coach" ? "Club you coach at" : "Your rowing club"}
                     />
                 </Field>
-            ) : (
-                <Field label="Location">
-                    <input
-                        value={location}
-                        onChange={e => setLocation(e.target.value)}
-                        placeholder="Event location"
+            )}
+
+            {role === "rower" && (
+                <Field label="Date of birth">
+                    <DateOfBirthInput
+                        value={dateOfBirth}
+                        onChange={setDateOfBirth}
                     />
                 </Field>
             )}
@@ -139,12 +150,15 @@ function AddRoleForm({ role, onSave, onCancel }: {
 
 // ─── Role panels ──────────────────────────────────────────────────────────────
 
-function RowerPanel({ rower, onSave, onRemove }: {
+function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
     rower: NonNullable<UserProfile["roles"]["rower"]>;
+    dob: string;
+    uid: string;
     onSave: (data: NonNullable<UserProfile["roles"]["rower"]>) => Promise<void>;
     onRemove: () => Promise<void>;
 }) {
-    const [club,   setClub]   = useState(rower.club ?? "");
+    const [club,        setClub]        = useState(rower.club ?? "");
+    const [dateOfBirth, setDateOfBirth] = useState(dob ?? "");
     const [stats,  setStats]  = useState({
         heightCm:   String(rower.stats?.heightCm   ?? ""),
         wingspanCm: String(rower.stats?.wingspanCm ?? ""),
@@ -164,6 +178,10 @@ function RowerPanel({ rower, onSave, onRemove }: {
     async function handleSave() {
         setSaving(true);
         try {
+            // Save DOB to core profile since it lives there, not on the role
+            await saveCoreProfile(uid, {
+                dateOfBirth,
+            });
             await onSave({
                 club: club.trim(),
                 stats: {
@@ -222,6 +240,13 @@ function RowerPanel({ rower, onSave, onRemove }: {
 
             <Field label="Club">
                 <input value={club} onChange={e => setClub(e.target.value)} placeholder="-" />
+            </Field>
+
+            <Field label="Date of birth">
+                <DateOfBirthInput
+                    value={dateOfBirth}
+                    onChange={setDateOfBirth}
+                />
             </Field>
 
             <h4>Physical stats</h4>
@@ -410,7 +435,6 @@ function HostPanel({ host, onSave, onRemove }: {
 function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
     const [fullName,    setFullName]    = useState(profile.fullName    ?? "");
     const [displayName, setDisplayName] = useState(profile.displayName ?? "");
-    const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth ?? "");
     const [saving, setSaving] = useState(false);
     const { msg, msgType, notify } = useNotify();
 
@@ -420,7 +444,6 @@ function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
             await saveCoreProfile(uid, {
                 fullName:    fullName.trim(),
                 displayName: displayName.trim() || fullName.trim(),
-                dateOfBirth,
             });
             notify("Saved.");
         } catch (e: any) {
@@ -447,13 +470,6 @@ function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
                     placeholder="Shown in UI (defaults to full name)"
                 />
             </Field>
-            {profile.roles.rower && (
-            <Field label="Date of birth">
-                <DateOfBirthInput
-                    value={dateOfBirth}
-                    onChange={(date) => setDateOfBirth(date)}
-                />
-            </Field>)}
             {msg && <Toast msg={msg} type={msgType} />}
             <div className="panel-actions">
                 <button
@@ -481,7 +497,6 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
     const roles          = profile.roles ?? {};
     const availableRoles = ALL_ROLES.filter(r => !roles[r]);
 
-
     async function handleSaveRole(role: RoleKey, data: any) {
         if (!user) return;
         try {
@@ -499,7 +514,16 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
     async function handleAddRole(role: RoleKey, data: any) {
         if (!user) return;
         try {
-            await saveUserRole(user.uid, role, data);
+            // For rower, save DOB to core profile before saving the role
+            if (role === "rower" && data.dateOfBirth) {
+                await saveCoreProfile(user.uid, {
+                    fullName:    profile.fullName    ?? "",
+                    displayName: profile.displayName ?? profile.fullName ?? "",
+                    dateOfBirth: data.dateOfBirth,
+                });
+            }
+            const { dateOfBirth: _dob, ...roleData } = data;
+            await saveUserRole(user.uid, role, roleData);
             setAddingRole(null);
             notify(`${role.charAt(0).toUpperCase() + role.slice(1)} role added.`);
         } catch (e: any) {
@@ -516,6 +540,8 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
                 <RowerPanel
                     key="rower"
                     rower={roles.rower}
+                    dob={profile.dateOfBirth ?? ""}
+                    uid={user.uid}
                     onSave={data => handleSaveRole("rower", data)}
                     onRemove={() => handleRemoveRole("rower")}
                 />

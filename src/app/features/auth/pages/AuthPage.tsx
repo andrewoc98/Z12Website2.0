@@ -13,7 +13,7 @@ import {
     getUserProfile,
     sendParentConsentEmail, sendVerificationEmail,
 } from "../../../shared/lib/firebase";
-import { fetchAdminInvite, markAdminInviteUsed, upsertUserProfile } from "../api/users";
+import {addAdminRole, fetchAdminInvite, markAdminInviteUsed, upsertUserProfile} from "../api/users";
 import { isMinor, signInEmail } from "../api/auth";
 import "../../../shared/styles/globals.css";
 import "../styles/auth.css";
@@ -456,7 +456,20 @@ export default function AuthPage() {
 
             // Guard: check for existing account before attempting creation
             const existingMethods = await fetchSignInMethodsForEmail(auth, cleanEmail);
+
             if (existingMethods.length > 0) {
+                if (adminInvite) {
+                    if (cleanEmail !== adminInvite.email) {
+                        throw new Error("This invite is restricted to a specific email.");
+                    }
+                    const cred = await signInEmail(cleanEmail, password);
+                    await addAdminRole(cred.user.uid, adminInvite.hostId, adminInvite.id);
+                    await markAdminInviteUsed(adminInvite.id);
+                    await signOut(auth);
+                    setSuccessType("email");
+                    setVerificationSent(true);
+                    return;
+                }
                 throw new Error("An account with this email already exists. Try signing in instead.");
             }
 

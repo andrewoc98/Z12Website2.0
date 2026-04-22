@@ -33,15 +33,6 @@ export function ProfileHero({
                 {roles.rower?.club && (
                     <p className="muted">Club: {roles.rower.club}</p>
                 )}
-
-                {roleLabels.length > 0 && (
-                    <div className="chips">
-                        {roleLabels.map(r => (
-                            <span key={r} className="chip">{r}</span>
-                        ))}
-                    </div>
-                )}
-
                 {roles.rower && (
                     <button className="btn-toggle" onClick={toggleUnit}>
                         Switch to {unit === "metric" ? "Imperial" : "Metric"}

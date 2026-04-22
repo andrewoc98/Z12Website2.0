@@ -155,11 +155,14 @@ export async function saveUserRole(
 }
 
 // Core fields only — never touches roles
-export async function saveCoreProfile(uid: string, data: {
-    fullName: string;
-    displayName: string;
-    dateOfBirth: string;
-}) {
+export async function saveCoreProfile(
+    uid: string,
+    data: Partial<{
+        fullName: string;
+        displayName: string;
+        dateOfBirth: string;
+    }>
+) {
     return updateDoc(
         doc(db, "users", uid),
         { ...data, updatedAt: serverTimestamp() }

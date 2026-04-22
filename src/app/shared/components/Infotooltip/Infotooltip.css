@@ -1,0 +1,124 @@
+/* ── Design tokens ───────────────────────────────────────────────────────── */
+
+:root {
+    --tooltip-icon-border:        #64748b;
+    --tooltip-icon-color:         #64748b;
+    --tooltip-icon-bg:            transparent;
+    --tooltip-icon-active-border: #60a5fa;
+    --tooltip-icon-active-color:  #60a5fa;
+    --tooltip-icon-active-bg:     rgba(96, 165, 250, 0.12);
+    --tooltip-icon-active-shadow: rgba(96, 165, 250, 0.20);
+
+    --tooltip-bg:                 #1e293b;
+    --tooltip-border:             #334155;
+    --tooltip-color:              #cbd5e1;
+    --tooltip-shadow:             0 4px 16px rgba(0, 0, 0, 0.40), 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Icon ────────────────────────────────────────────────────────────────── */
+
+.info-tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--tooltip-icon-border);
+    background: var(--tooltip-icon-bg);
+    color: var(--tooltip-icon-color);
+    font-size: 11px;
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    cursor: default;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+    outline: none;
+    margin-left: 5px;
+}
+
+.info-tooltip-icon:hover,
+.info-tooltip-icon:focus,
+.info-tooltip-icon.is-visible {
+    border-color: var(--tooltip-icon-active-border);
+    background: var(--tooltip-icon-active-bg);
+    color: var(--tooltip-icon-active-color);
+    box-shadow: 0 0 0 3px var(--tooltip-icon-active-shadow);
+}
+
+/* ── Bubble ──────────────────────────────────────────────────────────────── */
+
+.info-tooltip-bubble {
+    position: fixed;
+    z-index: 9999;
+    max-width: 220px;
+    padding: 7px 11px;
+    background: var(--tooltip-bg);
+    border: 1px solid var(--tooltip-border);
+    border-radius: 8px;
+    box-shadow: var(--tooltip-shadow);
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--tooltip-color);
+    line-height: 1.5;
+    pointer-events: none;
+    white-space: normal;
+    word-break: break-word;
+
+    opacity: 0;
+    transform: scale(0.95) translateY(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.info-tooltip-bubble.is-visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+/* ── Tail (speech-bubble arrow) ──────────────────────────────────────────── */
+
+.info-tooltip-tail {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--tooltip-bg);
+}
+
+/* Top: tail points down */
+.info-tooltip-bubble[data-position="top"] .info-tooltip-tail {
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    border-right: 1px solid var(--tooltip-border);
+    border-bottom: 1px solid var(--tooltip-border);
+}
+
+/* Bottom: tail points up */
+.info-tooltip-bubble[data-position="bottom"] .info-tooltip-tail {
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    border-left: 1px solid var(--tooltip-border);
+    border-top: 1px solid var(--tooltip-border);
+}
+
+/* Left: tail points right */
+.info-tooltip-bubble[data-position="left"] .info-tooltip-tail {
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+    border-right: 1px solid var(--tooltip-border);
+    border-top: 1px solid var(--tooltip-border);
+}
+
+/* Right: tail points left */
+.info-tooltip-bubble[data-position="right"] .info-tooltip-tail {
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+    border-left: 1px solid var(--tooltip-border);
+    border-bottom: 1px solid var(--tooltip-border);
+}

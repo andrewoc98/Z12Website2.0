@@ -57,6 +57,15 @@ export async function upsertUserProfile(uid: string, profile: UserProfile) {
     );
 }
 
+export async function addAdminRole(uid: string, hostId: string, inviteId: string) {
+    const now = new Date().toISOString();
+    await updateDoc(doc(db, "users", uid), {
+        "roles.admin": { hostId },
+        inviteId,
+        updatedAt: now,
+    });
+}
+
 export async function createAdminInvite(hostId: string, email: string) {
     const ref = await addDoc(collection(db, "adminInvites"), {
         email: email.trim().toLowerCase(),
