@@ -104,8 +104,13 @@ export const onApproveAndCreate = async (
     if (!options.termsAccepted || !options.privacyAccepted)
         throw new Error("Required consents not accepted");
 
-    // Mark pending user as approved
+    // Guard: ensure the token hasn't already been consumed
     const pendingRef = doc(db, "pendingUsers", pendingUserId);
+    const pendingSnap = await getDoc(pendingRef);
+    if (!pendingSnap.exists()) throw new Error("This consent link has already been used or is invalid.");
+    const pendingData = pendingSnap.data();
+    if (pendingData?.status === "converted") throw new Error("This consent link has already been used.");
+
     await setDoc(
         pendingRef,
         {

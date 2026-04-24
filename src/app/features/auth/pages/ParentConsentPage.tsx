@@ -1,22 +1,21 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
 import {
     createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    updateProfile,
     sendEmailVerification,
+    signInWithEmailAndPassword,
     signOut,
+    updateProfile,
 } from "firebase/auth";
-import { db, auth, onApproveAndCreate } from "../../../shared/lib/firebase";
-import { upsertUserProfile } from "../api/users";
-import Navbar from "../../../shared/components/Navbar/Navbar";
+import { doc, getDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Footer from "../../../shared/components/Footer/Footer";
+import Navbar from "../../../shared/components/Navbar/Navbar";
+import { auth, db, functions, onApproveAndCreate } from "../../../shared/lib/firebase";
+import { upsertUserProfile } from "../api/users";
+import { EyeIcon } from "../components/EyeIcon.tsx";
 import "../styles/auth.css";
 import type { PendingUser } from "../types.ts";
-import { EyeIcon } from "../components/EyeIcon.tsx";
-import { httpsCallable } from "firebase/functions";
-import { functions } from "../../../shared/lib/firebase";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -204,7 +203,8 @@ export default function ParentConsentPage() {
     }
 
     // ── New guardian: create account → approve ────────────────────────────────
-    async function onRegisterAndApprove() {
+async function onRegisterAndApprove() {
+        if (busy) return;
         if (!pendingUser || !token) return;
         if (newPassword !== confirmPassword) {
             setError("Passwords do not match.");
@@ -257,7 +257,14 @@ export default function ParentConsentPage() {
             await signOut(auth);
             setStep("done");
         } catch (e: any) {
-            setError(friendlyError(e?.message ?? "Registration failed."));
+            const msg = e?.message ?? "";
+            if (msg.includes("auth/email-already-in-use")) {
+                setAccountExists(true);
+                setError("An account with this email already exists. Please sign in below.");
+                setBusy(false);
+                return;
+            }
+            setError(friendlyError(msg ?? "Registration failed."));
         } finally {
             setBusy(false);
         }
