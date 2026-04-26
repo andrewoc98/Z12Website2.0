@@ -1,13 +1,14 @@
 import { createBrowserRouter } from "react-router-dom";
-import HomePage from "../app/features/home/pages/HomePage";
-import RequireRole from "../app/guards/RequireRole";
-import EventCreatePage from "../app/features/events/pages/EventCreatePage";
-import EventSignupPage from "../app/features/signup/pages/EventSignupPage";
-import HostEventManagePage from "../app/features/events/pages/HostEventManagePage";
+import HomePage from "./features/home/pages/HomePage";
+import RequireRole from "./guards/RequireRole";
+import EventCreatePage from "./features/events/pages/EventCreatePage";
+import EventSignupPage from "./features/signup/pages/EventSignupPage";
+import HostEventManagePage from "./features/events/pages/HostEventManagePage";
 import RowerEventListPage from "./features/signup/pages/RowerEventListPage.tsx";
 import EventResultsPage from "./features/results/pages/EventResultsPage.tsx";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
 import RequireAuth from "./guards/RequiredAuth.tsx";
+import RequireTimingAccess from "./guards/RequireTimingAccess.tsx";
 import ProfilePage from "./features/profile/pages/ProfilePage.tsx";
 import InviteJoinPage from "./features/signup/pages/InviteJoinPage.tsx";
 import HostEventListPage from "./features/events/pages/HostEventListPage.tsx";
@@ -19,6 +20,8 @@ import Terms from "./features/Terms/Terms.tsx";
 import Privacy from "./features/Privacy/Privacy.tsx";
 import ParentConsentPage from "./features/auth/pages/ParentConsentPage.tsx";
 import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage.tsx";
+import TimingPage from "./features/timing/pages/TimingPage.tsx";
+import TimingEventSelectPage from "./features/timing/pages/TimingEventSelectPage.tsx";
 
 export const router = createBrowserRouter([
     {
@@ -104,6 +107,22 @@ export const router = createBrowserRouter([
             <RequireAuth>
                 <PublicProfilePage />
             </RequireAuth>
+        ),
+    },
+    {
+        path: "/timing",
+        element: (
+            <RequireTimingAccess>
+                <TimingEventSelectPage />
+            </RequireTimingAccess>
+        ),
+    },
+    {
+        path: "/timing/:eventId",
+        element: (
+            <RequireTimingAccess>
+                <TimingPage />
+            </RequireTimingAccess>
         ),
     },
 ]);

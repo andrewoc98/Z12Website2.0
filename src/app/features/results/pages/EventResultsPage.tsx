@@ -7,6 +7,7 @@ import OverallResults from "../components/OverallResults";
 import CategoryResults from "../components/CategoryResults";
 import "../style/EventResultsPage.css";
 import type {Boat} from "../components/ResultCard.tsx";
+import { useUserProfiles } from "../../timing/useUserProfiles.ts" // adjust path as needed
 
 export default function EventResultsPage() {
     const { eventId } = useParams<{ eventId: string }>();
@@ -19,6 +20,18 @@ export default function EventResultsPage() {
     const [page, setPage] = useState<number>(1);
     const PAGE_SIZE = 10;
 
+    const inProgressBoats = useMemo(() => {
+        return boats.filter(b => b.startedAt && !b.finishedAt);
+    }, [boats]);
+
+    const allUids = useMemo(() => {
+    const uids = new Set<string>();
+    boats.forEach(b => (b.rowerUids ?? []).forEach((uid: string) => uids.add(uid)));
+    return Array.from(uids);
+    }, [boats]);
+
+    const { profiles } = useUserProfiles(allUids);
+    
     const toTimestamp = (value: number | Date | string | null | undefined): number | null => {
         if (!value) return null;
         if (typeof value === "number") return value;
@@ -167,11 +180,10 @@ export default function EventResultsPage() {
                 ) : finishedBoats.length === 0 ? (
                     <p>No finished results yet.</p>
                 ) : tab === "overall" ? (
-                    <OverallResults boats={paginatedBoats} />
+                    <OverallResults boats={paginatedBoats} inProgressBoats={inProgressBoats} profiles={profiles} />
                 ) : (
-                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} />
+                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} inProgressBoats={inProgressBoats} profiles={profiles} />
                 )}
-
                 {((finishedBoats.length > PAGE_SIZE) && tab === "overall") && (
                     <div className="pagination">
                         <button className="btn-primary" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button>

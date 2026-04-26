@@ -1,0 +1,186 @@
+.timing-select-page {
+    display: grid;
+    gap: 24px;
+}
+
+.timing-select-loading {
+    padding: 40px;
+    text-align: center;
+    color: #bdbdbd;
+}
+
+.timing-select-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+}
+
+.timing-select-title h1 {
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 40px;
+    letter-spacing: 2px;
+    color: #FEB959;
+    margin: 0;
+}
+
+.timing-select-title p {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: #bdbdbd;
+}
+
+.timing-select-search input {
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid #2a2a2a;
+    background: #141414;
+    color: #d0d0d0;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.timing-select-search input:focus {
+    border-color: #FEB959;
+}
+
+.timing-select-empty {
+    color: #bdbdbd;
+    font-size: 14px;
+}
+
+.timing-select-list {
+    display: grid;
+    gap: 14px;
+    flex:0;
+}
+
+.timing-event-card {
+    border: 2px solid #e4a84d;
+    border-radius: 14px;
+    padding: 16px 20px;
+    background: transparent;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    align-self: flex-start;
+}
+
+.timing-event-card:hover {
+    border-color: #f5b457;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(254, 185, 89, 0.15);
+}
+
+.timing-event-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 16px;
+}
+
+.timing-event-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.timing-event-name {
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: #FEB959;
+}
+
+.timing-event-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 14px;
+    color: #bdbdbd;
+}
+
+.timing-event-type {
+    font-size: 14px;
+    color: #d6d6d6;
+}
+
+.timing-event-date {
+    font-size: 13px;
+    color: #888;
+}
+
+.timing-select-btn {
+    width: 90px;
+    height: 70px;
+    border-radius: 14px;
+    background: #FEB959;
+    color: #111;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.timing-select-btn:hover {
+    background: #f5b457;
+    transform: scale(1.03);
+}
+
+@media (max-width: 640px) {
+    .timing-select-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .timing-event-card {
+        padding: 16px;
+    }
+
+    .timing-event-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .timing-event-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .timing-select-btn {
+        width: 100%;
+        height: 54px;
+    }
+}
+.timing-select-page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.timing-section-heading {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 24px 0 10px;
+}
+
+.timing-event-card--disabled {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
+}
+
+.timing-select-btn:disabled {
+    background: var(--surface-2);
+    color: var(--muted);
+    cursor: default;
+}

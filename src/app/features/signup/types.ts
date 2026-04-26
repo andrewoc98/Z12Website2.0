@@ -1,5 +1,7 @@
 export type BoatSize = 1 | 2 | 4 | 8;
 
+export type BoatStatus = "pending_crew" | "registered" | "in_progress" | "finished";
+
 export type BoatDoc = {
     id?: string;
 
@@ -18,7 +20,7 @@ export type BoatDoc = {
     invitedEmails: string[];
 
     inviteCode?: string | null;
-    status?: "pending_crew" | "registered";
+    status?: BoatStatus;
 
     bowNumber?: number;
     createdAt?: number;

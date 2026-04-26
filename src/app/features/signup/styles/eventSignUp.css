@@ -182,3 +182,13 @@
     padding: 16px;
     margin-bottom: 12px;
 }
+
+.custom-select select option {
+    background-color: var(--card-bg, #1a1a1a);
+    color: var(--text, #ffffff);
+}
+
+.custom-select select:focus {
+    background-color: var(--card-bg, #1a1a1a);
+    color: var(--text, #ffffff);
+}

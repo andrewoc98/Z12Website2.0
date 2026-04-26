@@ -284,3 +284,10 @@ html, body, #root {
     border-color: rgba(96,165,250,0.45);
 
 }
+
+
+#root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}

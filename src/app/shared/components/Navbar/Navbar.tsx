@@ -44,6 +44,9 @@ export default function Navbar() {
             base.push({ to: "/about", label: "About" });
 
             base.push({ to: "/events", label: "Races" });
+            if (hasRole("host") || hasRole("admin")) {
+                base.push({ to: "/timing", label: "Timing" });
+            }
             if (hasRole("host")) {
                 base.push({ to: "/host/events", label: "Manage Races" });
                 base.push({ to: "/host/events/new", label: "Create Race" });
