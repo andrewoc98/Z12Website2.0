@@ -1,0 +1,121 @@
+/* ─── Phone Input ─────────────────────────────────────────────────────────── */
+
+.phone-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.phone-input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+/* The dial-code button + dropdown container */
+.phone-dial-wrapper {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+/* Trigger button — matches your existing input styling */
+.phone-dial-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 100%;
+    padding: 0.5rem 0.6rem;
+    background: var(--input-bg, #1a1a1a);
+    border: 1px solid var(--border, #444);
+    border-radius: 6px;
+    color: var(--text, #fff);
+    font-size: 0.95rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s;
+}
+
+.phone-dial-trigger:hover {
+    border-color: var(--accent, #FEB959);
+}
+
+.phone-dial-flag {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.phone-dial-code {
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+}
+
+.phone-dial-caret {
+    font-size: 0.7rem;
+    opacity: 0.6;
+    margin-left: 0.1rem;
+}
+
+/* Dropdown list */
+.phone-dial-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 200;
+    min-width: 220px;
+    max-height: 260px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.25rem 0;
+    list-style: none;
+    background: var(--card-bg, #1e1e1e);
+    border: 1px solid var(--border, #444);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Individual option row */
+.phone-dial-option {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text, #fff);
+    transition: background 0.1s;
+}
+
+.phone-dial-option:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.phone-dial-option.selected {
+    background: rgba(254, 185, 89, 0.12);
+    color: var(--accent, #FEB959);
+}
+
+.phone-dial-option-label {
+    flex: 1;
+}
+
+.phone-dial-option-code {
+    font-size: 0.8rem;
+    opacity: 0.55;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Local number input stretches to fill remaining space */
+.phone-local-input {
+    flex: 1;
+}
+
+.phone-local-input.input-error {
+    border-color: #e53e3e !important;
+    outline-color: #e53e3e;
+}
+
+.field-error {
+    font-size: 0.8rem;
+    color: #e53e3e;
+    margin: 0;
+}

@@ -252,3 +252,36 @@
     background: var(--surface);
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
+
+/* Warn state on inputs */
+.input--warn {
+    border-color: var(--color-warning, #d97706);
+    outline-color: var(--color-warning, #d97706);
+}
+
+/* Inline hint line under a field */
+.field-hint {
+    display: block;
+    font-size: 0.78rem;
+    margin-top: 0.2rem;
+    color: var(--color-muted);
+}
+
+.field-hint--warn {
+    color: var(--color-warning, #d97706);
+}
+
+/* The clickable "did you mean X?" fix button */
+.btn-inline-fix {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--color-warning, #d97706);
+    cursor: pointer;
+    text-decoration: underline;
+}
+.btn-inline-fix:hover {
+    color: var(--color-warning-dark, #b45309);
+}

@@ -6,6 +6,7 @@ interface Admin {
     email: string;
     fullName: string;
     displayName: string;
+    mobile?: string;
 }
 
 interface ContactsTabProps {
@@ -38,6 +39,7 @@ const ContactsTab: React.FC<ContactsTabProps> = ({ hostId }) => {
                     <div key={admin.uid} className="card card--hover admin-card">
                         <h3>{admin.fullName || admin.displayName}</h3>
                         <p className="admin-email">{admin.email}</p>
+                        <p className="admin-number">{admin?.mobile}</p>
                     </div>
                 ))}
             </div>

@@ -1,10 +1,9 @@
-import * as admin from "firebase-admin";
-import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { BrevoClient, BrevoEnvironment } from "@getbrevo/brevo";
-import { parentConsentTemplate } from './emailTemplates';
-import { verifyEmailTemplate } from './emailTemplates';
-import { resetPasswordTemplate } from './emailTemplates';
+import * as admin from "firebase-admin";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { adminInviteTemplate, parentConsentTemplate, resetPasswordTemplate, verifyEmailTemplate } from './emailTemplates';
+import {onDocumentWritten} from "firebase-functions/firestore";
 
 admin.initializeApp();
 
@@ -174,3 +173,54 @@ async function assignBowNumbersForEvent(
 
     await batch.commit();
 }
+
+export const sendAdminInviteEmail = onCall(async (request) => {
+    const { email, inviteLink } = request.data ?? {};
+
+    if (!email || !inviteLink) {
+        throw new HttpsError("invalid-argument", "Missing email or inviteLink.");
+    }
+
+    try {
+        const client = getEmailClient();
+        await client.transactionalEmails.sendTransacEmail(
+            buildEmail(
+                email,
+                "You've been invited to join Z12 Challenge as an Admin",
+                adminInviteTemplate(inviteLink)
+            )
+        );
+    } catch (err) {
+        console.error('Brevo error:', err);
+        throw new HttpsError("internal", "Failed to send admin invite email.");
+    }
+});
+
+export const computeElapsedMs = onDocumentWritten(
+    "events/{eventId}/boats/{boatId}",
+    async (event) => {
+        const after = event.data?.after?.data();
+        if (!after) return; // document was deleted
+
+        const { startedAt, finishedAt, adjustmentMs, elapsedMs: currentElapsedMs } = after;
+
+        // Only proceed if boat is finished
+        if (!startedAt || !finishedAt) return;
+
+        const startMs = typeof startedAt === "number"
+            ? startedAt
+            : startedAt.toMillis?.() ?? null;
+
+        const finishMs = typeof finishedAt === "number"
+            ? finishedAt
+            : finishedAt.toMillis?.() ?? null;
+
+        if (startMs === null || finishMs === null) return;
+
+        const newElapsedMs = (finishMs - startMs) + ((adjustmentMs ?? 0) * 1000);
+
+        if (currentElapsedMs === newElapsedMs) return;
+
+        await event.data!.after.ref.update({ elapsedMs: newElapsedMs });
+    }
+);

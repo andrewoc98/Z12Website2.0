@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { getPendingQueue, removePendingAction } from "./lib/pendingQueue";
+import { flushPendingQueue, getPendingQueue, removePendingAction } from "./lib/pendingQueue";
 import type { PendingAction } from "./lib/pendingQueue";
 
 async function checkConnectivity(): Promise<boolean> {
@@ -19,6 +19,8 @@ export function useConnectionStatus() {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [pendingQueue, setPendingQueue] = useState<PendingAction[]>([]);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const wasOnlineRef = useRef<boolean>(navigator.onLine);
+    const isFlushing = useRef(false);
 
     const refresh = useCallback(() => {
         setPendingQueue(getPendingQueue());
@@ -29,13 +31,36 @@ export function useConnectionStatus() {
         refresh();
     }, [refresh]);
 
+    const flush = useCallback(async () => {
+        if (isFlushing.current) return;
+        isFlushing.current = true;
+        try {
+            const { flushed, failed } = await flushPendingQueue();
+            if (flushed > 0 || failed > 0) {
+                console.log(`Queue flush: ${flushed} synced, ${failed} failed`);
+            }
+        } finally {
+            isFlushing.current = false;
+            refresh();
+        }
+    }, [refresh]);
+
     const probe = useCallback(async () => {
-        if (document.hidden) return; // skip if tab not visible
+        if (document.hidden) return;
         const online = await checkConnectivity();
         setIsOnline(online);
+
+        // Reconnection detected — flush the queue
+        if (online && !wasOnlineRef.current) {
+            wasOnlineRef.current = true;
+            await flush();
+        } else if (!online) {
+            wasOnlineRef.current = false;
+        }
+
         refresh();
         return online;
-    }, [refresh]);
+    }, [refresh, flush]);
 
     const startPolling = useCallback((interval: number) => {
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -45,11 +70,9 @@ export function useConnectionStatus() {
     useEffect(() => {
         refresh();
         probe().then(online => {
-            // Poll less frequently when offline to reduce noise
             startPolling(online ? 5000 : 10000);
         });
 
-        // Use browser events as fast triggers only, not as source of truth
         const onOnline = () => { probe(); startPolling(5000); };
         const onOffline = () => { probe(); startPolling(10000); };
         const onVisible = () => { if (!document.hidden) probe(); };

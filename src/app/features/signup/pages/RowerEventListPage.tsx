@@ -139,7 +139,28 @@ export default function RowerEventListPage() {
                     </div>
 
                     {/* content */}
-                    {loading && <p>Loading events…</p>}
+                    {loading && (
+                    <div>
+                        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                        <div className="skeleton-bar" style={{ width: 120, height: 26 }} />
+                        <div className="skeleton-bar" style={{ width: 90, height: 26 }} />
+                        </div>
+                        {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="skeleton-card">
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+                            <div style={{ flex: 1 }}>
+                                <div className="skeleton-bar" style={{ width: "55%", height: 18, marginBottom: 10 }} />
+                                <div className="skeleton-bar" style={{ width: "30%", height: 14, marginBottom: 14 }} />
+                                <div className="skeleton-bar" style={{ width: "40%", height: 12, marginBottom: 6 }} />
+                                <div className="skeleton-bar" style={{ width: "36%", height: 12, marginBottom: 6 }} />
+                                <div className="skeleton-bar" style={{ width: "38%", height: 12 }} />
+                            </div>
+                            <div className="skeleton-bar" style={{ width: 110, height: 38, borderRadius: 8, flexShrink: 0 }} />
+                            </div>
+                        </div>
+                        ))}
+                    </div>
+                    )}
                     {err && <p style={{ color: "crimson" }}>{err}</p>}
                     {!loading && !err && visible.length === 0 && (
                         <p>No {mode === "past" ? "past" : "upcoming"} events found.</p>

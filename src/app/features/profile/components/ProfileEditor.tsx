@@ -28,6 +28,83 @@ function formatTime(seconds?: number): string {
     return `${m}:${s}`;
 }
 
+/**
+ * Returns a suggested correction if the value looks like the user typed
+ * a decimal when they meant a colon-separated time.
+ *
+ * e.g. "6.02"  → "6:02"   (minutes.seconds, seconds part looks like clock seconds)
+ *      "1.302" → "1:30.2" is ambiguous — leave alone
+ *      "0.5"   → fine as a raw decimal (half a second)
+ *
+ * Rule: value has no ":" and has exactly one ".", the integer part is >= 1,
+ * and the fractional digits (treated as an integer) are 0-59.
+ */
+function detectTimeMistake(value: string): string | null {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.includes(":")) return null;
+
+    const dotIdx = trimmed.indexOf(".");
+    if (dotIdx === -1) return null;
+
+    const intPart  = trimmed.slice(0, dotIdx);
+    const fracPart = trimmed.slice(dotIdx + 1);
+
+    // Only act when there are exactly 2 fractional digits (classic clock-seconds pattern)
+    if (fracPart.length !== 2) return null;
+
+    const minutes = Number(intPart);
+    const seconds = Number(fracPart);
+
+    if (isNaN(minutes) || isNaN(seconds)) return null;
+    if (minutes < 1) return null;           // sub-minute, decimal is fine
+    if (seconds > 59) return null;          // not valid clock seconds
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Reasonable bounds for erg distances (seconds).
+ * World records give the lower bound; ~4× WR gives a generous upper.
+ */
+const PERF_BOUNDS ={
+    best100m:   { min: 12,   max: 60,    label: "100 m"   },
+    best500m:   { min: 69,   max: 300,   label: "500 m"   },
+    best2000m:  { min: 330,  max: 1200,  label: "2000 m"  },
+    best6000m:  { min: 1080, max: 4200,  label: "6000 m"  },
+    best10000m: { min: 1860, max: 7200,  label: "10000 m" },
+};
+
+type PerfKey = keyof typeof PERF_BOUNDS;
+
+interface PerfValidation {
+    suggestion: string | null;   // auto-correctable decimal mistake
+    warning:    string | null;   // out-of-bounds after parsing
+}
+
+function validatePerf(key: PerfKey, value: string): PerfValidation {
+    const suggestion = detectTimeMistake(value);
+    if (suggestion) {
+        return { suggestion, warning: null };
+    }
+    const parsed = parseTime(value);
+    if (parsed == null) return { suggestion: null, warning: null };
+
+    const bounds = PERF_BOUNDS[key];
+    if (parsed < bounds.min) {
+        return {
+            suggestion: null,
+            warning: `${formatTime(parsed)} seems too fast for ${bounds.label} — did you mean a different distance or format?`,
+        };
+    }
+    if (parsed > bounds.max) {
+        return {
+            suggestion: null,
+            warning: `${formatTime(parsed)} seems very slow for ${bounds.label} — please double-check.`,
+        };
+    }
+    return { suggestion: null, warning: null };
+}
+
 type RoleKey = "rower" | "coach" | "host";
 const ALL_ROLES: RoleKey[] = ["rower", "coach", "host"];
 
@@ -148,6 +225,45 @@ function AddRoleForm({ role, onSave, onCancel }: {
     );
 }
 
+// ─── Performance field with inline validation ─────────────────────────────────
+
+function PerfField({ perfKey, label, value, onChange }: {
+    perfKey: PerfKey;
+    label:   string;
+    value:   string;
+    onChange: (val: string) => void;
+}) {
+    const { suggestion, warning } = validatePerf(perfKey, value);
+
+    return (
+        <div className="field">
+            <label>{label}</label>
+            <input
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder="-"
+                className={suggestion || warning ? "input--warn" : undefined}
+            />
+            {suggestion && (
+                <span className="field-hint field-hint--warn">
+                    Did you mean{" "}
+                    <button
+                        type="button"
+                        className="btn-inline-fix"
+                        onClick={() => onChange(suggestion)}
+                    >
+                        {suggestion}
+                    </button>
+                    ?
+                </span>
+            )}
+            {warning && !suggestion && (
+                <span className="field-hint field-hint--warn">{warning}</span>
+            )}
+        </div>
+    );
+}
+
 // ─── Role panels ──────────────────────────────────────────────────────────────
 
 function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
@@ -175,15 +291,19 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
     const [removing, setRemoving] = useState(false);
     const { msg, msgType, notify } = useNotify();
 
+    // Block save only if there are unresolved decimal-mistake suggestions
+    const perfKeys = Object.keys(perf) as PerfKey[];
+    const hasSuggestions = perfKeys.some(k => detectTimeMistake(perf[k as PerfKey]) !== null);
+
     async function handleSave() {
         setSaving(true);
         try {
-            // Save DOB to core profile since it lives there, not on the role
-            await saveCoreProfile(uid, {
-                dateOfBirth,
-            });
+            if (dateOfBirth.trim()) {
+                await saveCoreProfile(uid, { dateOfBirth });
+            }
             await onSave({
-                club: club.trim(),
+                // Save empty string as undefined so optional fields don't error
+                club: club.trim() || undefined,
                 stats: {
                     heightCm:   Number(stats.heightCm)   || undefined,
                     wingspanCm: Number(stats.wingspanCm) || undefined,
@@ -216,7 +336,7 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
         }
     }
 
-    const perfLabels: [keyof typeof perf, string][] = [
+    const perfLabels: [PerfKey, string][] = [
         ["best100m", "100 m"],
         ["best500m", "500 m"],
         ["best2000m", "2000 m"],
@@ -243,10 +363,7 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
             </Field>
 
             <Field label="Date of birth">
-                <DateOfBirthInput
-                    value={dateOfBirth}
-                    onChange={setDateOfBirth}
-                />
+                <DateOfBirthInput value={dateOfBirth} onChange={setDateOfBirth} />
             </Field>
 
             <h4>Physical stats</h4>
@@ -277,13 +394,13 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
 
             <h4>Best erg scores (mm:ss.s)</h4>
             {perfLabels.map(([key, label]) => (
-                <Field key={key} label={label}>
-                    <input
-                        value={perf[key]}
-                        onChange={e => setPerf(p => ({ ...p, [key]: e.target.value }))}
-                        placeholder="-"
-                    />
-                </Field>
+                <PerfField
+                    key={key}
+                    perfKey={key}
+                    label={label}
+                    value={perf[key as PerfKey]}
+                    onChange={val => setPerf(p => ({ ...p, [key]: val }))}
+                />
             ))}
 
             {msg && <Toast msg={msg} type={msgType} />}
@@ -293,10 +410,16 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
                     type="button"
                     className="btn btn--brand"
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={saving || hasSuggestions}
+                    title={hasSuggestions ? "Fix the time format suggestions before saving" : undefined}
                 >
                     {saving ? "Saving…" : "Save rower"}
                 </button>
+                {hasSuggestions && (
+                    <span className="field-hint field-hint--warn">
+                        Please review the time format suggestions above.
+                    </span>
+                )}
             </div>
         </div>
     );
@@ -514,7 +637,6 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
     async function handleAddRole(role: RoleKey, data: any) {
         if (!user) return;
         try {
-            // For rower, save DOB to core profile before saving the role
             if (role === "rower" && data.dateOfBirth) {
                 await saveCoreProfile(user.uid, {
                     fullName:    profile.fullName    ?? "",
@@ -565,7 +687,6 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
                 />
             )}
 
-            {/* ── Add a role ────────────────────────────────────────────── */}
             {availableRoles.length > 0 && (
                 <div className="panel add-role-panel">
                     <h3>Add a role</h3>

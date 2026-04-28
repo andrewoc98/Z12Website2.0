@@ -55,7 +55,7 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
 
         try {
             const startAt = dateInputToTimestampStartOfDay(startDate);
-            const endAt = dateInputToTimestampEndOfDay(endDate);
+            const endAt   = dateInputToTimestampEndOfDay(endDate);
             const closeAt = dateInputToTimestampStartOfDay(closingDate);
 
             if (endAt.toMillis() < startAt.toMillis()) {
@@ -65,6 +65,14 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
                 throw new Error("Registration closing date must be before the start date.");
             }
 
+            // Derive status from today vs the new dates
+            const now = Date.now();
+            const status: "open" | "closed" | "running" | "finished" =
+                now > endAt.toMillis()    ? "finished" :
+                now >= startAt.toMillis() ? "running"  :
+                now > closeAt.toMillis()  ? "closed"   :
+                                            "open";
+
             const updates = {
                 name: name.trim(),
                 location: location.trim(),
@@ -73,6 +81,7 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
                 endAt,
                 closeAt,
                 lengthMeters: Number(lengthMeters),
+                status,
             };
 
             await updateEvent(event.id, updates);

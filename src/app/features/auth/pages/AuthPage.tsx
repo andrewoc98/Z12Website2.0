@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import {
     createUserWithEmailAndPassword,
-    fetchSignInMethodsForEmail,
     updateProfile,
     signOut,
 } from "firebase/auth";
@@ -15,15 +14,21 @@ import {
 } from "../../../shared/lib/firebase";
 import {addAdminRole, fetchAdminInvite, markAdminInviteUsed, upsertUserProfile} from "../api/users";
 import { isMinor, signInEmail } from "../api/auth";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../../shared/lib/firebase";
 import "../../../shared/styles/globals.css";
 import "../styles/auth.css";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 import DateOfBirthInput from "../components/DateOfBirthInput.tsx";
+import {PhoneInput} from "../components/PhoneInput.tsx";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Mode = "signin" | "register";
 type RoleChoice = "rower" | "host" | "coach";
+
+// Admin invite flow sub-steps
+type AdminStep = "check-email" | "sign-in" | "register" | "add-mobile";
 
 interface RoleDetails {
     rower?: {
@@ -267,6 +272,421 @@ function StepConsent({
     );
 }
 
+// ─── Admin Invite Flow ────────────────────────────────────────────────────────
+//
+// Three sub-steps:
+//   1. "check-email" — user enters email; we call fetchSignInMethodsForEmail
+//   2. "sign-in"     — account exists → enter password, sign in, append hostId to array
+//   3. "register"    — no account → full registration form (with mobile), create account
+//
+function AdminInviteFlow({
+    invite,
+    onSuccess,
+}: {
+    invite: any;
+    onSuccess: () => void;
+}) {
+    const [adminStep, setAdminStep] = useState<AdminStep>("check-email");
+ 
+    // Shared
+    const [adminEmail, setAdminEmail] = useState<string>(invite.email ?? "");
+    const [checkingEmail, setCheckingEmail] = useState(false);
+    const [err, setErr] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+ 
+    // Sign-in branch
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [signedInUid, setSignedInUid] = useState<string | null>(null); // kept for add-mobile step
+ 
+    // Add-mobile branch
+    const [mobileValue, setMobileValue] = useState("");
+    const [mobileValid, setMobileValid] = useState(false);
+ 
+    // Register branch
+    const [fullName, setFullName] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [regMobileValue, setRegMobileValue] = useState("");
+    const [regMobileValid, setRegMobileValid] = useState(false);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+ 
+    // ── Step 1: check if email already has an account ─────────────────────────
+    async function onCheckEmail() {
+        const cleanEmail = adminEmail.trim().toLowerCase();
+        if (!cleanEmail.includes("@")) {
+            setErr("Please enter a valid email address.");
+            return;
+        }
+        if (cleanEmail !== invite.email?.toLowerCase()) {
+            setErr("This invite is restricted to: " + invite.email);
+            return;
+        }
+        setErr(null);
+        setCheckingEmail(true);
+        try {
+            const checkEmailExists = httpsCallable(functions, "checkEmailExists");
+            const result = await checkEmailExists({ email: cleanEmail });
+            setAdminStep((result.data as { exists: boolean }).exists ? "sign-in" : "register");
+        } catch (e: any) {
+            setErr(friendlyError(e?.message ?? "Could not check email."));
+        } finally {
+            setCheckingEmail(false);
+        }
+    }
+ 
+    // ── Step 2a: existing account — sign in, check for mobile ─────────────────
+    async function onSignInAndAddRole() {
+        setErr(null);
+        setBusy(true);
+        try {
+            const cleanEmail = adminEmail.trim().toLowerCase();
+            const cred = await signInEmail(cleanEmail, password);
+ 
+            // Check if the existing profile has a mobile number
+            const profile = await getUserProfile(cred.user.uid);
+            const hasMobile = !!(profile?.mobile?.replace(/\s/g, "").length >= 7);
+ 
+            if (!hasMobile) {
+                // Keep them signed in and collect mobile before finishing
+                setSignedInUid(cred.user.uid);
+                setAdminStep("add-mobile");
+                return;
+            }
+ 
+            // Mobile already on file — finish the role assignment now
+            await addAdminRole(cred.user.uid, invite.hostId, invite.id);
+            await markAdminInviteUsed(invite.id);
+            onSuccess();
+        } catch (e: any) {
+            setErr(friendlyError(e?.message ?? "Sign-in failed."));
+        } finally {
+            setBusy(false);
+        }
+    }
+ 
+    // ── Step 2a-extra: save mobile then finish role assignment ────────────────
+    async function onSaveMobileAndFinish() {
+        if (!signedInUid || !mobileValid) return;
+        setErr(null);
+        setBusy(true);
+        try {
+            await upsertUserProfile(signedInUid, {
+                mobile: mobileValue.trim(),
+                updatedAt: new Date().toISOString(),
+            });
+            await addAdminRole(signedInUid, invite.hostId, invite.id);
+            await markAdminInviteUsed(invite.id);
+            onSuccess();
+        } catch (e: any) {
+            setErr(friendlyError(e?.message ?? "Could not save mobile number."));
+        } finally {
+            setBusy(false);
+        }
+    }
+ 
+    // ── Step 2b: new account — register with mobile, then add role ────────────
+    async function onRegisterAndAddRole() {
+        setErr(null);
+        if (newPassword !== confirmPassword) {
+            setErr("Passwords do not match.");
+            return;
+        }
+        if (!acceptedTerms || !acceptedPrivacy) {
+            setErr("Please accept the required consents.");
+            return;
+        }
+        if (!regMobileValid) {
+            setErr("Please enter a valid mobile number.");
+            return;
+        }
+        setBusy(true);
+        try {
+            const cleanEmail = adminEmail.trim().toLowerCase();
+            const name = normalizeFullName(fullName);
+            const now = new Date().toISOString();
+ 
+            const cred = await createUserWithEmailAndPassword(auth, cleanEmail, newPassword);
+            await updateProfile(cred.user, { displayName: name });
+            await sendVerificationEmail(cleanEmail);
+ 
+            await upsertUserProfile(cred.user.uid, {
+                uid: cred.user.uid,
+                email: cred.user.email ?? cleanEmail,
+                fullName: name,
+                displayName: name,
+                mobile: regMobileValue.trim(),
+                primaryRole: "admin",
+                roles: {
+                    admin: {
+                        hostIds: [invite.hostId],
+                        inviteId: invite.id,
+                    },
+                },
+                status: { isActive: true, isVerified: false },
+                consent: {
+                    termsAcceptedAt: now,
+                    privacyAcceptedAt: now,
+                    givenBy: "self",
+                    givenByUid: cred.user.uid,
+                    updatedAt: now,
+                },
+                createdAt: now,
+                updatedAt: now,
+            });
+ 
+            await markAdminInviteUsed(invite.id);
+            await signOut(auth);
+            onSuccess();
+        } catch (e: any) {
+            setErr(friendlyError(e?.message ?? "Registration failed."));
+        } finally {
+            setBusy(false);
+        }
+    }
+ 
+    const canRegister =
+        normalizeFullName(fullName).length >= 2 &&
+        newPassword.length >= 6 &&
+        newPassword === confirmPassword &&
+        regMobileValid &&
+        acceptedTerms &&
+        acceptedPrivacy;
+ 
+    // ── Step label for the indicator ──────────────────────────────────────────
+    const step2Label =
+        adminStep === "sign-in"    ? "Sign In" :
+        adminStep === "add-mobile" ? "Add Mobile" :
+        adminStep === "register"   ? "Create Account" :
+        "Account";
+ 
+    return (
+        <div className="form">
+ 
+            {/* Step indicator */}
+            <div className="consent-steps" style={{ marginBottom: "1rem" }}>
+                <span className={`consent-step ${adminStep === "check-email" ? "active" : "complete"}`}>
+                    1. Verify Email
+                </span>
+                <span className="consent-step-divider">›</span>
+                <span className={`consent-step ${adminStep !== "check-email" ? "active" : ""}`}>
+                    2. {step2Label}
+                </span>
+            </div>
+ 
+            {err && <p className="error">{err}</p>}
+ 
+            {/* ── Check email ─────────────────────────────────────────────── */}
+            {adminStep === "check-email" && (
+                <>
+                    <p className="muted">
+                        You've been invited to manage a host event. Enter the email address this
+                        invite was sent to — we'll check if you already have an account.
+                    </p>
+                    <label>Email</label>
+                    <input
+                        type="email"
+                        value={adminEmail}
+                        onChange={(e) => { setAdminEmail(e.target.value); setErr(null); }}
+                        placeholder={invite.email ?? "your@email.com"}
+                    />
+                    <button
+                        className="auth-login-btn"
+                        style={{ marginTop: "0.75rem" }}
+                        disabled={checkingEmail || adminEmail.trim().length < 5}
+                        onClick={onCheckEmail}
+                    >
+                        {checkingEmail ? "Checking…" : "Continue →"}
+                    </button>
+                </>
+            )}
+ 
+            {/* ── Existing account: sign in ───────────────────────────────── */}
+            {adminStep === "sign-in" && (
+                <>
+                    <p className="muted">
+                        We found an existing account for <b>{adminEmail}</b>.
+                        Sign in to add this host event to your admin role.
+                    </p>
+ 
+                    <label>Password</label>
+                    <div className="password-wrapper">
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Your password"
+                        />
+                        <button
+                            type="button"
+                            className={`toggle-password ${showPassword ? "active" : ""}`}
+                            onClick={() => setShowPassword((v) => !v)}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FEB959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path className="eye" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle className="pupil" cx="12" cy="12" r="3" />
+                                <line className="slash" x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                        </button>
+                    </div>
+ 
+                    <div className="auth-row" style={{ marginTop: "1rem", gap: "0.75rem" }}>
+                        <button
+                            className="btn-secondary"
+                            onClick={() => { setAdminStep("check-email"); setPassword(""); setErr(null); }}
+                            disabled={busy}
+                        >
+                            ← Back
+                        </button>
+                        <button
+                            className="auth-login-btn"
+                            disabled={password.length < 6 || busy}
+                            onClick={onSignInAndAddRole}
+                        >
+                            {busy ? "Signing in…" : "Sign In & Accept Invite"}
+                        </button>
+                    </div>
+                </>
+            )}
+ 
+            {/* ── Add mobile (existing account, no mobile on record) ──────── */}
+            {adminStep === "add-mobile" && (
+                <>
+                    <p className="muted">
+                        Your account doesn't have a mobile number on file. Admins require a
+                        contact number — please add one to continue.
+                    </p>
+ 
+                    <label>Mobile Number</label>
+                    <PhoneInput
+                        value={mobileValue}
+                        onChange={(val, valid) => { setMobileValue(val); setMobileValid(valid); }}
+                    />
+ 
+                    <div className="auth-row" style={{ marginTop: "1rem", gap: "0.75rem" }}>
+                        <button
+                            className="btn-secondary"
+                            onClick={() => { setAdminStep("sign-in"); setErr(null); }}
+                            disabled={busy}
+                        >
+                            ← Back
+                        </button>
+                        <button
+                            className="auth-login-btn"
+                            disabled={!mobileValid || busy}
+                            onClick={onSaveMobileAndFinish}
+                        >
+                            {busy ? "Saving…" : "Save & Accept Invite"}
+                        </button>
+                    </div>
+                </>
+            )}
+ 
+            {/* ── New account: register ───────────────────────────────────── */}
+            {adminStep === "register" && (
+                <>
+                    <p className="muted">
+                        No account found for <b>{adminEmail}</b>. Create one below to
+                        accept your host admin invite.
+                    </p>
+ 
+                    <label>Full Name</label>
+                    <input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Your full name"
+                    />
+ 
+                    <label>Mobile Number</label>
+                    <PhoneInput
+                        value={regMobileValue}
+                        onChange={(val, valid) => { setRegMobileValue(val); setRegMobileValid(valid); }}
+                    />
+ 
+                    <label>Password</label>
+                    <div className="password-wrapper">
+                        <input
+                            type={showNewPassword ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="At least 6 characters"
+                        />
+                        <button
+                            type="button"
+                            className={`toggle-password ${showNewPassword ? "active" : ""}`}
+                            onClick={() => setShowNewPassword((v) => !v)}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FEB959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path className="eye" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle className="pupil" cx="12" cy="12" r="3" />
+                                <line className="slash" x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                        </button>
+                    </div>
+ 
+                    <label>Confirm Password</label>
+                    <div className="password-wrapper">
+                        <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Repeat password"
+                        />
+                        <button
+                            type="button"
+                            className={`toggle-password ${showConfirmPassword ? "active" : ""}`}
+                            onClick={() => setShowConfirmPassword((v) => !v)}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FEB959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path className="eye" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle className="pupil" cx="12" cy="12" r="3" />
+                                <line className="slash" x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                        </button>
+                    </div>
+ 
+                    {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                        <p className="error" style={{ marginTop: 0 }}>Passwords do not match.</p>
+                    )}
+ 
+                    <div className="terms-checkbox" style={{ marginTop: "1rem" }}>
+                        <label>
+                            <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
+                            I agree to the terms and conditions
+                            <span className="required-badge">Required</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" checked={acceptedPrivacy} onChange={(e) => setAcceptedPrivacy(e.target.checked)} />
+                            I agree to the privacy policy
+                            <span className="required-badge">Required</span>
+                        </label>
+                    </div>
+ 
+                    <div className="auth-row" style={{ marginTop: "1rem", gap: "0.75rem" }}>
+                        <button
+                            className="btn-secondary"
+                            onClick={() => { setAdminStep("check-email"); setErr(null); }}
+                            disabled={busy}
+                        >
+                            ← Back
+                        </button>
+                        <button
+                            className="auth-login-btn"
+                            disabled={!canRegister || busy}
+                            onClick={onRegisterAndAddRole}
+                        >
+                            {busy ? "Creating…" : "Create Account & Accept Invite"}
+                        </button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 
 export default function AuthPage() {
     const navigate = useNavigate();
@@ -292,7 +712,7 @@ export default function AuthPage() {
     const [err, setErr] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [verificationSent, setVerificationSent] = useState(false);
-    const [successType, setSuccessType] = useState<"email" | "parent" | null>(null);
+    const [successType, setSuccessType] = useState<"email" | "parent" | "admin-existing" | "admin-new" | null>(null);
     const [adminInvite, setAdminInvite] = useState<any | null>(null);
     const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
     const [resendCooldown, setResendCooldown] = useState(0);
@@ -332,10 +752,6 @@ export default function AuthPage() {
         });
     }, [inviteId]);
 
-    useEffect(() => {
-        if (adminInvite) setEmail(adminInvite.email);
-    }, [adminInvite]);
-
     // ── Validation ───────────────────────────────────────────────────────────────
 
     const canSignIn = useMemo(
@@ -363,9 +779,8 @@ export default function AuthPage() {
         if (normalizeFullName(fullName).length < 2) return false;
         if (!acceptedTerms || !acceptedPrivacy) return false;
         if (selectedRoles.includes("rower") && !acceptedPerformanceTracking) return false;
-        if (adminInvite) return true;
         return step2Valid;
-    }, [email, password, fullName, acceptedTerms, acceptedPrivacy, acceptedPerformanceTracking, selectedRoles, step2Valid, adminInvite]);
+    }, [email, password, fullName, acceptedTerms, acceptedPrivacy, acceptedPerformanceTracking, selectedRoles, step2Valid]);
 
     // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -384,7 +799,7 @@ export default function AuthPage() {
             const cred = await signInEmail(email.trim(), password);
             if (!cred.user.emailVerified) {
                 await signOut(auth);
-                setUnverifiedEmail(email.trim()); // reveal resend UI
+                setUnverifiedEmail(email.trim());
                 setErr("Please verify your email before signing in.");
                 return;
             }
@@ -408,12 +823,9 @@ export default function AuthPage() {
         setResendSent(false);
         setBusy(true);
         try {
-            // Re-authenticate to get a live credential — proves they know the password
             await sendVerificationEmail(unverifiedEmail!);
             setResendSent(true);
             setResendCount((c) => c + 1);
-
-            // Start 60-second cooldown
             let secs = 60;
             setResendCooldown(secs);
             const timer = setInterval(() => {
@@ -439,7 +851,7 @@ export default function AuthPage() {
                 isMinor(roleDetails.rower!.dateOfBirth);
 
             // Minor rower → pending consent flow
-            if (rowerMinor && !adminInvite) {
+            if (rowerMinor) {
                 const r = roleDetails.rower!;
                 const pendingId = await createPendingUser({
                     email: cleanEmail,
@@ -454,22 +866,9 @@ export default function AuthPage() {
                 return;
             }
 
-            // Guard: check for existing account before attempting creation
-            const existingMethods = await fetchSignInMethodsForEmail(auth, cleanEmail);
-
-            if (existingMethods.length > 0) {
-                if (adminInvite) {
-                    if (cleanEmail !== adminInvite.email) {
-                        throw new Error("This invite is restricted to a specific email.");
-                    }
-                    const cred = await signInEmail(cleanEmail, password);
-                    await addAdminRole(cred.user.uid, adminInvite.hostId, adminInvite.id);
-                    await markAdminInviteUsed(adminInvite.id);
-                    await signOut(auth);
-                    setSuccessType("email");
-                    setVerificationSent(true);
-                    return;
-                }
+            const checkEmailExists = httpsCallable(functions, "checkEmailExists");
+            const result = await checkEmailExists({ email: cleanEmail });
+            if ((result.data as { exists: boolean }).exists) {
                 throw new Error("An account with this email already exists. Try signing in instead.");
             }
 
@@ -484,53 +883,43 @@ export default function AuthPage() {
                 email: cred.user.email ?? cleanEmail,
                 fullName: name,
                 displayName: name,
-                primaryRole: adminInvite ? "admin" : selectedRoles[0],
+                primaryRole: selectedRoles[0],
                 roles: {},
                 createdAt: now,
                 updatedAt: now,
             };
 
-            if (adminInvite) {
-                if (cleanEmail !== adminInvite.email) throw new Error("This invite is restricted to a specific email.");
-                profileBase.primaryRole = "admin";
-                profileBase.inviteId = adminInvite.id;
-                profileBase.roles.admin = { hostId: adminInvite.hostId };
-            } else {
-                // Build each selected role
-                for (const role of selectedRoles) {
-                    if (role === "rower") {
-                        const r = roleDetails.rower!;
-                        profileBase.roles.rower = { club: r.club.trim() };
-                        profileBase.gender = r.gender;
-                        profileBase.dateOfBirth = r.dateOfBirth;
-                        profileBase.birthYear = Number(r.dateOfBirth.slice(0, 4));
-                        profileBase.isMinor = false;
-                        profileBase.consent = {
-                            termsAcceptedAt: now,
-                            privacyAcceptedAt: now,
-                            performanceTrackingAccepted: acceptedPerformanceTracking,
-                            dataSharingAccepted: acceptedDataSharing,
-                            givenBy: "self",
-                            givenByUid: cred.user.uid,
-                            updatedAt: now,
-                        };
-                        profileBase.permissions = {
-                            shareWithCoaches: false,
-                            shareWithUniversities: false,
-                            shareWithFederations: false,
-                        };
-                        profileBase.status = { isActive: true, isVerified: false };
-                    } else if (role === "coach") {
-                        profileBase.roles.coach = { club: roleDetails.coach!.club.trim() };
-                    } else if (role === "host") {
-                        profileBase.roles.host = { location: roleDetails.host!.location.trim() };
-                    }
+            for (const role of selectedRoles) {
+                if (role === "rower") {
+                    const r = roleDetails.rower!;
+                    profileBase.roles.rower = { club: r.club.trim() };
+                    profileBase.gender = r.gender;
+                    profileBase.dateOfBirth = r.dateOfBirth;
+                    profileBase.birthYear = Number(r.dateOfBirth.slice(0, 4));
+                    profileBase.isMinor = false;
+                    profileBase.consent = {
+                        termsAcceptedAt: now,
+                        privacyAcceptedAt: now,
+                        performanceTrackingAccepted: acceptedPerformanceTracking,
+                        dataSharingAccepted: acceptedDataSharing,
+                        givenBy: "self",
+                        givenByUid: cred.user.uid,
+                        updatedAt: now,
+                    };
+                    profileBase.permissions = {
+                        shareWithCoaches: false,
+                        shareWithUniversities: false,
+                        shareWithFederations: false,
+                    };
+                    profileBase.status = { isActive: true, isVerified: false };
+                } else if (role === "coach") {
+                    profileBase.roles.coach = { club: roleDetails.coach!.club.trim() };
+                } else if (role === "host") {
+                    profileBase.roles.host = { location: roleDetails.host!.location.trim() };
                 }
             }
 
             await upsertUserProfile(cred.user.uid, profileBase);
-            if (adminInvite) await markAdminInviteUsed(adminInvite.id);
-
             await signOut(auth);
             setSuccessType("email");
             setVerificationSent(true);
@@ -579,6 +968,40 @@ export default function AuthPage() {
                                                 A consent request has been sent to <b>{roleDetails.rower?.parentEmail}</b>.
                                                 Your account will be activated once your parent or guardian approves it.
                                             </p>
+                                        </>
+                                    )}
+                                    {successType === "admin-existing" && (
+                                        <>
+                                            <h3>Host event added ✓</h3>
+                                            <p className="muted">
+                                                The new host event has been added to your admin account.
+                                                You can sign in to manage it now.
+                                            </p>
+                                            <div className="row auth-footer-actions">
+                                                <button
+                                                    className="btn-primary"
+                                                    onClick={() => { clearForm(); setMode("signin"); setVerificationSent(false); }}
+                                                >
+                                                    Go to sign in
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                    {successType === "admin-new" && (
+                                        <>
+                                            <h3>Account created ✓</h3>
+                                            <p className="muted">
+                                                We've sent a verification link to <b>{adminInvite?.email}</b>.
+                                                Please verify your email before signing in.
+                                            </p>
+                                            <div className="row auth-footer-actions">
+                                                <button
+                                                    className="btn-primary"
+                                                    onClick={() => { clearForm(); setMode("signin"); setVerificationSent(false); }}
+                                                >
+                                                    Back to sign in
+                                                </button>
+                                            </div>
                                         </>
                                     )}
                                 </>
@@ -671,6 +1094,25 @@ export default function AuthPage() {
                                     </div>
                                 </>
 
+                            ) : adminInvite ? (
+
+                                /* ── Admin invite flow ─────────────────────────── */
+                                <>
+                                    <h3>ADMIN INVITE</h3>
+                                    <p className="muted" style={{ marginBottom: "0.5rem" }}>
+                                        You've been invited to manage a host event.
+                                    </p>
+                                    <AdminInviteFlow
+                                        invite={adminInvite}
+                                        onSuccess={() => {
+                                            // Distinguish new vs existing for the success screen
+                                            // We use verificationSent to show the success card
+                                            setSuccessType("admin-existing");
+                                            setVerificationSent(true);
+                                        }}
+                                    />
+                                </>
+
                             ) : (
 
                                 /* ── Registration wizard ───────────────────────── */
@@ -678,7 +1120,6 @@ export default function AuthPage() {
                                     <h3>REGISTER</h3>
                                     {err && <p className="error">{err}</p>}
 
-                                    {/* Account fields always visible at top */}
                                     {wizardStep === 1 && (
                                         <div className="form" style={{ marginBottom: "1rem" }}>
                                             <label>Email</label>
@@ -686,7 +1127,6 @@ export default function AuthPage() {
                                                 type="email"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
-                                                disabled={!!adminInvite}
                                             />
 
                                             <label>Password</label>
@@ -715,16 +1155,15 @@ export default function AuthPage() {
                                         </div>
                                     )}
 
-                                    {/* Wizard steps */}
-                                    {!adminInvite && <WizardSteps step={wizardStep} />}
+                                    <WizardSteps step={wizardStep} />
 
                                     <div className="form" style={{ marginTop: "1rem" }}>
 
-                                        {!adminInvite && wizardStep === 1 && (
+                                        {wizardStep === 1 && (
                                             <StepPickRoles selectedRoles={selectedRoles} onChange={setSelectedRoles} />
                                         )}
 
-                                        {!adminInvite && wizardStep === 2 && (
+                                        {wizardStep === 2 && (
                                             <StepRoleDetails
                                                 selectedRoles={selectedRoles}
                                                 details={roleDetails}
@@ -732,7 +1171,7 @@ export default function AuthPage() {
                                             />
                                         )}
 
-                                        {(adminInvite || wizardStep === 3) && (
+                                        {wizardStep === 3 && (
                                             <StepConsent
                                                 selectedRoles={selectedRoles}
                                                 acceptedTerms={acceptedTerms} setAcceptedTerms={setAcceptedTerms}
@@ -742,12 +1181,10 @@ export default function AuthPage() {
                                             />
                                         )}
 
-                                        {/* Navigation buttons */}
                                         <div className="auth-actions" style={{ marginTop: "1.25rem" }}>
                                             <div className="auth-row">
 
-                                                {/* Back */}
-                                                {!adminInvite && wizardStep > 1 && (
+                                                {wizardStep > 1 && (
                                                     <button
                                                         className="btn-secondary"
                                                         onClick={() => setWizardStep((s) => (s - 1) as any)}
@@ -756,8 +1193,7 @@ export default function AuthPage() {
                                                     </button>
                                                 )}
 
-                                                {/* Next / Submit */}
-                                                {!adminInvite && wizardStep < 3 ? (
+                                                {wizardStep < 3 ? (
                                                     <button
                                                         className="auth-login-btn"
                                                         disabled={
@@ -782,16 +1218,14 @@ export default function AuthPage() {
                                                     </button>
                                                 )}
 
-                                                {!adminInvite && (
-                                                    <div className="auth-links">
-                                                        <div className="auth-register">
-                                                            <span>Already have an account?</span>
-                                                            <button className="btn-secondary" onClick={() => { setMode("signin"); setWizardStep(1); }}>
-                                                                SIGN IN
-                                                            </button>
-                                                        </div>
+                                                <div className="auth-links">
+                                                    <div className="auth-register">
+                                                        <span>Already have an account?</span>
+                                                        <button className="btn-secondary" onClick={() => { setMode("signin"); setWizardStep(1); }}>
+                                                            SIGN IN
+                                                        </button>
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
                                         </div>
 

@@ -225,7 +225,7 @@ export interface Admin {
     email: string;
     fullName: string;
     displayName: string;
-    hostId?: string;
+    hostIds?: string[];
 }
 
 // --------------------
@@ -236,7 +236,7 @@ export async function fetchAdminsByHost(hostId: string): Promise<Admin[]> {
 
     try {
         const usersRef = collection(db, "users");
-        const q = query(usersRef, where("roles.admin.hostId", "==", hostId));
+        const q = query(usersRef, where("roles.admin.hostIds", "array-contains", hostId));
         const snapshot = await getDocs(q);
 
         return snapshot.docs.map(doc => {
@@ -246,7 +246,8 @@ export async function fetchAdminsByHost(hostId: string): Promise<Admin[]> {
                 email: data.email,
                 fullName: data.fullName,
                 displayName: data.displayName,
-                hostId: data.admin?.hostId,
+                hostIds: data.admin?.hostIds,
+                mobile: data.mobile
             };
         });
     } catch (error) {

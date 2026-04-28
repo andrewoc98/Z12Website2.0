@@ -5,11 +5,13 @@ import {
     connectAuthEmulator,
     createUserWithEmailAndPassword,
     updateProfile,
-    signOut, sendEmailVerification
+    signOut
 } from "firebase/auth";
 import {getFirestore, connectFirestoreEmulator, setDoc, doc, getDoc, serverTimestamp} from "firebase/firestore";
 import type {ConsentOptions, PendingUser} from "../../features/auth/types.ts";
-
+import { 
+    sendEmailVerification as firebaseSendEmailVerification 
+} from "firebase/auth";
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -136,7 +138,7 @@ export const onApproveAndCreate = async (
     await cred.user.getIdToken(true);
 
     await updateProfile(cred.user, { displayName: pendingUser.fullName });
-    await sendEmailVerification(cred.user);
+    await firebaseSendEmailVerification(cred.user);
 
     // Create UserProfile in Firestore
     await setDoc(doc(db, "users", cred.user.uid), {

@@ -799,3 +799,41 @@
     opacity: 0.45;
     cursor: not-allowed;
 }
+
+.phone-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+ 
+.phone-input-row {
+    display: flex;
+    gap: 0.5rem;
+}
+ 
+.phone-dial-select {
+    flex: 0 0 auto;
+    width: 110px;
+    padding: 0.5rem 0.4rem;
+    border: 1px solid var(--border, #ccc);
+    border-radius: 6px;
+    background: var(--input-bg, #fff);
+    color: var(--text, #000);
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+ 
+.phone-local-input {
+    flex: 1;
+}
+ 
+.phone-local-input.input-error {
+    border-color: #e53e3e;
+    outline-color: #e53e3e;
+}
+ 
+.field-error {
+    font-size: 0.8rem;
+    color: #e53e3e;
+    margin: 0;
+}

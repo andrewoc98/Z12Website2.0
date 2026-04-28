@@ -387,3 +387,33 @@
     }
 
 }
+
+@keyframes sk-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+.skeleton-bar {
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #1e1e1e 25%,
+    #2a2a2a 50%,
+    #1e1e1e 75%
+  );
+  background-size: 600px 100%;
+  animation: sk-shimmer 1.4s infinite linear;
+}
+
+.skeleton-card {
+  border: 2px solid #e4a84d;
+  border-radius: 14px;
+  padding: 16px 20px;
+  background: transparent;
+}
+
+.skeleton-stats {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}

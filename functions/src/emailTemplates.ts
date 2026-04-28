@@ -233,3 +233,81 @@ export function resetPasswordTemplate(resetLink: string): string {
   </body>
 </html>`;
 }
+
+export function adminInviteTemplate(inviteLink: string): string {
+    return `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Invitation</title>
+  </head>
+  <body style="margin:0; padding:0; background:#1e1e22; font-family:Inter, system-ui, -apple-system, sans-serif;" bgcolor="#1e1e22">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#1e1e22; padding:20px 0;" bgcolor="#1e1e22">
+      <tr>
+        <td align="center">
+          <table width="100%" style="max-width:520px; background:#26262b; border-radius:16px; border:1px solid rgba(255,255,255,0.08); box-shadow:0 6px 16px rgba(0,0,0,0.35);" bgcolor="#26262b">
+            <tr>
+              <td style="padding:24px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="text-align:center; padding-bottom:10px;">
+                      <h1 style="margin:0; letter-spacing:1px; color:#FEB959;">Z12 CHALLENGE</h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align:center; padding:10px 0;">
+                      <h2 style="margin:0; color:#f3f4f6; font-size:22px;">You're Invited as an Admin</h2>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align:center; padding:10px 0;">
+                      <p style="color:rgba(255,255,255,0.65); font-size:14px; line-height:1.6; margin:0;">
+                        You've been invited to join Z12 Challenge as an administrator.
+                        Click the button below to accept your invitation and set up your account.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:20px 0;">
+                      <a href="${inviteLink}" style="display:inline-block; background:#FEB959; color:#141414; text-decoration:none; padding:12px 20px; border-radius:999px; text-transform:uppercase; letter-spacing:1px; font-size:14px;">
+                        Accept Invitation
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:20px 0;" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align:center;">
+                      <p style="color:rgba(255,255,255,0.65); font-size:12px; line-height:1.5;">
+                        If the button doesn't work, copy and paste this link into your browser:
+                      </p>
+                      <p style="word-break:break-all; font-size:12px;">
+                        <a href="${inviteLink}" style="color:#ffd400;">${inviteLink}</a>
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="text-align:center; padding-top:20px;">
+                      <p style="color:rgba(255,255,255,0.5); font-size:11px;">
+                        If you weren't expecting this invitation, you can safely ignore this email.
+                      </p>
+                      <p style="color:rgba(255,255,255,0.4); font-size:11px; margin-top:10px;">
+                        Z12 Challenge Inc.<br />&copy; 2026 All rights reserved.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}

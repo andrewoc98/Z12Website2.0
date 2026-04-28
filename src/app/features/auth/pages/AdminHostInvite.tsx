@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { createAdminInvite } from "../api/users";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import "../../profile/style/profile.css";
 
 export default function HostAdminInvite() {
     const { profile } = useAuth();
     const [email, setEmail] = useState("");
-    const [inviteLink, setInviteLink] = useState<string | null>(null);
+    const [sent, setSent] = useState(false);
     const [busy, setBusy] = useState(false);
-    const [copied, setCopied] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     if (!profile?.roles?.host) return null;
@@ -27,8 +27,7 @@ export default function HostAdminInvite() {
 
         setError(null);
         setBusy(true);
-        setInviteLink(null);
-        setCopied(false);
+        setSent(false);
 
         const uid = profile?.uid;
         if (!uid) {
@@ -38,27 +37,23 @@ export default function HostAdminInvite() {
 
         try {
             const inviteId = await createAdminInvite(uid, trimmed);
+            const inviteLink = `${window.location.origin}/auth?adminInvite=${inviteId}`;
 
-            const link = `${window.location.origin}/auth?adminInvite=${inviteId}`;
-            setInviteLink(link);
+            const functions = getFunctions();
+            const sendAdminInviteEmail = httpsCallable(functions, "sendAdminInviteEmail");
+            await sendAdminInviteEmail({ email: trimmed, inviteLink });
+
+            setSent(true);
+            setEmail("");
+        } catch (err) {
+            console.error("Failed to send invite:", err);
+            setError("Failed to send invite email. Please try again.");
         } finally {
             setBusy(false);
         }
     }
 
-    async function copyLink() {
-        if (!inviteLink) return;
-        try {
-            await navigator.clipboard.writeText(inviteLink);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            console.error("Failed to copy:", err);
-        }
-    }
-
-    const trimmedEmail = email.trim();
-    const emailValid = isValidEmail(trimmedEmail);
+    const emailValid = isValidEmail(email.trim());
 
     return (
         <section className="panel">
@@ -72,6 +67,7 @@ export default function HostAdminInvite() {
                     onChange={e => {
                         setEmail(e.target.value);
                         setError(null);
+                        setSent(false);
                     }}
                     onKeyDown={e => e.key === "Enter" && onInvite()}
                     placeholder="example@email.com"
@@ -80,25 +76,17 @@ export default function HostAdminInvite() {
 
             {error && <p className="error">{error}</p>}
 
+            {sent && (
+                <p className="success">Invite email sent successfully!</p>
+            )}
+
             <button
                 className="btn btn--brand"
                 onClick={onInvite}
                 disabled={busy || !emailValid}
             >
-                {busy ? "Generating…" : "Generate invite link"}
+                {busy ? "Sending…" : "Send invite"}
             </button>
-
-            {inviteLink && (
-                <div className="panel panel--soft mt-2">
-                    <p className="muted">Share this link:</p>
-                    <div className="invite-link">
-                        <code>{inviteLink}</code>
-                        <button className="btn btn--ghost" onClick={copyLink}>
-                            {copied ? "Copied!" : "Copy"}
-                        </button>
-                    </div>
-                </div>
-            )}
         </section>
     );
 }

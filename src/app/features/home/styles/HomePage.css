@@ -11,7 +11,7 @@
     width: 100%;
     height: 70vh;
     background: transparent;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .hero img {
@@ -30,32 +30,23 @@
     pointer-events: none;
 }
 
-/* HERO TITLE */
+/* HERO TITLE - moved outside .hero, pulled up with negative margin */
 .hero-title {
-    position: absolute;
-    bottom: 0;                /* align with hero bottom */
-    left: 50%;                /* center horizontally */
-    transform: translateX(-50%) translateY(55%); /* move half of its height down */
-
+    position: relative;
+    text-align: center;
+    color: #FEB959;
     font-size: clamp(36px, 6vw, 100px);
     font-weight: 900;
-
-    color: #FEB959;
-    background: rgba(255, 255, 255, 0); /* transparent */
-    padding: 16px 28px;
-    border-radius: 8px;
-    text-align: center;
-    z-index: 99;
-    width: auto;
+    margin-top: -0.6em;
+    padding: 0 16px;
+    z-index: 2;
 }
-
 
 /* TEXT SECTION */
 .challenge-text {
     max-width: 900px;
-    margin: 120px auto;
+    margin: 40px auto 80px;
     padding: 0 24px;
-
     font-size: 20px;
     line-height: 1.6;
     color: #111;
@@ -78,6 +69,9 @@
     display: block;
     object-fit: cover;
 }
-h1{
+
+h1 {
     font-size: clamp(36px, 6vw, 100px);
+    margin: 0;
+    line-height: 1.1;
 }

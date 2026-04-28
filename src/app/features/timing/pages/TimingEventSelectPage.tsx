@@ -51,7 +51,45 @@ export default function TimingEventSelectPage() {
         return aDate - bDate;
     }), [filtered]);
 
-    if (loading) return <div className="timing-select-loading">Loading events...</div>;
+    if (loading) return (
+    <>
+        <Navbar />
+        <div className="timing-select-page page">
+            <div className="timing-select-header">
+                <div className="timing-select-title">
+                    <h1>TIMING</h1>
+                    <p>Select an event to begin timing.</p>
+                </div>
+                <ConnectionBadge />
+            </div>
+
+            <div className="skeleton-stats">
+                <div className="skeleton-bar" style={{ width: 80, height: 26, borderRadius: 6 }} />
+            </div>
+
+            <div className="timing-select-list">
+                {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="timing-event-card">
+                        <div className="timing-event-grid">
+                            <div className="timing-event-left">
+                                <div className="skeleton-bar" style={{ width: "55%", height: 24, borderRadius: 6, marginBottom: 10 }} />
+                                <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+                                    <div className="skeleton-bar" style={{ width: 100, height: 13, borderRadius: 999 }} />
+                                    <div className="skeleton-bar" style={{ width: 120, height: 13, borderRadius: 999 }} />
+                                </div>
+                                <div className="skeleton-bar" style={{ width: 180, height: 13, borderRadius: 999 }} />
+                            </div>
+                            <div className="timing-event-action">
+                                <div className="skeleton-bar" style={{ width: 70, height: 60, borderRadius: 14 }} />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+        <Footer />
+    </>
+);
 
     const renderCard = (event: any, disabled: boolean) => (
         <div

@@ -128,20 +128,20 @@
 @media (max-width: 900px) {
 
     .menu-toggle {
-        display:block;
+        display: block;
     }
 
     .sidebar {
-        position:fixed;
-        left:-260px;
-        top: 60px;
-        height:100%;
-        z-index:30;
-        transition:0.25s;
+        position: fixed;
+        left: -260px;
+        top: 120px; /* navbar (60px) + event header (60px) */
+        height: calc(100% - 120px); /* fill remaining viewport height */
+        z-index: 30;
+        transition: 0.25s;
     }
 
     .sidebar.open {
-        left:0;
+        left: 0;
     }
 }
 

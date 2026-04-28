@@ -140,6 +140,7 @@ export async function removeUserRole(uid: string, role: keyof UserProfile["roles
         }
     );
 }
+
 export async function saveUserRole(
     uid: string,
     role: keyof UserProfile["roles"],
@@ -148,7 +149,7 @@ export async function saveUserRole(
     return updateDoc(
         doc(db, "users", uid),
         {
-            [`roles.${role}`]: data,
+            [`roles.${role}`]: stripUndefined(data as object),
             updatedAt: serverTimestamp(),
         }
     );
@@ -176,4 +177,16 @@ export async function deleteUserAccount(uid: string) {
     await deleteDoc(doc(db, "users", uid));
 
     await deleteUser(currentUser);
+}
+
+function stripUndefined<T extends object>(obj: T): Partial<T> {
+    return Object.fromEntries(
+        Object.entries(obj)
+            .filter(([, v]) => v !== undefined)
+            .map(([k, v]) =>
+                v !== null && typeof v === "object" && !Array.isArray(v)
+                    ? [k, stripUndefined(v as object)]
+                    : [k, v]
+            )
+    ) as Partial<T>;
 }

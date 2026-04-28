@@ -6,14 +6,14 @@ import { addToPendingQueue } from "../lib/pendingQueue";
 // Get events that the user can time (host or admin)
 export async function getTimingEvents(userId: string, userRoles: any): Promise<any[]> {
     // For host: events where createdByUid === userId
-    // For admin: events where createdByUid === userRoles.admin.hostId
+    // For admin: events where createdByUid is in any of userRoles.admin.hostIds
 
     let hostIds: string[] = [];
     if (userRoles.host) {
         hostIds.push(userId);
     }
-    if (userRoles.admin) {
-        hostIds.push(userRoles.admin.hostId);
+    if (userRoles.admin?.hostIds) {
+        hostIds.push(...userRoles.admin.hostIds);
     }
 
     if (hostIds.length === 0) return [];

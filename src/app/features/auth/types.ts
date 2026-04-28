@@ -7,6 +7,7 @@ export type UserProfile = {
     email: string;
     displayName: string;
     fullName?: string;
+    mobile?: string;
 
     primaryRole?: Role;
 
@@ -43,7 +44,7 @@ export type UserProfile = {
     };
     roles: {
         rower?: {
-            club: string;
+            club?: string;
             coachId?: string;
 
             stats: {
@@ -72,9 +73,10 @@ export type UserProfile = {
         };
 
         admin?: {
-            name: string;
-            email: string;
-            hostId: string;
+            name?: string;
+            email?: string;
+            hostIds: string[];
+            inviteId?: string;
         };
 
         guardian?: {

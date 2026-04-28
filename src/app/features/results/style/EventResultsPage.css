@@ -226,6 +226,7 @@
     font-size: 0.9rem;
 }
 
+
 /* Mobile */
 @media (max-width: 600px) {
     .results-page {
@@ -240,5 +241,42 @@
         flex: 1;
         padding: 8px 10px;
         font-size: 0.8rem;
+    }
+
+    .result-card {
+        padding: 12px;
+    }
+
+    .result-card-main {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .result-card-left {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .result-card-right {
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+
+    .result-card-name {
+        font-size: 0.9rem;
+        max-width: 160px;
+    }
+
+    .result-card-sub {
+        font-size: 0.75rem;
+    }
+
+    .result-time {
+        font-size: 0.9rem;
+    }
+
+    .result-rank {
+        min-width: 24px;
+        font-size: 0.9rem;
     }
 }

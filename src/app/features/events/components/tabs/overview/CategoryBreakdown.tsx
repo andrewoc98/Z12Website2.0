@@ -25,7 +25,6 @@ export default function CategoryBreakdown({ boats, categories }: any) {
 
     const data = useMemo(() => {
 
-        // Pre-group boats by categoryId (O(n) instead of repeated filters)
         const boatMap = new Map();
 
         boats.forEach((b: any) => {
@@ -73,6 +72,7 @@ export default function CategoryBreakdown({ boats, categories }: any) {
 
     const [genderFilter, setGenderFilter] = useState("all");
     const [divisionFilter, setDivisionFilter] = useState("all");
+    const [hideEmpty, setHideEmpty] = useState(true); // auto-ticked
     const [page, setPage] = useState(1);
 
     /* -------------------------------------------------- */
@@ -87,10 +87,11 @@ export default function CategoryBreakdown({ boats, categories }: any) {
                 return false;
             }
 
-            if (
-                divisionFilter !== "all" &&
-                !cat.division.includes(divisionFilter)
-            ) {
+            if (divisionFilter !== "all" && !cat.division.includes(divisionFilter)) {
+                return false;
+            }
+
+            if (hideEmpty && cat.total === 0 && cat.registered === 0 && cat.pending === 0) {
                 return false;
             }
 
@@ -98,16 +99,13 @@ export default function CategoryBreakdown({ boats, categories }: any) {
 
         });
 
-    }, [data, genderFilter, divisionFilter]);
+    }, [data, genderFilter, divisionFilter, hideEmpty]);
 
     /* -------------------------------------------------- */
     /* PAGINATION */
     /* -------------------------------------------------- */
 
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filtered.length / PAGE_SIZE)
-    );
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
     const paginated = useMemo(() => {
 
@@ -141,8 +139,8 @@ export default function CategoryBreakdown({ boats, categories }: any) {
                     <option value="Women">Women</option>
                     <option value="Mixed">Mixed</option>
                 </select>
-
                 <input
+                    type="text"
                     placeholder="Filter division (e.g. Junior, U19, Masters)"
                     value={divisionFilter === "all" ? "" : divisionFilter}
                     onChange={(e) => {
@@ -152,16 +150,26 @@ export default function CategoryBreakdown({ boats, categories }: any) {
                     }}
                 />
 
+                <label className="hide-empty-label">
+                    <input
+                        type="checkbox"
+                        checked={hideEmpty}
+                        onChange={(e) => {
+                            setHideEmpty(e.target.checked);
+                            setPage(1);
+                        }}
+                    />
+                    Hide empty categories
+                </label>
+
             </div>
 
             {/* CATEGORY LIST */}
 
             <div className="category-list">
-
                 {paginated.map((category: any) => (
                     <CategoryRow key={category.id} category={category} />
                 ))}
-
             </div>
 
             {/* PAGINATION */}
@@ -175,9 +183,7 @@ export default function CategoryBreakdown({ boats, categories }: any) {
                     Prev
                 </button>
 
-                <span>
-          Page {page} / {totalPages}
-        </span>
+                <span>Page {page} / {totalPages}</span>
 
                 <button
                     disabled={page === totalPages}

@@ -45,8 +45,7 @@ export async function ensureUserProfile(uid: string, base: Partial<UserProfile>)
     );
 }
 
-export async function upsertUserProfile(uid: string, profile: UserProfile) {
-    // upsert should write full profile intentionally (registration path)
+export async function upsertUserProfile(uid: string, profile: Partial<UserProfile>) {
     return setDoc(
         doc(db, "users", uid),
         {
@@ -59,8 +58,13 @@ export async function upsertUserProfile(uid: string, profile: UserProfile) {
 
 export async function addAdminRole(uid: string, hostId: string, inviteId: string) {
     const now = new Date().toISOString();
-    await updateDoc(doc(db, "users", uid), {
-        "roles.admin": { hostId },
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+    const currentHostIds = userSnap.data()?.roles?.admin?.hostIds ?? [];
+    const updatedHostIds = Array.from(new Set([...currentHostIds, hostId]));
+    
+    await updateDoc(userRef, {
+        "roles.admin.hostIds": updatedHostIds,
         inviteId,
         updatedAt: now,
     });

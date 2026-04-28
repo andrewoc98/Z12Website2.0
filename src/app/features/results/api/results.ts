@@ -9,3 +9,4 @@ export async function getEventById(eventId: string): Promise<(EventDoc & { id: s
     const data = snap.data() as FirestoreEventDoc;
     return mapEvent(snap.id, data);
 }
+
