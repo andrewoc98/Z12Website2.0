@@ -1,0 +1,167 @@
+.pcm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.pcm-modal {
+    background: var(--surface, #1a1a1a);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.pcm-header {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.pcm-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.pcm-header h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+}
+
+.pcm-header p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-muted, rgba(255, 255, 255, 0.55));
+    line-height: 1.5;
+}
+
+.pcm-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.pcm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pcm-field > label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.pcm-field input[type="date"],
+.pcm-field input[type="text"] {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 0.6rem 0.875rem;
+    font-size: 0.9rem;
+    color: var(--text-primary, #fff);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.pcm-field input:focus {
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.pcm-radio-group {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.pcm-radio {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    color: var(--text-primary, #fff);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.pcm-radio input[type="radio"] {
+    display: none;
+}
+
+.pcm-radio--active {
+    border-color: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.pcm-error {
+    font-size: 0.85rem;
+    color: #f87171;
+    margin: 0;
+}
+
+.pcm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+}
+
+.pcm-btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, rgba(255, 255, 255, 0.55));
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.pcm-btn-ghost:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--text-primary, #fff);
+}
+
+.pcm-btn-primary {
+    background: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #000;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.pcm-btn-primary:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pcm-btn-primary:hover:not(:disabled) {
+    opacity: 0.88;
+}

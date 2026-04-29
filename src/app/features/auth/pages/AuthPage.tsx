@@ -859,6 +859,7 @@ export default function AuthPage() {
                     dateOfBirth: r.dateOfBirth,
                     parentEmail: r.parentEmail,
                     club: r.club,
+                    gender: r.gender
                 });
                 await sendParentConsentEmail(r.parentEmail, pendingId, name);
                 setSuccessType("parent");

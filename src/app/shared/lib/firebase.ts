@@ -44,6 +44,7 @@ export async function createPendingUser(data: {
     dateOfBirth: string;
     parentEmail: string;
     club?: string;
+    gender:string;
 }) {
     const id = crypto.randomUUID();
 
