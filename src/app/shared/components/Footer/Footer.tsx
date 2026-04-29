@@ -23,7 +23,7 @@ const Footer: React.FC = () => {
             return;
         }
 
-        navigate("/rower/signup");
+        navigate("/events");
     };
 
     const handleHostRace = () => {
