@@ -55,6 +55,9 @@ function friendlyError(message: string) {
     if (m.includes("auth/email-already-in-use")) return "That email is already in use. Try signing in instead.";
     if (m.includes("auth/weak-password")) return "Password must be at least 6 characters.";
     if (m.includes("auth/invalid-email")) return "Please enter a valid email.";
+    if (m.includes("auth/too-many-requests")) {
+    return "Too many attempts. Your account has been temporarily locked — wait a few minutes and try again, or reset your password.";
+    }
     return message || "Something went wrong.";
 }
 
@@ -729,7 +732,8 @@ export default function AuthPage() {
     const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
     const [acceptedDataSharing, setAcceptedDataSharing] = useState(false);
     const [acceptedPerformanceTracking, setAcceptedPerformanceTracking] = useState(false);
-
+    const [lockedOut, setLockedOut] = useState(false);
+    
     const loc = useLocation();
 
     // Restore state from router location (e.g. redirect back)
@@ -811,7 +815,13 @@ export default function AuthPage() {
             }
             goAfterAuth();
         } catch (e: any) {
-            setErr(friendlyError(e?.message ?? "Sign-in failed"));
+            const msg = e?.message ?? "";
+            if (msg.includes("auth/too-many-requests")) {
+                setLockedOut(true);
+                setErr(null); // let the dedicated block handle it
+            } else {
+                setErr(friendlyError(msg));
+            }
         } finally {
             setBusy(false);
         }
@@ -1012,6 +1022,14 @@ export default function AuthPage() {
                                 /* ── Sign-in form ──────────────────────────────── */
                                 <>
                                     <h3>LOGIN</h3>
+                                    {lockedOut && (
+                                        <div className="alert alert-warning">
+                                            <strong>Account temporarily locked.</strong>
+                                            <p>Too many failed attempts. Wait a few minutes and try again, or{" "}
+                                                <Link to="/forgot-password">reset your password</Link> to unlock immediately.
+                                            </p>
+                                        </div>
+                                    )}
                                     {err && <p className="error">{err}</p>}
 
                                     {unverifiedEmail && (
