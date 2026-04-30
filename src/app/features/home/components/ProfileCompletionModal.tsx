@@ -15,9 +15,15 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 export default function ProfileCompletionModal({ missingFields }: Props) {
-    const { user, } = useAuth() as any;
+    const { user } = useAuth() as any;
     const [dismissed, setDismissed] = useState(false);
-    const [values, setValues] = useState<Record<string, string>>({});
+    const [values, setValues] = useState<Record<string, string>>(() => {
+        const initial: Record<string, string> = {};
+        if (missingFields.includes("gender")) {
+            initial.gender = user?.gender === "unknown" ? "" : (user?.gender ?? "");
+        }
+        return initial;
+    });
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
@@ -26,7 +32,11 @@ export default function ProfileCompletionModal({ missingFields }: Props) {
     const set = (field: string, value: string) =>
         setValues((prev) => ({ ...prev, [field]: value }));
 
-    const allFilled = missingFields.every((f) => (values[f] ?? "").trim());
+    const allFilled = missingFields.every((f) => {
+        const val = (values[f] ?? "").trim();
+        if (f === "gender") return val !== "" && val !== "unknown";
+        return val !== "";
+    });
 
     async function handleSave() {
         if (!user || !allFilled) return;
