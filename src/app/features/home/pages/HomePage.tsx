@@ -11,9 +11,9 @@ export default function HomePage() {
     const p = profile ?? null;
 
     const missingFields = useMemo(() => {
-        if (!user || !p || p.primaryRole !== "rower") return [];
+        if (!user || !p || !p.roles?.rower) return [];
         const missing: string[] = [];
-        if (!p.gender) missing.push("gender");
+        if (!p.gender || p.gender === "unknown") missing.push("gender");
         if (!p.dateOfBirth) missing.push("dateOfBirth");
         if (!(p.roles?.rower?.club ?? "").trim()) missing.push("club");
         return missing;
