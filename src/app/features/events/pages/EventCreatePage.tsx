@@ -96,6 +96,7 @@ export default function EventCreatePage() {
             );
 
             const eventId = await createEvent({
+                bowsAssigned:false,
                 name: name.trim(),
                 description: description.trim(),
                 location: location.trim(),

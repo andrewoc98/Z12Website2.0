@@ -58,6 +58,44 @@ function friendlyError(message: string) {
     if (m.includes("auth/too-many-requests")) {
     return "Too many attempts. Your account has been temporarily locked — wait a few minutes and try again, or reset your password.";
     }
+    if (m.includes("auth/user-disabled"))
+        return "This account has been disabled. Please contact support.";
+
+    if (m.includes("auth/expired-action-code"))
+        return "This link has expired. Please request a new one.";
+
+    if (m.includes("auth/invalid-action-code"))
+        return "This link is invalid or has already been used.";
+
+    if (m.includes("auth/requires-recent-login"))
+        return "For security, please sign out and sign back in before doing this.";
+
+    if (m.includes("auth/popup-closed-by-user"))
+        return "Sign-in was cancelled. Please try again.";
+
+    if (m.includes("auth/cancelled-popup-request"))
+        return "";
+
+    if (m.includes("auth/operation-not-allowed"))
+        return "This sign-in method is not enabled. Please contact support.";
+    if (m.includes("auth/account-exists-with-different-credential"))
+        return "An account already exists with this email using a different sign-in method. Try signing in with your original method.";
+
+    if (m.includes("auth/credential-already-in-use"))
+        return "This credential is already linked to another account.";
+
+    if (m.includes("auth/missing-email"))
+        return "Please enter an email address.";
+
+    if (m.includes("auth/missing-password"))
+        return "Please enter a password.";
+
+    if (m.includes("auth/popup-blocked"))
+        return "Your browser blocked a sign-in popup. Please allow popups for this site and try again.";
+
+    if (m.includes("auth/provider-already-linked"))
+        return "This sign-in method is already linked to your account.";
+
     return message || "Something went wrong.";
 }
 
@@ -141,10 +179,12 @@ function StepRoleDetails({
                              selectedRoles,
                              details,
                              onChange,
+                             userEmail
                          }: {
     selectedRoles: RoleChoice[];
     details: RoleDetails;
     onChange: (d: RoleDetails) => void;
+    userEmail: string;
 }) {
     const [activeTab, setActiveTab] = useState<RoleChoice>(selectedRoles[0]);
 
@@ -196,6 +236,12 @@ function StepRoleDetails({
                                         value={d.rower.parentEmail}
                                         onChange={(e) => patch("rower", { parentEmail: e.target.value })}
                                     />
+                                    {d.rower.parentEmail.length > 0 &&
+                                        d.rower.parentEmail.trim().toLowerCase() === userEmail.trim().toLowerCase() && (
+                                            <p className="error" style={{ marginTop: 0 }}>
+                                                Parent email cannot be the same as your own email.
+                                            </p>
+                                        )}
                                 </>
                             )}
 
@@ -710,7 +756,9 @@ export default function AuthPage() {
     const [mode, setMode] = useState<Mode>("signin");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [fullName, setFullName] = useState("");
     const [err, setErr] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
@@ -769,17 +817,21 @@ export default function AuthPage() {
                 const r = roleDetails.rower!;
                 if (!r.dateOfBirth) return false;
                 if (r.club.trim().length < 2) return false;
-                if (isMinor(r.dateOfBirth) && (!r.parentEmail || !r.parentEmail.includes("@"))) return false;
+                if (isMinor(r.dateOfBirth)) {
+                    if (!r.parentEmail || !r.parentEmail.includes("@")) return false;
+                    if (r.parentEmail.trim().toLowerCase() === email.trim().toLowerCase()) return false;
+                }
             }
             if (role === "coach" && roleDetails.coach!.club.trim().length < 2) return false;
             if (role === "host" && roleDetails.host!.location.trim().length < 2) return false;
         }
         return true;
-    }, [selectedRoles, roleDetails]);
+    }, [selectedRoles, roleDetails, email]); // ← add email to deps
 
     const canRegister = useMemo(() => {
         if (email.trim().length === 0) return false;
         if (password.trim().length < 6) return false;
+        if (password !== confirmPassword) return false;
         if (normalizeFullName(fullName).length < 2) return false;
         if (!acceptedTerms || !acceptedPrivacy) return false;
         if (selectedRoles.includes("rower") && !acceptedPerformanceTracking) return false;
@@ -789,9 +841,10 @@ export default function AuthPage() {
     // ── Handlers ─────────────────────────────────────────────────────────────────
 
     function clearForm() {
-        setEmail(""); setPassword(""); setFullName("");
+        setEmail(""); setPassword(""); setFullName("");setConfirmPassword("");
         setSelectedRoles(["rower"]); setRoleDetails(defaultRoleDetails());
         setWizardStep(1); setErr(null);
+
     }
 
     async function onSignIn() {
@@ -1169,6 +1222,30 @@ export default function AuthPage() {
                                                 </button>
                                             </div>
 
+                                            <label style={{ marginTop: "0.75rem" }}>Confirm Password</label>
+                                            <div className="password-wrapper">
+                                                <input
+                                                    type={showConfirmPassword ? "text" : "password"}
+                                                    value={confirmPassword}
+                                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                                    placeholder="Repeat your password"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className={`toggle-password ${showConfirmPassword ? "active" : ""}`}
+                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FEB959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path className="eye" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                        <circle className="pupil" cx="12" cy="12" r="3" />
+                                                        <line className="slash" x1="1" y1="1" x2="23" y2="23" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            {confirmPassword.length > 0 && password !== confirmPassword && (
+                                                <p className="error" style={{ marginTop: 0 }}>Passwords do not match.</p>
+                                            )}
+
                                             <label>Full name</label>
                                             <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
                                         </div>
@@ -1187,6 +1264,7 @@ export default function AuthPage() {
                                                 selectedRoles={selectedRoles}
                                                 details={roleDetails}
                                                 onChange={setRoleDetails}
+                                                userEmail={email}
                                             />
                                         )}
 
@@ -1220,6 +1298,7 @@ export default function AuthPage() {
                                                                 ? selectedRoles.length === 0 ||
                                                                 email.trim().length === 0 ||
                                                                 password.trim().length < 6 ||
+                                                                password !== confirmPassword ||
                                                                 normalizeFullName(fullName).length < 2
                                                                 : !step2Valid
                                                         }

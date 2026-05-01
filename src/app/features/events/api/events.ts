@@ -69,6 +69,7 @@ let mockEvents: EventWithId[] = DEV_MODE ? loadMockEvents() : [];
 // Types
 // --------------------
 export type CreateEventInput = {
+    bowsAssigned: boolean;
     name: string;
     description: string;
     location: string;
