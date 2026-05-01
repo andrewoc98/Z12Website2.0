@@ -195,7 +195,7 @@ export default function EventPageSignUp() {
     // ---------- Eligible Categories ----------
     const eligibleCategories = useMemo(() => {
         if (!selectedEvent || !p) return [];
-        if (p.primaryRole && p.primaryRole !== "rower") return [];
+        if (!p.roles?.rower) return [];
         return selectedEvent.categories.filter((c) => isEligibleForCategory(p, c.name));
     }, [selectedEvent, p]);
 
