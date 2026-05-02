@@ -280,3 +280,7 @@
         font-size: 0.9rem;
     }
 }
+
+.btn-ghost:visited {
+    color: white;
+}

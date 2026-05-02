@@ -1,4 +1,5 @@
-import { createBrowserRouter } from "react-router-dom";
+// src/router.tsx
+import { createBrowserRouter, Outlet } from "react-router-dom";
 import HomePage from "./features/home/pages/HomePage";
 import RequireRole from "./guards/RequireRole";
 import EventCreatePage from "./features/events/pages/EventCreatePage";
@@ -22,107 +23,121 @@ import ParentConsentPage from "./features/auth/pages/ParentConsentPage.tsx";
 import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage.tsx";
 import TimingPage from "./features/timing/pages/TimingPage.tsx";
 import TimingEventSelectPage from "./features/timing/pages/TimingEventSelectPage.tsx";
+import RequireMaintenance from "./guards/RequireMaintenance.tsx";
+
+function RootLayout() {
+    return (
+        <RequireMaintenance>
+            <Outlet />
+        </RequireMaintenance>
+    );
+}
 
 export const router = createBrowserRouter([
     {
-        path: "/host/events/new",
-        element: (
-            <RequireRole role="host">
-                <EventCreatePage />
-            </RequireRole>
-        ),
-    },
-    {
-        path: "/rower/events/:eventId/results",
-        element: <EventResultsPage />,
-    },
-    {
-        path: "/rower/events/:eventId/signup",
-        element: (
-            <RequireRole role="rower">
-                <EventSignupPage />
-            </RequireRole>
-        ),
-    },
-    {
-        path: "/host/events",
-        element: (
-            <RequireRole role="host">
-                <HostEventListPage />
-            </RequireRole>
-        ),
-    },
-    {
-        path: "/host/events/:eventId",
-        element: (
-            <RequireRole role="host">
-                <HostEventManagePage />
-            </RequireRole>
-        ),
-    },
-    {
-        path: "/rower/signup",
-        element: (
-            <RequireRole role="rower">
-                <EventSignupPage />
-            </RequireRole>
-        ),
-    },
-    {
-        path: "/profile",
-        element: (
-            <RequireAuth>
-                <ProfilePage />
-            </RequireAuth>
-        ),
-    },
-    {
-        path: "/invite/:eventId/:code",
-        element: (
-            <RequireRole role="rower">
-                <InviteJoinPage />
-            </RequireRole>
-        ),
-    },
-    { path: "/", element: <HomePage /> },
-    { path: "/events", element: <RowerEventListPage /> },
-    { path: "/about", element: <AboutPage /> },
-    { path: "/auth", element: <AuthPage /> },
-    { path: "/parent-consent", element: <ParentConsentPage /> },
-    { path: "/forgot-password", element: <ForgotPasswordPage /> },
-    { path: "/terms", element: <Terms /> },
-    { path: "/privacy", element: <Privacy /> },
-    { path: "/reset-password", element: <ResetPasswordPage /> },
-    {
-        path: "/community",
-        element: (
-            <RequireAuth>
-                <CommunityPage />
-            </RequireAuth>
-        ),
-    },
-    {
-        path: "/community/:uid",
-        element: (
-            <RequireAuth>
-                <PublicProfilePage />
-            </RequireAuth>
-        ),
-    },
-    {
-        path: "/timing",
-        element: (
-            <RequireTimingAccess>
-                <TimingEventSelectPage />
-            </RequireTimingAccess>
-        ),
-    },
-    {
-        path: "/timing/:eventId",
-        element: (
-            <RequireTimingAccess>
-                <TimingPage />
-            </RequireTimingAccess>
-        ),
+        element: <RootLayout />,
+        children: [
+            {
+                path: "/host/events/new",
+                element: (
+                    <RequireRole role="host">
+                        <EventCreatePage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/rower/events/:eventId/results",
+                element: <EventResultsPage />,
+            },
+            {
+                path: "/rower/events/:eventId/signup",
+                element: (
+                    <RequireRole role="rower">
+                        <EventSignupPage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/host/events",
+                element: (
+                    <RequireRole role="host">
+                        <HostEventListPage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/host/events/:eventId",
+                element: (
+                    <RequireRole role="host">
+                        <HostEventManagePage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/rower/signup",
+                element: (
+                    <RequireRole role="rower">
+                        <EventSignupPage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/profile",
+                element: (
+                    <RequireAuth>
+                        <ProfilePage />
+                    </RequireAuth>
+                ),
+            },
+            {
+                path: "/invite/:eventId/:code",
+                element: (
+                    <RequireRole role="rower">
+                        <InviteJoinPage />
+                    </RequireRole>
+                ),
+            },
+            { path: "/", element: <HomePage /> },
+            { path: "/events", element: <RowerEventListPage /> },
+            { path: "/about", element: <AboutPage /> },
+            { path: "/auth", element: <AuthPage /> },
+            { path: "/parent-consent", element: <ParentConsentPage /> },
+            { path: "/forgot-password", element: <ForgotPasswordPage /> },
+            { path: "/terms", element: <Terms /> },
+            { path: "/privacy", element: <Privacy /> },
+            { path: "/reset-password", element: <ResetPasswordPage /> },
+            {
+                path: "/community",
+                element: (
+                    <RequireAuth>
+                        <CommunityPage />
+                    </RequireAuth>
+                ),
+            },
+            {
+                path: "/community/:uid",
+                element: (
+                    <RequireAuth>
+                        <PublicProfilePage />
+                    </RequireAuth>
+                ),
+            },
+            {
+                path: "/timing",
+                element: (
+                    <RequireTimingAccess>
+                        <TimingEventSelectPage />
+                    </RequireTimingAccess>
+                ),
+            },
+            {
+                path: "/timing/:eventId",
+                element: (
+                    <RequireTimingAccess>
+                        <TimingPage />
+                    </RequireTimingAccess>
+                ),
+            },
+        ],
     },
 ]);

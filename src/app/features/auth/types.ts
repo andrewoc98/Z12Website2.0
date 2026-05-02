@@ -1,6 +1,14 @@
 export type Role = "rower" | "host" | "admin" | "coach" | "guardian";
 export type Gender = "male" | "female" | "unknown";
 
+// ── Guardian child reference ───────────────────────────────────────────────────
+export type LinkedChild = {
+    childPendingId: string;
+    childName: string;
+    approvedAt: string;
+    childUid?: string; // populated once the child's auth account is created
+};
+
 export type UserProfile = {
     uid: string;
 
@@ -42,6 +50,7 @@ export type UserProfile = {
         shareWithUniversities: boolean;
         shareWithFederations: boolean;
     };
+
     roles: {
         rower?: {
             club?: string;
@@ -80,8 +89,7 @@ export type UserProfile = {
         };
 
         guardian?: {
-            linkedChildPendingId: string;
-            linkedChildName: string;
+            linkedChildren: LinkedChild[];
         };
     };
 
@@ -122,7 +130,7 @@ export type ConsentOptions = {
     privacyAccepted: boolean;
     performanceTrackingAccepted?: boolean;
     dataSharingAccepted?: boolean;
-    guardianUid:string;
+    guardianUid: string;
 };
 
 export type AdminInvite = {

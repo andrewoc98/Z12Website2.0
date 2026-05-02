@@ -6,10 +6,11 @@ interface CategoryResultsProps {
     selectedCategory: string | "All";
     inProgressBoats: any[];
     profiles: Record<string, any>;
-    pageSize?: number;
+    pageSize: number;
+    page: number
 }
 
-export default function CategoryResults({ byCategory, selectedCategory, inProgressBoats, profiles, pageSize = 10 }: CategoryResultsProps) {
+export default function CategoryResults({ byCategory, selectedCategory, inProgressBoats, profiles, pageSize}: CategoryResultsProps) {
     const [page, setPage] = useState(1);
 
     const boats = useMemo(() => {
@@ -38,7 +39,7 @@ export default function CategoryResults({ byCategory, selectedCategory, inProgre
                 <>
                     <ul className="results-list">
                         {paginatedBoats.map((boat, idx) => (
-                            <ResultCard key={boat.id} boat={boat} rank={(page - 1) * pageSize + idx + 1} profiles={profiles} />
+                            <ResultCard key={boat.id+((page-1)*pageSize)} boat={boat} rank={(page - 1) * pageSize + idx + 1} profiles={profiles} />
                         ))}
                     </ul>
                     {totalPages > 1 && (

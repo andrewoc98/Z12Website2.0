@@ -7,7 +7,7 @@ import OverallResults from "../components/OverallResults";
 import CategoryResults from "../components/CategoryResults";
 import "../style/EventResultsPage.css";
 import type {Boat} from "../components/ResultCard.tsx";
-import { useUserProfiles } from "../../timing/useUserProfiles.ts" // adjust path as needed
+import { useUserProfiles } from "../../timing/useUserProfiles.ts"
 
 export default function EventResultsPage() {
     const { eventId } = useParams<{ eventId: string }>();
@@ -180,9 +180,9 @@ export default function EventResultsPage() {
                 ) : finishedBoats.length === 0 ? (
                     <p>No finished results yet.</p>
                 ) : tab === "overall" ? (
-                    <OverallResults boats={paginatedBoats} inProgressBoats={inProgressBoats} profiles={profiles} />
+                    <OverallResults boats={paginatedBoats} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE}/>
                 ) : (
-                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} inProgressBoats={inProgressBoats} profiles={profiles} />
+                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} />
                 )}
                 {((finishedBoats.length > PAGE_SIZE) && tab === "overall") && (
                     <div className="pagination">

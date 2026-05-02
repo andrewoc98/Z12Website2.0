@@ -5,7 +5,7 @@ import {
     signOut,
     updateProfile,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { arrayUnion, doc, getDoc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -81,23 +81,23 @@ export default function ParentConsentPage() {
     const [busy, setBusy]       = useState(false);
 
     // Consent checkboxes
-    const [termsAccepted, setTermsAccepted]                           = useState(false);
-    const [privacyAccepted, setPrivacyAccepted]                       = useState(false);
+    const [termsAccepted, setTermsAccepted]                             = useState(false);
+    const [privacyAccepted, setPrivacyAccepted]                         = useState(false);
     const [performanceTrackingAccepted, setPerformanceTrackingAccepted] = useState(false);
-    const [dataSharingAccepted, setDataSharingAccepted]               = useState(false);
+    const [dataSharingAccepted, setDataSharingAccepted]                 = useState(false);
 
     // Account step — shared
     const [guardianEmail, setGuardianEmail] = useState("");
 
     // "existing account" branch
-    const [accountExists, setAccountExists]   = useState<boolean | null>(null); // null = not yet checked
-    const [checkingEmail, setCheckingEmail]   = useState(false);
+    const [accountExists, setAccountExists]       = useState<boolean | null>(null);
+    const [checkingEmail, setCheckingEmail]       = useState(false);
     const [guardianPassword, setGuardianPassword] = useState("");
 
     // "new account" branch
-    const [guardianName, setGuardianName]         = useState("");
-    const [newPassword, setNewPassword]           = useState("");
-    const [confirmPassword, setConfirmPassword]   = useState("");
+    const [guardianName, setGuardianName]       = useState("");
+    const [newPassword, setNewPassword]         = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     // ── Fetch pending user ────────────────────────────────────────────────────
     useEffect(() => {
@@ -152,7 +152,6 @@ export default function ParentConsentPage() {
         }
     }
 
-    // Reset account-check state when email changes
     function onEmailChange(v: string) {
         setGuardianEmail(v);
         setAccountExists(null);
@@ -170,8 +169,29 @@ export default function ParentConsentPage() {
         newPassword.length >= 6 &&
         newPassword === confirmPassword;
 
+    // ── Append child to an existing guardian's linkedChildren array ───────────
+    //
+    // This replaces the old single-child `linkedChildName` / `linkedChildPendingId`
+    // fields with an `arrayUnion` write so the guardian document accumulates every
+    // child they've ever consented for without overwriting previous entries.
+    //
+    async function linkChildToGuardian(guardianUid: string) {
+        const now = new Date().toISOString();
+        await updateDoc(doc(db, "users", guardianUid), {
+            // arrayUnion is idempotent — safe to call even if the entry already exists
+            "roles.guardian.linkedChildren": arrayUnion({
+                childPendingId: token,
+                childName: pendingUser!.fullName,
+                approvedAt: now,
+                // childUid is added by the cloud function (onApproveAndCreate) once
+                // the child's auth account is created; we store what we know now.
+            }),
+        });
+    }
+
     // ── Shared approve logic (called after auth) ──────────────────────────────
     async function approveChild(guardianUid: string) {
+        // 1. Create the child's account and mark the pendingUser as consumed.
         await onApproveAndCreate(pendingUser!, token!, {
             termsAccepted,
             privacyAccepted,
@@ -179,6 +199,9 @@ export default function ParentConsentPage() {
             dataSharingAccepted,
             guardianUid,
         });
+
+        // 2. Append (not overwrite) this child to the guardian's linked-children list.
+        await linkChildToGuardian(guardianUid);
     }
 
     // ── Existing guardian: sign in → approve ─────────────────────────────────
@@ -190,7 +213,7 @@ export default function ParentConsentPage() {
             const cred = await signInWithEmailAndPassword(
                 auth,
                 guardianEmail.trim().toLowerCase(),
-                guardianPassword
+                guardianPassword,
             );
             await approveChild(cred.user.uid);
             await signOut(auth);
@@ -203,7 +226,7 @@ export default function ParentConsentPage() {
     }
 
     // ── New guardian: create account → approve ────────────────────────────────
-async function onRegisterAndApprove() {
+    async function onRegisterAndApprove() {
         if (busy) return;
         if (!pendingUser || !token) return;
         if (newPassword !== confirmPassword) {
@@ -219,6 +242,9 @@ async function onRegisterAndApprove() {
             await sendEmailVerification(cred.user);
 
             const now = new Date().toISOString();
+
+            // Build the initial linkedChildren array with this first child.
+            // Subsequent children will be appended via linkChildToGuardian().
             await upsertUserProfile(cred.user.uid, {
                 uid: cred.user.uid,
                 email: cred.user.email ?? cleanEmail,
@@ -227,8 +253,13 @@ async function onRegisterAndApprove() {
                 primaryRole: "guardian",
                 roles: {
                     guardian: {
-                        linkedChildPendingId: token,
-                        linkedChildName: pendingUser.fullName,
+                        linkedChildren: [
+                            {
+                                childPendingId: token,
+                                childName: pendingUser.fullName,
+                                approvedAt: now,
+                            },
+                        ],
                     },
                 },
                 gender: "unknown" as const,
@@ -253,7 +284,19 @@ async function onRegisterAndApprove() {
                 updatedAt: now,
             });
 
-            await approveChild(cred.user.uid);
+            // approveChild calls linkChildToGuardian, but for a brand-new guardian
+            // the profile write above already included the first child entry.
+            // We still call onApproveAndCreate (inside approveChild) to activate
+            // the child account — but we skip the redundant linkChildToGuardian
+            // because the doc was just created with the correct shape.
+            await onApproveAndCreate(pendingUser!, token!, {
+                termsAccepted,
+                privacyAccepted,
+                performanceTrackingAccepted,
+                dataSharingAccepted,
+                guardianUid: cred.user.uid,
+            });
+
             await signOut(auth);
             setStep("done");
         } catch (e: any) {
@@ -362,7 +405,6 @@ async function onRegisterAndApprove() {
                     ══════════════════════════════════════════════ */}
                     {step === "account" && (
                         <>
-                            {/* ── Email entry + check ───────────────────────── */}
                             <h3>
                                 {accountExists === true  ? "Sign In to Approve" :
                                     accountExists === false ? "Create Your Guardian Account" :

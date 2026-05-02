@@ -4,9 +4,11 @@ interface OverallResultsProps {
     boats: any[];
     inProgressBoats: any[];
     profiles: Record<string, any>;
+    page: number
+    pageSize: number
 }
 
-export default function OverallResults({ boats, inProgressBoats, profiles }: OverallResultsProps) {
+export default function OverallResults({ boats, inProgressBoats, profiles, page, pageSize }: OverallResultsProps) {
     return (
         <section className="overall-results">
             <div className="results-section">
@@ -15,7 +17,7 @@ export default function OverallResults({ boats, inProgressBoats, profiles }: Ove
                     ? <p className="results-empty">No finished results yet.</p>
                     : <ul className="results-list">
                         {boats.map((boat, idx) => (
-                            <ResultCard key={boat.id} boat={boat} rank={idx + 1} profiles={profiles} />
+                            <ResultCard key={boat.id} boat={boat} rank={(idx + 1)+((page-1)*pageSize)} profiles={profiles} />
                         ))}
                     </ul>
                 }
