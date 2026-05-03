@@ -5,14 +5,14 @@ import {
     signOut,
     updateProfile,
 } from "firebase/auth";
-import { arrayUnion, doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Footer from "../../../shared/components/Footer/Footer";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { auth, db, functions, onApproveAndCreate } from "../../../shared/lib/firebase";
-import { upsertUserProfile } from "../api/users";
+import { createGuardianProfile } from "../api/users";
 import { EyeIcon } from "../components/EyeIcon.tsx";
 import "../styles/auth.css";
 import type { PendingUser } from "../types.ts";
@@ -71,14 +71,11 @@ export default function ParentConsentPage() {
     const [searchParams] = useSearchParams();
     const token = searchParams.get("token");
 
-    // Data
     const [pendingUser, setPendingUser] = useState<PendingUser | null>(null);
-
-    // UI state
-    const [step, setStep]       = useState<Step>("consent");
-    const [loading, setLoading] = useState(true);
-    const [error, setError]     = useState<string | null>(null);
-    const [busy, setBusy]       = useState(false);
+    const [step, setStep]               = useState<Step>("consent");
+    const [loading, setLoading]         = useState(true);
+    const [error, setError]             = useState<string | null>(null);
+    const [busy, setBusy]               = useState(false);
 
     // Consent checkboxes
     const [termsAccepted, setTermsAccepted]                             = useState(false);
@@ -86,18 +83,14 @@ export default function ParentConsentPage() {
     const [performanceTrackingAccepted, setPerformanceTrackingAccepted] = useState(false);
     const [dataSharingAccepted, setDataSharingAccepted]                 = useState(false);
 
-    // Account step — shared
-    const [guardianEmail, setGuardianEmail] = useState("");
-
-    // "existing account" branch
+    // Account step
+    const [guardianEmail, setGuardianEmail]       = useState("");
     const [accountExists, setAccountExists]       = useState<boolean | null>(null);
     const [checkingEmail, setCheckingEmail]       = useState(false);
     const [guardianPassword, setGuardianPassword] = useState("");
-
-    // "new account" branch
-    const [guardianName, setGuardianName]       = useState("");
-    const [newPassword, setNewPassword]         = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
+    const [guardianName, setGuardianName]         = useState("");
+    const [newPassword, setNewPassword]           = useState("");
+    const [confirmPassword, setConfirmPassword]   = useState("");
 
     // ── Fetch pending user ────────────────────────────────────────────────────
     useEffect(() => {
@@ -121,7 +114,7 @@ export default function ParentConsentPage() {
         })();
     }, [token]);
 
-    // ── Step 1: consent validation ────────────────────────────────────────────
+    // ── Step 1: consent ───────────────────────────────────────────────────────
     const canProceedToAccount = termsAccepted && privacyAccepted && performanceTrackingAccepted;
 
     function onConsentNext() {
@@ -133,6 +126,7 @@ export default function ParentConsentPage() {
         setStep("account");
     }
 
+    // ── Email check ───────────────────────────────────────────────────────────
     async function checkEmail() {
         const email = guardianEmail.trim().toLowerCase();
         if (!email || !email.includes("@")) {
@@ -158,7 +152,7 @@ export default function ParentConsentPage() {
         setError(null);
     }
 
-    // ── Validation per branch ─────────────────────────────────────────────────
+    // ── Validation ────────────────────────────────────────────────────────────
     const canSignInAndApprove =
         accountExists === true &&
         guardianPassword.length >= 6;
@@ -169,53 +163,30 @@ export default function ParentConsentPage() {
         newPassword.length >= 6 &&
         newPassword === confirmPassword;
 
-    // ── Append child to an existing guardian's linkedChildren array ───────────
-    //
-    // This replaces the old single-child `linkedChildName` / `linkedChildPendingId`
-    // fields with an `arrayUnion` write so the guardian document accumulates every
-    // child they've ever consented for without overwriting previous entries.
-    //
-    async function linkChildToGuardian(guardianUid: string) {
-        const now = new Date().toISOString();
-        await updateDoc(doc(db, "users", guardianUid), {
-            // arrayUnion is idempotent — safe to call even if the entry already exists
-            "roles.guardian.linkedChildren": arrayUnion({
-                childPendingId: token,
-                childName: pendingUser!.fullName,
-                approvedAt: now,
-                // childUid is added by the cloud function (onApproveAndCreate) once
-                // the child's auth account is created; we store what we know now.
-            }),
-        });
-    }
-
-    // ── Shared approve logic (called after auth) ──────────────────────────────
-    async function approveChild(guardianUid: string) {
-        // 1. Create the child's account and mark the pendingUser as consumed.
-        await onApproveAndCreate(pendingUser!, token!, {
-            termsAccepted,
-            privacyAccepted,
-            performanceTrackingAccepted,
-            dataSharingAccepted,
-            guardianUid,
-        });
-
-        // 2. Append (not overwrite) this child to the guardian's linked-children list.
-        await linkChildToGuardian(guardianUid);
-    }
-
     // ── Existing guardian: sign in → approve ─────────────────────────────────
+    // The cloud function (approveAndCreate) handles all Firestore writes:
+    //   - creates the child Auth account server-side
+    //   - creates the child user doc
+    //   - appends the child to guardian's linkedChildren
+    //   - marks the pendingUser as converted
+    // No client-side linkedChildren writes happen here.
     async function onSignInAndApprove() {
         if (!pendingUser || !token) return;
         setBusy(true);
         setError(null);
         try {
-            const cred = await signInWithEmailAndPassword(
+            await signInWithEmailAndPassword(
                 auth,
                 guardianEmail.trim().toLowerCase(),
                 guardianPassword,
             );
-            await approveChild(cred.user.uid);
+            await onApproveAndCreate(pendingUser, token, {
+                termsAccepted,
+                privacyAccepted,
+                performanceTrackingAccepted,
+                dataSharingAccepted,
+                guardianUid: "",
+            });
             await signOut(auth);
             setStep("done");
         } catch (e: any) {
@@ -225,10 +196,9 @@ export default function ParentConsentPage() {
         }
     }
 
-    // ── New guardian: create account → approve ────────────────────────────────
+    // ── New guardian: register → approve ─────────────────────────────────────
     async function onRegisterAndApprove() {
-        if (busy) return;
-        if (!pendingUser || !token) return;
+        if (busy || !pendingUser || !token) return;
         if (newPassword !== confirmPassword) {
             setError("Passwords do not match.");
             return;
@@ -237,15 +207,19 @@ export default function ParentConsentPage() {
         setError(null);
         try {
             const cleanEmail = guardianEmail.trim().toLowerCase();
+
+            // 1. Create guardian Auth account — signs them in immediately
             const cred = await createUserWithEmailAndPassword(auth, cleanEmail, newPassword);
+            await cred.user.getIdToken(true); // ensure token is fresh before Firestore writes
             await updateProfile(cred.user, { displayName: guardianName.trim() });
             await sendEmailVerification(cred.user);
 
             const now = new Date().toISOString();
 
-            // Build the initial linkedChildren array with this first child.
-            // Subsequent children will be appended via linkChildToGuardian().
-            await upsertUserProfile(cred.user.uid, {
+            // 2. Create guardian Firestore profile.
+            //    linkedChildren starts empty — the cloud function appends the
+            //    first child via arrayUnion so there's no duplication.
+            await createGuardianProfile(cred.user.uid, {
                 uid: cred.user.uid,
                 email: cred.user.email ?? cleanEmail,
                 fullName: guardianName.trim(),
@@ -253,13 +227,7 @@ export default function ParentConsentPage() {
                 primaryRole: "guardian",
                 roles: {
                     guardian: {
-                        linkedChildren: [
-                            {
-                                childPendingId: token,
-                                childName: pendingUser.fullName,
-                                approvedAt: now,
-                            },
-                        ],
+                        linkedChildren: [],
                     },
                 },
                 gender: "unknown" as const,
@@ -284,17 +252,14 @@ export default function ParentConsentPage() {
                 updatedAt: now,
             });
 
-            // approveChild calls linkChildToGuardian, but for a brand-new guardian
-            // the profile write above already included the first child entry.
-            // We still call onApproveAndCreate (inside approveChild) to activate
-            // the child account — but we skip the redundant linkChildToGuardian
-            // because the doc was just created with the correct shape.
-            await onApproveAndCreate(pendingUser!, token!, {
+            // 3. Call the cloud function — guardian is authenticated so
+            //    request.auth.uid is the guardian's uid server-side.
+            await onApproveAndCreate(pendingUser, token, {
                 termsAccepted,
                 privacyAccepted,
                 performanceTrackingAccepted,
                 dataSharingAccepted,
-                guardianUid: cred.user.uid,
+                guardianUid: "",
             });
 
             await signOut(auth);
@@ -304,7 +269,6 @@ export default function ParentConsentPage() {
             if (msg.includes("auth/email-already-in-use")) {
                 setAccountExists(true);
                 setError("An account with this email already exists. Please sign in below.");
-                setBusy(false);
                 return;
             }
             setError(friendlyError(msg ?? "Registration failed."));
@@ -417,14 +381,12 @@ export default function ParentConsentPage() {
                                     We'll check if you already have an account.
                                 </p>
                             )}
-
                             {accountExists === true && (
                                 <p className="muted">
                                     We found an existing account for <b>{guardianEmail}</b>.
                                     Sign in below to approve your child's registration.
                                 </p>
                             )}
-
                             {accountExists === false && (
                                 <p className="muted">
                                     No account found for <b>{guardianEmail}</b>.
@@ -434,7 +396,7 @@ export default function ParentConsentPage() {
 
                             <div className="form">
 
-                                {/* Email row — always shown, locked after check */}
+                                {/* Email — always shown, locked after check */}
                                 <label>Email</label>
                                 <div className="email-check-row">
                                     <input
@@ -461,7 +423,6 @@ export default function ParentConsentPage() {
                                     )}
                                 </div>
 
-                                {/* Check email button */}
                                 {accountExists === null && (
                                     <button
                                         type="button"
@@ -474,7 +435,7 @@ export default function ParentConsentPage() {
                                     </button>
                                 )}
 
-                                {/* ── Existing account: sign-in fields ─────── */}
+                                {/* ── Existing account ─────────────────────── */}
                                 {accountExists === true && (
                                     <>
                                         <label>Password</label>
@@ -483,7 +444,6 @@ export default function ParentConsentPage() {
                                             onChange={setGuardianPassword}
                                             placeholder="Your password"
                                         />
-
                                         <div className="auth-row auth-row--actions" style={{ marginTop: "1rem" }}>
                                             <button
                                                 type="button"
@@ -505,7 +465,7 @@ export default function ParentConsentPage() {
                                     </>
                                 )}
 
-                                {/* ── New account: registration fields ─────── */}
+                                {/* ── New account ──────────────────────────── */}
                                 {accountExists === false && (
                                     <>
                                         <label>Full Name</label>
@@ -515,25 +475,21 @@ export default function ParentConsentPage() {
                                             onChange={(e) => setGuardianName(e.target.value)}
                                             placeholder="Your full name"
                                         />
-
                                         <label>Password</label>
                                         <PasswordInput
                                             value={newPassword}
                                             onChange={setNewPassword}
                                             placeholder="At least 6 characters"
                                         />
-
                                         <label>Confirm Password</label>
                                         <PasswordInput
                                             value={confirmPassword}
                                             onChange={setConfirmPassword}
                                             placeholder="Repeat password"
                                         />
-
                                         {confirmPassword.length > 0 && newPassword !== confirmPassword && (
                                             <p className="error error--no-top-margin">Passwords do not match.</p>
                                         )}
-
                                         <div className="auth-row auth-row--actions" style={{ marginTop: "1rem" }}>
                                             <button
                                                 type="button"
@@ -554,10 +510,8 @@ export default function ParentConsentPage() {
                                         </div>
                                     </>
                                 )}
-
                             </div>
 
-                            {/* Back to consent */}
                             {accountExists === null && (
                                 <div style={{ marginTop: "0.75rem" }}>
                                     <button

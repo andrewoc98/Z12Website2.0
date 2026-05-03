@@ -56,6 +56,19 @@ export async function upsertUserProfile(uid: string, profile: Partial<UserProfil
     );
 }
 
+export async function createGuardianProfile(uid: string, profile: Partial<UserProfile>) {
+    const now = new Date().toISOString();
+    return setDoc(
+        doc(db, "users", uid),
+        {
+            ...profile,
+            createdAt: now,
+            updatedAt: now,
+        },
+        { merge: true }
+    );
+}
+
 export async function addAdminRole(uid: string, hostId: string, inviteId: string) {
     const now = new Date().toISOString();
     const userRef = doc(db, "users", uid);

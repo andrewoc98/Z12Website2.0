@@ -27,6 +27,8 @@ function buildEmail(to: string, subject: string, html: string) {
     };
 }
 
+export { approveAndCreate } from "./approveAndCreate";
+
 export const checkEmailExists = onCall(async (request) => {
     console.log("RAW request.data:", JSON.stringify(request.data));
     const email = ((request.data?.email) ?? "").trim().toLowerCase();
