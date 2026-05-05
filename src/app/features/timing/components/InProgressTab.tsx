@@ -1,8 +1,10 @@
 import { useMemo, useEffect, useState } from "react";
-import { sortBoatsByBowNumber, getLiveElapsed, formatElapsedTime, formatRowerNames } from "../lib/utils";
+import {sortBoatsByBowNumber, triggerFeedback} from "../lib/utils";
 import { useUserProfiles } from "../useUserProfiles";
 import type { BoatTimingDoc } from "../types";
-import { stopBoatTiming, addPlaceholderFinish } from "../api/timing";
+import {stopBoatTiming, addPlaceholderFinish, markBoatDNF} from "../api/timing";
+import RaceActionSheet, {type BoatAction} from "../RaceActionSheet.tsx";
+import {StopBoatItem} from "./StopBoatItem.tsx";
 
 interface InProgressTabProps {
     eventId: string;
@@ -13,12 +15,13 @@ export default function InProgressTab({ eventId, boats }: InProgressTabProps) {
     const [, setTick] = useState(0);
     const [placeholderLoading, setPlaceholderLoading] = useState(false);
     const [placeholderMsg, setPlaceholderMsg] = useState<string | null>(null);
+    const [sheetBoat, setSheetBoat] = useState<BoatTimingDoc | null>(null);
 
     // Force re-render every 100ms to update timers
     useEffect(() => {
         const interval = setInterval(() => {
             setTick(t => t + 1);
-        }, 100);
+        }, 70);
         return () => clearInterval(interval);
     }, []);
 
@@ -58,6 +61,35 @@ export default function InProgressTab({ eventId, boats }: InProgressTabProps) {
         }
     };
 
+    const sheetActions: { key: BoatAction; label: string; onClick: () => void }[] = sheetBoat
+        ? [
+            {
+                key: "stop" as BoatAction, // Cast to the specific union type
+                label: "Stop Boat",
+                onClick: async () => {
+                    const boatId = sheetBoat.id;
+                    setSheetBoat(null);
+                    triggerFeedback("start");
+                    await handleStop(boatId);
+                }
+            },
+            {
+                key: "dnf" as BoatAction, // Corrected from "dns" to match context if needed, or keep as "dns"
+                label: "Mark DNF",
+                onClick: async () => {
+                    const boatId = sheetBoat.id;
+                    setSheetBoat(null);
+                    triggerFeedback("stop");
+                    try {
+                        await markBoatDNF(eventId, boatId);
+                    } catch (error) {
+                        console.error("Failed to mark DNF:", error);
+                    }
+                }
+            }
+        ]
+        : [];
+
     if (inProgressBoats.length === 0) {
         return <div className="in-progress-tab"><p style={{ color: "var(--muted)" }}>No boats in progress</p></div>;
     }
@@ -76,13 +108,28 @@ export default function InProgressTab({ eventId, boats }: InProgressTabProps) {
             </div>
             {inProgressBoats.map((boat) => (
                 <div key={boat.id} className="boat-item">
-                    <span>{boat.bowNumber}# {boat.clubName} {formatRowerNames(boat.rowerUids, profiles, boat.boatSize)}</span>
-                    <span className="timer">
-                        {boat.startedAt ? formatElapsedTime(getLiveElapsed(boat.startedAt)) : "00:00.00"}
-                    </span>
-                    <button className="btn-primary" onClick={() => handleStop(boat.id)}>Stop</button>
+                    <StopBoatItem
+                        key={boat.id}
+                        profiles={profiles}
+                        boat={boat}
+                        onLongPress={setSheetBoat}
+                        onStop={(id) => {
+                            triggerFeedback("stop");
+                            handleStop(id);
+                        }}
+                    />
                 </div>
             ))}
+            <RaceActionSheet
+                open={!!sheetBoat}
+                title={
+                    sheetBoat
+                        ? `${sheetBoat.bowNumber}# ${sheetBoat.clubName}`
+                        : ""
+                }
+                actions={sheetActions}
+                onClose={() => setSheetBoat(null)}
+            />
         </div>
     );
 }

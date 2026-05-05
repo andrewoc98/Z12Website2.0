@@ -21,7 +21,7 @@ export default function EventResultsPage() {
     const PAGE_SIZE = 10;
 
     const inProgressBoats = useMemo(() => {
-        return boats.filter(b => b.startedAt && !b.finishedAt);
+        return boats.filter(b => b.startedAt && !b.finishedAt && b.status !== "dnf" && b.status !== "dns");
     }, [boats]);
 
     const allUids = useMemo(() => {
@@ -69,16 +69,33 @@ export default function EventResultsPage() {
             .map(b => {
                 const startMs = toTimestamp(b.startedAt);
                 const finishMs = toTimestamp(b.finishedAt);
-                if (startMs == null || finishMs == null) return null;
+                const status = b.status?.toLowerCase();
+
+                // A boat is "Resolved" if it has a finish time OR a DNF/DNS status
+                const isResolved = (startMs != null && finishMs != null) || status === "dnf" || status === "dns";
+
+                if (!isResolved) return null;
+
                 return {
                     ...b,
                     startedAt: startMs,
                     finishedAt: finishMs,
-                    elapsedMs: finishMs - startMs
+                    // Use Infinity for elapsedMs on DNF/DNS so they sort to the bottom
+                    elapsedMs: (startMs && finishMs) ? finishMs - startMs : Infinity
                 };
             })
             .filter((b): b is any => b !== null)
-            .sort((a, b) => a.elapsedMs - b.elapsedMs);
+            .sort((a, b) => {
+                // Priority 1: Timed results come before DNF/DNS
+                if (a.elapsedMs === Infinity && b.elapsedMs !== Infinity) return 1;
+                if (a.elapsedMs !== Infinity && b.elapsedMs === Infinity) return -1;
+
+                // Priority 2: Sort by time
+                if (a.elapsedMs !== b.elapsedMs) return a.elapsedMs - b.elapsedMs;
+
+                // Priority 3: If both are Infinity (DNF/DNS), sort alphabetically (DNF before DNS)
+                return (a.status || "").localeCompare(b.status || "");
+            });
     }, [boats]);
 
     const byCategory = useMemo(() => {

@@ -24,6 +24,7 @@ import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage.tsx";
 import TimingPage from "./features/timing/pages/TimingPage.tsx";
 import TimingEventSelectPage from "./features/timing/pages/TimingEventSelectPage.tsx";
 import RequireMaintenance from "./guards/RequireMaintenance.tsx";
+import EventPageView from "./features/signup/pages/EventPageView.tsx";
 
 function RootLayout() {
     return (
@@ -106,6 +107,7 @@ export const router = createBrowserRouter([
             { path: "/terms", element: <Terms /> },
             { path: "/privacy", element: <Privacy /> },
             { path: "/reset-password", element: <ResetPasswordPage /> },
+            {path: "/events/:eventId/view", element:<EventPageView/>},
             {
                 path: "/community",
                 element: (

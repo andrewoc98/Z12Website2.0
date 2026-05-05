@@ -54,7 +54,7 @@ export default function TimingPage() {
                     className={activeTab === "finish" ? "active" : ""}
                     onClick={() => setActiveTab("finish")}
                 >
-                    Finish · {boats.filter(b => b.status === "finished").length}
+                    Finish · {boats.filter(b => ["finished", "dns", "dnf"].includes(b.status)).length}
                 </button>
             </div>
 

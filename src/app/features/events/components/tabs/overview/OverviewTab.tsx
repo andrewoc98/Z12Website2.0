@@ -4,10 +4,11 @@ import CategoryBreakdown from "./CategoryBreakdown";
 import "./overview.css";
 import {assignBowNumbersForEvent} from "../../../../signup/api/boats.ts";
 import {useState} from "react";
+import DangerZoneCard from "./DangerZoneCard.tsx";
+import {deleteEvent} from "../../../../../shared/lib/firebase.ts";
 
 export default function OverviewTab({ event, boats = [] }: any) {
     const [busy, setBusy] = useState(false);
-
     const assignBows = async () => {
         setBusy(true);
         try {
@@ -20,6 +21,16 @@ export default function OverviewTab({ event, boats = [] }: any) {
         }
         setBusy(false);
     }
+
+    const deleteEventHandler = async (eventId: string) => {
+        try {
+            await deleteEvent(eventId);
+
+            window.location.href = "/host/events";
+        } catch (e) {
+            console.error("Failed to delete event", e);
+        }
+    };
 
     return (
         <div className="overview-container">
@@ -42,7 +53,10 @@ export default function OverviewTab({ event, boats = [] }: any) {
                 boats={boats}
                 categories={event.categories}
             />
-
+            <DangerZoneCard
+                event={event}
+                onDelete={deleteEventHandler}
+            />
         </div>
     );
 }

@@ -1,8 +1,9 @@
-import { useMemo } from "react";
-import { groupBoatsByCategory, sortBoatsByBowNumber, formatRowerNames } from "../lib/utils";
-import { useUserProfiles } from "../useUserProfiles";
+import {useMemo, useState} from "react";
+import {groupBoatsByCategory, sortBoatsByBowNumber,triggerFeedback} from "../lib/utils";
 import type { BoatTimingDoc } from "../types";
-import { startBoatTiming } from "../api/timing";
+import {markBoatDNS, startBoatTiming} from "../api/timing";
+import {StartBoatItem} from "./StartBoatItem.tsx";
+import RaceActionSheet, {type BoatAction} from "../RaceActionSheet.tsx";
 
 interface StartTabProps {
     eventId: string;
@@ -10,13 +11,7 @@ interface StartTabProps {
 }
 
 export default function StartTab({ eventId, boats }: StartTabProps) {
-    const allUids = useMemo(() => {
-        const uids = new Set<string>();
-        boats.forEach(boat => boat.rowerUids.forEach(uid => uids.add(uid)));
-        return Array.from(uids);
-    }, [boats]);
-
-    const { profiles } = useUserProfiles(allUids);
+    const [sheetBoat, setSheetBoat] = useState<BoatTimingDoc | null>(null);
 
 const categories = useMemo(() => {
     const registeredBoats = boats.filter(b => b.status === "registered");
@@ -34,6 +29,35 @@ const categories = useMemo(() => {
         });
 }, [boats]);
 
+    const sheetActions: { key: BoatAction; label: string; onClick: () => void }[] = sheetBoat
+        ? [
+            {
+                key: "start" as BoatAction,
+                label: "Start Boat",
+                onClick: async () => {
+                    const boatId = sheetBoat.id;
+                    setSheetBoat(null);
+                    triggerFeedback("start");
+                    await handleStart(boatId);
+                }
+            },
+            {
+                key: "dns" as BoatAction,
+                label: "Mark DNS",
+                onClick: async () => {
+                    const boatId = sheetBoat.id;
+                    setSheetBoat(null);
+                    triggerFeedback("stop");
+                    try {
+                        await markBoatDNS(eventId, boatId);
+                    } catch (error) {
+                        console.error("Failed to mark DNS:", error);
+                    }
+                }
+            }
+        ]
+        : [];
+
     const handleStart = async (boatId: string) => {
         try {
             await startBoatTiming(eventId, boatId);
@@ -49,19 +73,29 @@ const categories = useMemo(() => {
                     <h3>{category.name}</h3>
                     <div className="boats-list">
                         {category.boats.map((boat) => (
-                            <div key={boat.id} className="boat-item">
-                                <span>{boat.bowNumber}# {boat.clubName} {formatRowerNames(boat.rowerUids, profiles, boat.boatSize)}</span>
-                                <button
-                                    className="btn-primary"
-                                    onClick={() => handleStart(boat.id)}
-                                >
-                                    Start
-                                </button>
-                            </div>
+                            <StartBoatItem
+                                key={boat.id}
+                                boat={boat}
+                                onLongPress={setSheetBoat}
+                                onStart={(id) => {
+                                    triggerFeedback("start");
+                                    handleStart(id);
+                                }}
+                            />
                         ))}
                     </div>
                 </div>
             ))}
+            <RaceActionSheet
+                open={!!sheetBoat}
+                title={
+                    sheetBoat
+                        ? `${sheetBoat.bowNumber}# ${sheetBoat.clubName}`
+                        : ""
+                }
+                actions={sheetActions}
+                onClose={() => setSheetBoat(null)}
+            />
         </div>
     );
 }

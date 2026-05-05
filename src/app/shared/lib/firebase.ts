@@ -4,7 +4,15 @@ import {
     getAuth,
     connectAuthEmulator,
 } from "firebase/auth";
-import {getFirestore, connectFirestoreEmulator, setDoc, doc, getDoc} from "firebase/firestore";
+import {
+    getFirestore,
+    connectFirestoreEmulator,
+    setDoc,
+    doc,
+    getDoc,
+    writeBatch,
+    collection, getDocs
+} from "firebase/firestore";
 import type {ConsentOptions, PendingUser} from "../../features/auth/types.ts";
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -114,4 +122,33 @@ export async function sendPasswordResetEmail(email: string) {
         console.error('Password reset failed:', err);
         throw new Error('Failed to send password reset email');
     }
+}
+
+
+export async function deleteEvent(eventId: string) {
+    if (!eventId) throw new Error("Missing eventId");
+
+    const batch = writeBatch(db);
+
+    const eventRef = doc(db, "events", eventId);
+
+    const boatsRef = collection(db, "events", eventId, "boats");
+    const boatsSnap = await getDocs(boatsRef);
+
+    boatsSnap.forEach((d) => {
+        batch.delete(d.ref);
+    });
+
+    const signupRef = collection(db, "events", eventId, "rowerCategorySignups");
+    const signupSnap = await getDocs(signupRef);
+
+    signupSnap.forEach((d) => {
+        batch.delete(d.ref);
+    });
+
+    batch.delete(eventRef);
+
+    await batch.commit();
+
+    return true;
 }

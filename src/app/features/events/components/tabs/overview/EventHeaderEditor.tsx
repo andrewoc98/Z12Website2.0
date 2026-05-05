@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import { dateInputToTimestampStartOfDay, dateInputToTimestampEndOfDay, updateEvent } from "../../../api/events";
 
 interface Props {
@@ -7,10 +7,6 @@ interface Props {
 }
 
 export default function EventHeaderEditor({ event, onSaved }: Props) {
-
-    useEffect(() => {
-        console.log(event)
-    }, []);
 
     const toDateInput = (ts: any): string => {
         if (!ts) return "";

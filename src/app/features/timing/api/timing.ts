@@ -142,3 +142,43 @@ export async function assignPlaceholderToBoat(
         throw error;
     }
 }
+
+export const markBoatDNS = async (eventId: string, boatId: string) => {
+    const ref = doc(db, "events", eventId, "boats", boatId);
+    const now = Date.now();
+    try {
+        await updateDoc(ref, {
+            status: "dns",
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        addToPendingQueue({
+            type: "dns",
+            eventId,
+            boatId,
+            timestamp: now,
+            data: { status: "dns" }
+        });
+        throw error;
+    }
+};
+
+export const markBoatDNF = async (eventId: string, boatId: string) => {
+    const ref = doc(db, "events", eventId, "boats", boatId);
+    const now = Date.now();
+    try {
+        await updateDoc(ref, {
+            status: "dnf",
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        addToPendingQueue({
+            type: "dnf",
+            eventId,
+            boatId,
+            timestamp: now,
+            data: { status: "dnf" }
+        });
+        throw error;
+    }
+};

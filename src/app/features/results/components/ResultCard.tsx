@@ -25,6 +25,8 @@ interface ResultCardProps {
 
 export default function ResultCard({ boat, rank, inProgress, profiles }: ResultCardProps) {
     const [open, setOpen] = useState(false);
+    const status = boat.status?.toUpperCase();
+    const isSpecialStatus = status === "DNF" || status === "DNS";
 
     const adjustedElapsedMs = useMemo(() => {
         return boat.elapsedMs + ((boat.adjustmentMs ?? 0) * 1000);
@@ -42,11 +44,15 @@ export default function ResultCard({ boat, rank, inProgress, profiles }: ResultC
     const displayStarted = new Date(boat.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     return (
-        <li className={`result-card ${inProgress ? "result-card--in-progress" : ""}`} onClick={() => setOpen(!open)}>
+        <li className={`result-card ${inProgress ? "result-card--in-progress" : ""} ${isSpecialStatus ? "result-card--status" : ""}`} onClick={() => setOpen(!open)}>
             <div className="result-card-main">
                 <div className="result-card-left">
-                    {!inProgress && rank && (
+                    {/* Hide rank for DNF/DNS or show it differently */}
+                    {!inProgress && rank && !isSpecialStatus && (
                         <span className="result-rank">#{rank}</span>
+                    )}
+                    {isSpecialStatus && (
+                        <span className="result-rank result-rank--status">—</span>
                     )}
                     {inProgress && (
                         <span className="result-on-course-dot" title="On course" />
@@ -62,6 +68,10 @@ export default function ResultCard({ boat, rank, inProgress, profiles }: ResultC
                 <div className="result-card-right">
                     {inProgress ? (
                         <span className="result-on-course-label">ON COURSE</span>
+                    ) : isSpecialStatus ? (
+                        <span className="result-time status-label" style={{ color: "#d9534f", fontWeight: "bold" }}>
+                            {status}
+                        </span>
                     ) : (
                         <span className="result-time">{formatElapsed(adjustedElapsedMs)}</span>
                     )}
@@ -71,6 +81,7 @@ export default function ResultCard({ boat, rank, inProgress, profiles }: ResultC
 
             {open && (
                 <div className="result-card-details">
+                    <div><strong>Status:</strong> {status || "Finished"}</div>
                     <div><strong>Club:</strong> {boat.clubName}</div>
                     <div><strong>Rowers:</strong> {rowerNames}</div>
                     <div><strong>Boat size:</strong> {boat.boatSize}</div>

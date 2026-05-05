@@ -1,4 +1,4 @@
-export type BoatStatus = "registered" | "in_progress" | "finished";
+export type BoatStatus = "registered" | "in_progress" | "finished" | "dns" | "dnf";;
 
 export type BoatTimingDoc = {
     id: string;

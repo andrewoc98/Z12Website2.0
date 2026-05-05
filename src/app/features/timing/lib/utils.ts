@@ -51,3 +51,10 @@ export function groupBoatsByCategory(boats: any[]): Record<string, any[]> {
     });
     return groups;
 }
+
+export function triggerFeedback(type: "start" | "stop") {
+
+    if (navigator.vibrate) {
+        navigator.vibrate(type === "start" ? 50 : [30, 30, 50]);
+    }
+}

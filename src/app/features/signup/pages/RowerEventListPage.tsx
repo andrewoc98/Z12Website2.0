@@ -23,7 +23,11 @@ function tsToDate(ts: any): Date | null {
     return new Date(ts);
 }
 
-function getEventAction(event: EventDoc, isRower: boolean) {
+function getEventAction(event: EventDoc) {
+    const { user } = useAuth();
+    const { hasRole } = useRoles();
+    const isRower = !!user && hasRole("rower");
+
     const now = new Date();
     const closing = tsToDate(event.closingDate);
     const start = tsToDate(event.startDate);
@@ -31,21 +35,31 @@ function getEventAction(event: EventDoc, isRower: boolean) {
 
     if (!start || !end) return { type: "none", label: "Unavailable" };
 
+    // Past event — everyone can view results
     if (now > end) {
         return { type: "results", label: "View Results", link: `/rower/events/${event.id}/results` };
     }
 
-    if (closing && now > closing && now < start) {
-        return { type: "disabled", label: "Reg Closed" };
-    }
-
-    if (now < start) {
-        if (!isRower) return { type: "login", label: "Login to Enter", link: "/auth" };
-        return { type: "signup", label: "Enter Race", link: `/rower/events/${event.id}/signup` };
-    }
-
+    // Event running — everyone sees results
     if (now >= start && now <= end) {
         return { type: "results", label: "View Results", link: `/rower/events/${event.id}/results` };
+    }
+
+    // Upcoming event
+    if (now < start) {
+        if (isRower) {
+            if (closing && now > closing) {
+                return { type: "disabled", label: "Reg Closed" };
+            }
+            return { type: "signup", label: "Enter Race", link: `/rower/events/${event.id}/signup` };
+        }
+
+        if (!isRower) {
+            return { type: "view", label: "View Start List", link: `/events/${event.id}/view` };
+        }
+
+        // Logged out or no relevant role
+        return { type: "login", label: "Login to Enter", link: "/auth" };
     }
 
     return { type: "none", label: "Unavailable" };
@@ -60,10 +74,6 @@ export default function RowerEventListPage() {
 
     const [mode, setMode] = useState<Mode>("upcoming");
     const [page, setPage] = useState(1);
-
-    const { user } = useAuth();
-    const { hasRole } = useRoles();
-    const isRower = !!user && hasRole("rower");
 
     /* -------- fetch events -------- */
     useEffect(() => {
@@ -181,7 +191,7 @@ export default function RowerEventListPage() {
                             {/* event list */}
                             <div className="events-list">
                                 {pageItems.map((e) => {
-                                    const action = getEventAction(e, isRower);
+                                    const action = getEventAction(e);
                                     return (
                                         <div key={e.id} className="event-card">
                                             <div className="event-grid">
@@ -204,7 +214,8 @@ export default function RowerEventListPage() {
                                                 </div>
 
                                                 <div className="event-action">
-                                                    {action.type === "signup" || action.type === "results" || action.type === "login" ? (
+                                                    {action.type === "signup" || action.type === "results"
+                                                    || action.type === "login" || action.type === "view" ? (
                                                         <Link to={action.link!}>
                                                             <button className="enter-race-btn">{action.label}</button>
                                                         </Link>

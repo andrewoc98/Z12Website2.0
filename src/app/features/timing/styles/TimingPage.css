@@ -152,3 +152,46 @@
     padding: 0;
     transition: color 0.15s ease;
 }
+
+.sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: flex-end;
+    z-index: 9999;
+}
+
+.sheet {
+    width: 100%;
+    background: var(--surface);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    padding: 12px;
+}
+
+.sheet-title {
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--muted);
+}
+
+.sheet-action {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 8px;
+    border: none;
+    border-radius: 10px;
+    background: var(--surface-2);
+    font-weight: 600;
+}
+
+.sheet-cancel {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #2a2a2a;
+    color: white;
+    font-weight: 600;
+}

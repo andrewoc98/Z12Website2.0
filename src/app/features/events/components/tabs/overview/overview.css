@@ -286,3 +286,109 @@
 
     .pagination { flex-wrap: wrap; }
 }
+
+
+/* =========================================
+   DANGER ZONE
+========================================= */
+
+.danger-card {
+    border: 1px solid #5a1a1a;
+    background: #1b1212;
+}
+
+.danger-card .card-header h3 {
+    color: #ff6b6b;
+}
+
+.danger-text {
+    font-size: 14px;
+    color: #c9c9c9;
+    margin-bottom: 14px;
+    line-height: 1.4;
+}
+
+.danger-delete-btn {
+    background: #b3261e;
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.danger-delete-btn:hover {
+    background: #d32f2f;
+    transform: translateY(-1px);
+}
+
+/* Modal */
+.danger-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.danger-modal {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    padding: 20px;
+    border-radius: 10px;
+    width: min(420px, 90%);
+    color: #e0e0e0;
+}
+
+.danger-modal h4 {
+    margin-bottom: 10px;
+    color: #ff6b6b;
+}
+
+.danger-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.btn-cancel {
+    background: #2a2a2a;
+    color: #e0e0e0;
+    border: 1px solid #444;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-cancel:hover {
+    background: #3a3a3a;
+}
+
+.btn-delete {
+    background: #b3261e;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-delete:hover {
+    background: #d32f2f;
+}
+
+.danger-confirm-input {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: #2a2a2a;
+    color: #fff;
+}
