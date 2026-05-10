@@ -7,12 +7,12 @@ import {
     signOut,
 } from "firebase/auth";
 import {
-    auth,
+    auth, checkPendingUserExists,
     createPendingUser,
     getUserProfile,
     sendParentConsentEmail, sendVerificationEmail,
 } from "../../../shared/lib/firebase";
-import {addAdminRole, fetchAdminInvite, markAdminInviteUsed, upsertUserProfile} from "../api/users";
+import {fetchAdminInvite, upsertUserProfile} from "../api/users";
 import { isMinor, signInEmail } from "../api/auth";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../../shared/lib/firebase";
@@ -362,7 +362,9 @@ function AdminInviteFlow({
     const [regMobileValid, setRegMobileValid] = useState(false);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
- 
+
+    const assignAdminRoleSecure = httpsCallable(functions, "assignAdminRole");
+
     // ── Step 1: check if email already has an account ─────────────────────────
     async function onCheckEmail() {
         const cleanEmail = adminEmail.trim().toLowerCase();
@@ -394,30 +396,28 @@ function AdminInviteFlow({
         try {
             const cleanEmail = adminEmail.trim().toLowerCase();
             const cred = await signInEmail(cleanEmail, password);
- 
+
             // Check if the existing profile has a mobile number
             const profile = await getUserProfile(cred.user.uid);
             const hasMobile = !!(profile?.mobile?.replace(/\s/g, "").length >= 7);
- 
+
             if (!hasMobile) {
-                // Keep them signed in and collect mobile before finishing
                 setSignedInUid(cred.user.uid);
                 setAdminStep("add-mobile");
                 return;
             }
- 
-            // Mobile already on file — finish the role assignment now
-            await addAdminRole(cred.user.uid, invite.hostId, invite.id);
-            await markAdminInviteUsed(invite.id);
+
+            // Delegate entirely to the secure backend
+            await assignAdminRoleSecure({ inviteId: invite.id });
             onSuccess();
         } catch (e: any) {
-            setErr(friendlyError(e?.message ?? "Sign-in failed."));
+            setErr(friendlyError(e?.message ?? "Sign-in or invite assignment failed."));
         } finally {
             setBusy(false);
         }
     }
- 
-    // ── Step 2a-extra: save mobile then finish role assignment ────────────────
+
+// ── Step 2a-extra: save mobile then finish role assignment ────────────────
     async function onSaveMobileAndFinish() {
         if (!signedInUid || !mobileValid) return;
         setErr(null);
@@ -427,19 +427,21 @@ function AdminInviteFlow({
                 mobile: mobileValue.trim(),
                 updatedAt: new Date().toISOString(),
             });
-            await addAdminRole(signedInUid, invite.hostId, invite.id);
-            await markAdminInviteUsed(invite.id);
+
+            // Delegate entirely to the secure backend
+            await assignAdminRoleSecure({ inviteId: invite.id });
             onSuccess();
         } catch (e: any) {
-            setErr(friendlyError(e?.message ?? "Could not save mobile number."));
+            setErr(friendlyError(e?.message ?? "Could not save mobile or process invite."));
         } finally {
             setBusy(false);
         }
     }
- 
-    // ── Step 2b: new account — register with mobile, then add role ────────────
+
     async function onRegisterAndAddRole() {
         setErr(null);
+
+        // 1. Client-side Validations
         if (newPassword !== confirmPassword) {
             setErr("Passwords do not match.");
             return;
@@ -452,29 +454,27 @@ function AdminInviteFlow({
             setErr("Please enter a valid mobile number.");
             return;
         }
+
         setBusy(true);
         try {
             const cleanEmail = adminEmail.trim().toLowerCase();
             const name = normalizeFullName(fullName);
             const now = new Date().toISOString();
- 
+
+            // 2. Create the Firebase Auth Account
             const cred = await createUserWithEmailAndPassword(auth, cleanEmail, newPassword);
+
+
             await updateProfile(cred.user, { displayName: name });
-            await sendVerificationEmail(cleanEmail);
- 
+            await sendVerificationEmail(cleanEmail); // Note: Pass the user object if required by your helper
+
             await upsertUserProfile(cred.user.uid, {
                 uid: cred.user.uid,
                 email: cred.user.email ?? cleanEmail,
                 fullName: name,
                 displayName: name,
                 mobile: regMobileValue.trim(),
-                primaryRole: "admin",
-                roles: {
-                    admin: {
-                        hostIds: [invite.hostId],
-                        inviteId: invite.id,
-                    },
-                },
+                primaryRole: "admin", // This is a UI hint, not a security permission
                 status: { isActive: true, isVerified: false },
                 consent: {
                     termsAcceptedAt: now,
@@ -486,11 +486,13 @@ function AdminInviteFlow({
                 createdAt: now,
                 updatedAt: now,
             });
- 
-            await markAdminInviteUsed(invite.id);
+
+            await assignAdminRoleSecure({ inviteId: invite.id });
             await signOut(auth);
             onSuccess();
+
         } catch (e: any) {
+
             setErr(friendlyError(e?.message ?? "Registration failed."));
         } finally {
             setBusy(false);
@@ -909,11 +911,19 @@ export default function AuthPage() {
             const cleanEmail = email.trim().toLowerCase();
             const name = normalizeFullName(fullName);
 
+            const pendingExists = await checkPendingUserExists(cleanEmail);
+            if (pendingExists) {
+                setErr(
+                    "A consent request for this email is already pending. " +
+                    "Please ask your parent or guardian to check their inbox (including spam)."
+                );
+                return;
+            }
+
             const rowerMinor =
                 selectedRoles.includes("rower") &&
                 isMinor(roleDetails.rower!.dateOfBirth);
 
-            // Minor rower → pending consent flow
             if (rowerMinor) {
                 const r = roleDetails.rower!;
                 const pendingId = await createPendingUser({
@@ -922,7 +932,7 @@ export default function AuthPage() {
                     dateOfBirth: r.dateOfBirth,
                     parentEmail: r.parentEmail,
                     club: r.club,
-                    gender: r.gender
+                    gender: r.gender,
                 });
                 await sendParentConsentEmail(r.parentEmail, pendingId, name);
                 setSuccessType("parent");

@@ -1,4 +1,4 @@
-import {addDoc, collection, doc, getDoc, serverTimestamp, setDoc, updateDoc} from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, serverTimestamp, setDoc} from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import type {AdminInvite, UserProfile} from "../types";
 
@@ -69,20 +69,6 @@ export async function createGuardianProfile(uid: string, profile: Partial<UserPr
     );
 }
 
-export async function addAdminRole(uid: string, hostId: string, inviteId: string) {
-    const now = new Date().toISOString();
-    const userRef = doc(db, "users", uid);
-    const userSnap = await getDoc(userRef);
-    const currentHostIds = userSnap.data()?.roles?.admin?.hostIds ?? [];
-    const updatedHostIds = Array.from(new Set([...currentHostIds, hostId]));
-    
-    await updateDoc(userRef, {
-        "roles.admin.hostIds": updatedHostIds,
-        inviteId,
-        updatedAt: now,
-    });
-}
-
 export async function createAdminInvite(hostId: string, email: string) {
     const ref = await addDoc(collection(db, "adminInvites"), {
         email: email.trim().toLowerCase(),
@@ -108,9 +94,3 @@ export async function fetchAdminInvite(
     };
 }
 
-export async function markAdminInviteUsed(inviteId: string) {
-    await updateDoc(doc(db, "adminInvites", inviteId), {
-        used: true,
-        usedAt: serverTimestamp(),
-    });
-}

@@ -4,6 +4,7 @@ import type { BoatTimingDoc } from "../types";
 import {markBoatDNS, startBoatTiming} from "../api/timing";
 import {StartBoatItem} from "./StartBoatItem.tsx";
 import RaceActionSheet, {type BoatAction} from "../RaceActionSheet.tsx";
+import {useUserProfiles} from "../useUserProfiles.ts";
 
 interface StartTabProps {
     eventId: string;
@@ -16,6 +17,7 @@ export default function StartTab({ eventId, boats }: StartTabProps) {
 const categories = useMemo(() => {
     const registeredBoats = boats.filter(b => b.status === "registered");
     const grouped = groupBoatsByCategory(registeredBoats);
+
     return Object.entries(grouped)
         .map(([catId, catBoats]) => ({
             id: catId,
@@ -66,6 +68,14 @@ const categories = useMemo(() => {
         }
     };
 
+    const allUids = useMemo(() => {
+        const uids = new Set<string>();
+        boats.forEach((boat) => boat.rowerUids.forEach((uid: string) => uids.add(uid)));
+        return Array.from(uids);
+    }, [boats]);
+
+    const { profiles } = useUserProfiles(allUids);
+
     return (
         <div className="start-tab">
             {categories.map((category) => (
@@ -74,6 +84,7 @@ const categories = useMemo(() => {
                     <div className="boats-list">
                         {category.boats.map((boat) => (
                             <StartBoatItem
+                                profiles={profiles}
                                 key={boat.id}
                                 boat={boat}
                                 onLongPress={setSheetBoat}

@@ -1,6 +1,10 @@
 import * as admin from "firebase-admin";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";  // ← add this
+import * as crypto from "crypto";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { https, logger } from "firebase-functions/v2";
+import { activateAccountTemplate } from "./emailTemplates";
+import {APP_URL} from "./index";
+import {buildEmail, getEmailClient} from "./emailService";
 
 const db = getFirestore();
 const adminAuth = admin.auth();
@@ -16,10 +20,6 @@ interface ConsentOptions {
 interface ApproveAndCreateRequest {
     pendingUserId: string;
     consent: ConsentOptions;
-}
-
-function randomPassword(len = 12): string {
-    return Math.random().toString(36).slice(-len);
 }
 
 export const approveAndCreate = https.onCall(
@@ -75,13 +75,13 @@ export const approveAndCreate = https.onCall(
             },
             { merge: true }
         );
-
         let childUid: string;
+        let accountWasNew = true;
 
         try {
             const userRecord = await adminAuth.createUser({
                 email: pendingData.email,
-                password: randomPassword(),
+                password: crypto.randomBytes(32).toString("hex"), // never persisted
                 displayName: pendingData.fullName,
                 emailVerified: false,
             });
@@ -89,10 +89,10 @@ export const approveAndCreate = https.onCall(
             logger.info(`Created child auth account: ${childUid} (${pendingData.email})`);
         } catch (err: any) {
             if (err.code === "auth/email-already-exists") {
-                // If the auth account already exists but the user doc doesn't,
-                // retrieve the uid and continue — this handles partial failures.
+                // Partial failure recovery — auth account exists but doc may not.
                 const existing = await adminAuth.getUserByEmail(pendingData.email);
                 childUid = existing.uid;
+                accountWasNew = false;
                 logger.warn(`Child auth account already existed: ${childUid}`);
             } else {
                 logger.error("Failed to create child auth account", err);
@@ -100,51 +100,87 @@ export const approveAndCreate = https.onCall(
             }
         }
 
-        // ── Send email verification ───────────────────────────────────────────
-        // Generate a verification link and send via Firebase Auth email.
+        // ── Send activation email (password reset link repurposed) ────────────
+        // generatePasswordResetLink creates a one-time link that lets the child
+        // set their own password. We brand it as "Activate your account".
+        // The random password above is immediately made irrelevant once they do this.
         try {
-            const verificationLink = await adminAuth.generateEmailVerificationLink(
-                pendingData.email
+            const rawResetLink = await adminAuth.generatePasswordResetLink(
+                pendingData.email,
+                { url: `${APP_URL}/auth` } // redirect destination after password is set
             );
-            // If you have a custom email provider (SendGrid etc.) call it here.
-            // For now Firebase will send the default verification email automatically
-            // when generateEmailVerificationLink is called.
-            logger.info(`Verification link generated for ${pendingData.email}: ${verificationLink}`);
+
+            // Extract oobCode and build the branded URL, consistent with
+            // how sendPasswordResetEmail already works in your codebase.
+            const oobCode = new URL(rawResetLink).searchParams.get("oobCode");
+            const activationLink = `${APP_URL}/reset-password?oobCode=${oobCode}`;
+
+            const client = getEmailClient();
+            await client.transactionalEmails.sendTransacEmail(
+                buildEmail(
+                    pendingData.email,
+                    "Activate your Z12 Challenge account",
+                    activateAccountTemplate(pendingData.fullName, activationLink)
+                )
+            );
+
+            logger.info(`Activation email sent to ${pendingData.email}`);
         } catch (err) {
-            // Non-fatal — account is still created
-            logger.warn("Could not send verification email", err);
+            // Non-fatal — account exists, child can use "forgot password" as fallback.
+            // Log clearly so it can be caught in monitoring.
+            logger.error(`Failed to send activation email to ${pendingData.email}`, err);
         }
 
         // ── Create child Firestore user doc ───────────────────────────────────
-        await db.collection("users").doc(childUid).set({
-            uid: childUid,
-            email: pendingData.email,
-            fullName: pendingData.fullName,
-            displayName: pendingData.fullName,
-            primaryRole: "rower",
-            roles: {
-                rower: {
-                    club: pendingData.club,
+        // Use set with merge:false only if the account was freshly created,
+        // to avoid overwriting a doc that already exists from a partial run.
+        const childDocRef = db.collection("users").doc(childUid);
+        const childDocSnap = await childDocRef.get();
+
+        if (!childDocSnap.exists) {
+            await childDocRef.set({
+                uid: childUid,
+                email: pendingData.email,
+                fullName: pendingData.fullName,
+                displayName: pendingData.fullName,
+                gender: pendingData.gender ?? "unknown",
+                primaryRole: "rower",
+                roles: {
+                    rower: {
+                        club: pendingData.club ?? "",
+                    },
                 },
-            },
-            dateOfBirth: pendingData.dateOfBirth,
-            birthYear: Number(pendingData.dateOfBirth?.slice(0, 4) ?? 0),
-            consent: {
-                termsAccepted: consent.termsAccepted,
-                privacyAccepted: consent.privacyAccepted,
-                performanceTrackingAccepted: consent.performanceTrackingAccepted ?? false,
-                dataSharingAccepted: consent.dataSharingAccepted ?? false,
-                givenBy: "parent",
-                givenByUid: guardianUid,
-                approvedAt: now,
-            },
-            status: { isActive: true, isVerified: false },
-            createdAt: now,
-            updatedAt: now,
-        });
+                dateOfBirth: pendingData.dateOfBirth,
+                birthYear: Number(pendingData.dateOfBirth?.slice(0, 4) ?? 0),
+                isMinor: true,
+                permissions: {
+                    shareWithCoaches: false,
+                    shareWithUniversities: false,
+                    shareWithFederations: false,
+                },
+                consent: {
+                    termsAccepted: consent.termsAccepted,
+                    privacyAccepted: consent.privacyAccepted,
+                    performanceTrackingAccepted: consent.performanceTrackingAccepted ?? false,
+                    dataSharingAccepted: consent.dataSharingAccepted ?? false,
+                    givenBy: "parent",
+                    givenByUid: guardianUid,
+                    approvedAt: now,
+                    updatedAt: now,
+                },
+                status: {
+                    isActive: true,
+                    isVerified: false,
+                    requiresParentalConsent: false, // consent is now satisfied
+                },
+                createdAt: now,
+                updatedAt: now,
+            });
+        } else {
+            logger.warn(`Child user doc already existed for ${childUid} — skipping write.`);
+        }
 
         // ── Append child to guardian's linkedChildren ─────────────────────────
-        // arrayUnion is idempotent — safe if this runs more than once.
         await db.collection("users").doc(guardianUid).update({
             "roles.guardian.linkedChildren": FieldValue.arrayUnion({
                 childUid,

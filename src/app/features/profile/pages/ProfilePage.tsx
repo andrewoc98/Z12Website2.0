@@ -9,7 +9,6 @@ import ProfileDetails from "../components/ProfileDetails.tsx";
 import "../style/profile.css";
 import { PerformanceStats } from "../components/PreformanceStats.tsx";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
-import AdminHostInvite from "../../auth/pages/AdminHostInvite.tsx";
 import DangerZone from "../components/DangerZone.tsx";
 
 export default function ProfilePageElite() {
@@ -42,8 +41,6 @@ export default function ProfilePageElite() {
                         <PerformanceStats />
                     </>
                 )}
-
-                {roles.host && <AdminHostInvite />}
 
                 {/* ProfileDetails handles both coach athletes + rower coaches */}
                 <ProfileDetails />

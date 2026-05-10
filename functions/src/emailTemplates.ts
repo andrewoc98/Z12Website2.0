@@ -311,3 +311,129 @@ export function adminInviteTemplate(inviteLink: string): string {
   </body>
 </html>`;
 }
+
+export function activateAccountTemplate(childName: string, activationLink: string): string {
+    return `
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activate Your Account</title>
+  </head>
+  <body style="margin:0; padding:0; background:#1e1e22; font-family:Inter, system-ui, -apple-system, sans-serif;" bgcolor="#1e1e22">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#1e1e22; padding:20px 0;" bgcolor="#1e1e22">
+      <tr>
+        <td align="center">
+          <table width="100%" style="max-width:520px; background:#26262b; border-radius:16px; border:1px solid rgba(255,255,255,0.08); box-shadow:0 6px 16px rgba(0,0,0,0.35);" bgcolor="#26262b">
+            <tr>
+              <td style="padding:24px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+
+                  <!-- Logo -->
+                  <tr>
+                    <td style="text-align:center; padding-bottom:10px;">
+                      <h1 style="margin:0; letter-spacing:1px; color:#FEB959;">Z12 CHALLENGE</h1>
+                    </td>
+                  </tr>
+
+                  <!-- Heading -->
+                  <tr>
+                    <td style="text-align:center; padding:10px 0;">
+                      <h2 style="margin:0; color:#f3f4f6; font-size:22px;">You're In, ${childName}! 🎉</h2>
+                    </td>
+                  </tr>
+
+                  <!-- Intro -->
+                  <tr>
+                    <td style="text-align:center; padding:10px 0;">
+                      <p style="color:rgba(255,255,255,0.65); font-size:14px; line-height:1.6; margin:0;">
+                        Your parent or guardian has approved your Z12 Challenge account —
+                        you're one step away from getting started.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Why they need to set a password -->
+                  <tr>
+                    <td style="padding:16px 0 8px;">
+                      <table width="100%" cellpadding="0" cellspacing="0"
+                             style="background:rgba(254,185,89,0.08); border:1px solid rgba(254,185,89,0.2); border-radius:10px;">
+                        <tr>
+                          <td style="padding:16px 18px;">
+                            <p style="margin:0 0 6px; color:#FEB959; font-size:13px; font-weight:600; letter-spacing:0.4px;">
+                              WHY DO I NEED TO SET A PASSWORD?
+                            </p>
+                            <p style="margin:0; color:rgba(255,255,255,0.6); font-size:13px; line-height:1.6;">
+                              To keep your account secure, we never store the password you entered
+                              during sign-up. Your parent approved your account on our server, so
+                              you just need to choose a password now to unlock it. This only takes
+                              a few seconds.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- CTA -->
+                  <tr>
+                    <td align="center" style="padding:24px 0 16px;">
+                      <a href="${activationLink}"
+                         style="display:inline-block; background:#FEB959; color:#141414; text-decoration:none;
+                                padding:12px 28px; border-radius:999px; text-transform:uppercase;
+                                letter-spacing:1px; font-size:14px; font-weight:600;">
+                        Set My Password
+                      </a>
+                    </td>
+                  </tr>
+
+                  <!-- Expiry warning -->
+                  <tr>
+                    <td style="text-align:center;">
+                      <p style="color:#ff4d6d; font-size:12px; margin:0 0 16px;">
+                        This link expires in 1 hour. If it expires, use "Forgot password" on the sign-in page.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>
+                      <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:4px 0 20px;" />
+                    </td>
+                  </tr>
+
+                  <!-- Fallback link -->
+                  <tr>
+                    <td style="text-align:center;">
+                      <p style="color:rgba(255,255,255,0.65); font-size:12px; line-height:1.5;">
+                        If the button doesn't work, copy and paste this link into your browser:
+                      </p>
+                      <p style="word-break:break-all; font-size:12px;">
+                        <a href="${activationLink}" style="color:#ffd400;">${activationLink}</a>
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="text-align:center; padding-top:20px;">
+                      <p style="color:rgba(255,255,255,0.5); font-size:11px;">
+                        If you didn't sign up for Z12 Challenge, you can safely ignore this email.
+                      </p>
+                      <p style="color:rgba(255,255,255,0.4); font-size:11px; margin-top:10px;">
+                        Z12 Challenge Inc.<br />&copy; 2026 All rights reserved.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}

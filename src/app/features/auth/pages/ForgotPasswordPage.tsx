@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import {sendPasswordResetEmail} from "../../../shared/lib/firebase.ts";
-
+import "../styles/forgotPassword.css"
 function friendlyError(message: string) {
     const m = (message || "").toLowerCase();
 

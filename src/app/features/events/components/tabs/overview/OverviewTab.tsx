@@ -6,6 +6,7 @@ import {assignBowNumbersForEvent} from "../../../../signup/api/boats.ts";
 import {useState} from "react";
 import DangerZoneCard from "./DangerZoneCard.tsx";
 import {deleteEvent} from "../../../../../shared/lib/firebase.ts";
+import HostAdminInvite from "../../../../auth/pages/AdminHostInvite.tsx";
 
 export default function OverviewTab({ event, boats = [] }: any) {
     const [busy, setBusy] = useState(false);
@@ -53,6 +54,7 @@ export default function OverviewTab({ event, boats = [] }: any) {
                 boats={boats}
                 categories={event.categories}
             />
+            <HostAdminInvite/>
             <DangerZoneCard
                 event={event}
                 onDelete={deleteEventHandler}
