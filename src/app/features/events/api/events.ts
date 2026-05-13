@@ -12,7 +12,7 @@ import {
     query,
     serverTimestamp,
     Timestamp,
-    updateDoc, where,
+    updateDoc, where, writeBatch,
 } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import {mapEvent} from "../lib/mapper.tsx";
@@ -111,6 +111,38 @@ export async function createEvent(input: CreateEventInput): Promise<string> {
     });
 
     return ref.id;
+}
+
+export async function updateEventCategories(
+    eventId: string,
+    newCategories: EventCategory[],
+    removedIds: string[]
+) {
+    const batch = writeBatch(db);
+    const eventRef = doc(db, "events", eventId);
+
+    // 1. Update the event document with the new category list
+    batch.update(eventRef, {
+        categories: newCategories,
+        updatedAt: serverTimestamp(),
+    });
+
+    // 2. If categories were removed, find and delete the associated boats
+    if (removedIds.length > 0) {
+        const boatsRef = collection(db, "boats");
+        const q = query(
+            boatsRef,
+            where("eventId", "==", eventId),
+            where("categoryId", "in", removedIds)
+        );
+
+        const snapshot = await getDocs(q);
+        snapshot.forEach((boatDoc) => {
+            batch.delete(boatDoc.ref);
+        });
+    }
+
+    await batch.commit();
 }
 
 export async function listEvents(): Promise<EventWithId[]> {

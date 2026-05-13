@@ -1,5 +1,5 @@
 // src/router.tsx
-import { createBrowserRouter, Outlet } from "react-router-dom";
+import {createBrowserRouter, Outlet, useLocation} from "react-router-dom";
 import HomePage from "./features/home/pages/HomePage";
 import RequireRole from "./guards/RequireRole";
 import EventCreatePage from "./features/events/pages/EventCreatePage";
@@ -25,10 +25,40 @@ import TimingPage from "./features/timing/pages/TimingPage.tsx";
 import TimingEventSelectPage from "./features/timing/pages/TimingEventSelectPage.tsx";
 import RequireMaintenance from "./guards/RequireMaintenance.tsx";
 import EventPageView from "./features/signup/pages/EventPageView.tsx";
+import ProfileCompletionModal from "./features/home/components/ProfileCompletionModal.tsx";
+import {useMemo} from "react";
+import {useAuth} from "./providers/AuthProvider.tsx";
+
+const EXCLUDED_PATHS = [
+    "/auth",
+    "/parent-consent",
+    "/forgot-password",
+    "/reset-password",
+    "/terms",
+    "/privacy",
+];
 
 function RootLayout() {
+    const { user, profile } = useAuth() as any;
+    const { pathname } = useLocation();
+    const p = profile ?? null;
+
+    const missingFields = useMemo(() => {
+        if (!user || !p || !p.roles?.rower) return [];
+        const missing: string[] = [];
+        if (!p.gender || p.gender === "unknown") missing.push("gender");
+        if (!p.dateOfBirth) missing.push("dateOfBirth");
+        if (!(p.roles?.rower?.club ?? "").trim()) missing.push("club");
+        return missing;
+    }, [user, p]);
+
+    const showModal =
+        missingFields.length > 0 &&
+        !EXCLUDED_PATHS.some((path) => pathname.startsWith(path));
+
     return (
         <RequireMaintenance>
+            {showModal && <ProfileCompletionModal missingFields={missingFields} />}
             <Outlet />
         </RequireMaintenance>
     );

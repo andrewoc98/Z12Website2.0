@@ -24,7 +24,7 @@ const firebaseConfig = {
 };
 
 const useEmulators = import.meta.env.VITE_USE_EMULATORS === "true";
-const functionsPort = Number(import.meta.env.VITE_FUNCTIONS_EMULATOR_PORT || "5003");
+const functionsPort = Number(import.meta.env.VITE_FUNCTIONS_EMULATOR_PORT || "5001");
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
