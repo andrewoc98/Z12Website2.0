@@ -2,7 +2,8 @@ import { useMemo, useState, useEffect, useRef } from "react";
 
 import "./categories.css";
 import type {Gender} from "../../../../auth/types.ts";
-import {categoryKey, DIVISIONS, GENDERS} from "../../../lib/categories.ts";
+import {type BoatClass, categoryKey, DIVISIONS, GENDERS} from "../../../lib/categories.ts";
+import type {Gender as GENDER_ID} from "../../../lib/categories.ts";
 
 /* ─── types ───────────────────────────────────────────── */
 
@@ -29,7 +30,7 @@ function parseCategory(cat: any) {
 type ParsedCat = ReturnType<typeof parseCategory>;
 
 /** Synthetic category object built from DIVISIONS/GENDERS constants. */
-function makeSyntheticCat(gender: Gender, division: string, boatClass: string): ParsedCat {
+function makeSyntheticCat(gender: GENDER_ID, division: string, boatClass: BoatClass): ParsedCat {
     return {
         id:       categoryKey(gender, division as any, boatClass),
         name:     `${gender} • ${division} • ${boatClass}`,
@@ -57,9 +58,9 @@ const GROUP_ORDER = ["Senior", "Junior", "U19", "U21", "U23", "Masters", "Para",
 function buildFullUniverse(): ParsedCat[] {
     const all: ParsedCat[] = [];
     for (const d of DIVISIONS as any[]) {
-        const allowedGenders: Gender[] = d.genders ?? (["Men", "Women"] as Gender[]);
+        const allowedGenders: GENDER_ID[] = d.genders ?? (["Men", "Women"] as GENDER_ID[]);
         for (const gender of allowedGenders) {
-            for (const bc of d.boatClasses as string[]) {
+            for (const bc of d.boatClasses as BoatClass[]) {
                 all.push(makeSyntheticCat(gender, String(d.division), bc));
             }
         }
