@@ -7,11 +7,10 @@ import {
 import {
     getFirestore,
     connectFirestoreEmulator,
-    setDoc,
     doc,
     getDoc,
     writeBatch,
-    collection, getDocs, query, where, deleteDoc
+    collection, getDocs
 } from "firebase/firestore";
 import type {ConsentOptions, PendingUser} from "../../features/auth/types.ts";
 const firebaseConfig = {
