@@ -8,7 +8,6 @@ import {
     doc,
     getDoc,
     serverTimestamp,
-    setDoc,
     updateDoc,
     deleteField,
     deleteDoc
@@ -121,14 +120,6 @@ export function formatTime(seconds: number) {
         const s = (seconds % 60).toFixed(1).padStart(4, "0"); // ensures "05.0" format
         return `${m}:${s}`;
     }
-}
-
-export async function upsertUserProfile(uid: string, profile: Partial<UserProfile>) {
-    return setDoc(
-        doc(db, "users", uid),
-        { ...profile, updatedAt: serverTimestamp() },
-        { merge: true }
-    );
 }
 
 export async function removeUserRole(uid: string, role: keyof UserProfile["roles"]) {

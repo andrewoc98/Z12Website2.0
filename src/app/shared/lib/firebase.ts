@@ -40,52 +40,6 @@ if (useEmulators) {
     console.log("🚀 Using production Firebase");
 }
 
-export async function createPendingUser(data: {
-    email: string;
-    fullName: string;
-    dateOfBirth: string;
-    parentEmail: string;
-    club?: string;
-    gender: string;
-    // no password field
-}) {
-    const now = new Date().toISOString();
-    const cleanEmail = data.email.trim().toLowerCase();
-
-    // Delete any stale pending docs for this email before creating a fresh one
-    const existing = await getDocs(
-        query(
-            collection(db, "pendingUsers"),
-            where("email", "==", cleanEmail),
-            where("status", "==", "awaiting_parent_consent")
-        )
-    );
-    await Promise.all(existing.docs.map((d) => deleteDoc(d.ref)));
-
-    const id = crypto.randomUUID();
-    await setDoc(doc(db, "pendingUsers", id), {
-        id,
-        ...data,
-        email: cleanEmail,
-        status: "awaiting_parent_consent",
-        createdAt: now,
-        updatedAt: now,
-    });
-
-    return id;
-}
-
-export async function checkPendingUserExists(email: string): Promise<boolean> {
-    const snap = await getDocs(
-        query(
-            collection(db, "pendingUsers"),
-            where("email", "==", email.trim().toLowerCase()),
-            where("status", "==", "awaiting_parent_consent")
-        )
-    );
-    return !snap.empty;
-}
-
 export async function getUserProfile(uid: string) {
     const ref = doc(db, "users", uid);
     const snap = await getDoc(ref);
@@ -174,4 +128,23 @@ export async function deleteEvent(eventId: string) {
     await batch.commit();
 
     return true;
+}
+
+export async function createPendingUser(data: {
+    email: string;
+    fullName: string;
+    dateOfBirth: string;
+    parentEmail: string;
+    club: string;
+    gender: string;
+}): Promise<string> {
+    const fn = httpsCallable<typeof data, { id: string }>(functions, "createPendingUser");
+    const result = await fn(data);
+    return result.data.id;
+}
+
+export async function checkPendingUserExists(email: string): Promise<boolean> {
+    const fn = httpsCallable<{ email: string }, { exists: boolean }>(functions, "checkPendingUserExists");
+    const result = await fn({ email });
+    return result.data.exists;
 }

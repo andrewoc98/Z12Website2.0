@@ -14,7 +14,7 @@ import {
     Timestamp,
     updateDoc, where, writeBatch,
 } from "firebase/firestore";
-import { db } from "../../../shared/lib/firebase";
+import { db, auth } from "../../../shared/lib/firebase";
 import {mapEvent} from "../lib/mapper.tsx";
 
 // --------------------
@@ -106,6 +106,7 @@ export async function createEvent(input: CreateEventInput): Promise<string> {
 
     const ref = await addDoc(collection(db, "events"), {
         ...input,
+        hostId: auth.currentUser!.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     });

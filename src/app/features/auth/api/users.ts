@@ -2,6 +2,20 @@ import {addDoc, collection, doc, getDoc, serverTimestamp, setDoc} from "firebase
 import { db } from "../../../shared/lib/firebase";
 import type {AdminInvite, UserProfile} from "../types";
 
+const PROTECTED_FIELDS = ["roles", "primaryRole", "role"] as const;
+
+function stripProtectedFields<T extends Record<string, any>>(obj: T): T {
+    const out = { ...obj };
+    for (const field of PROTECTED_FIELDS) {
+        delete (out as any)[field];
+    }
+    // Also strip undefined values — Firestore rejects them
+    for (const [k, v] of Object.entries(out)) {
+        if (v === undefined) delete (out as any)[k];
+    }
+    return out;
+}
+
 // Remove empty-string keys so we don't overwrite good values with "".
 function stripEmptyStrings<T extends Record<string, any>>(obj: T): Partial<T> {
     const out: Record<string, any> = {};
@@ -20,51 +34,30 @@ function stripEmptyStrings<T extends Record<string, any>>(obj: T): Partial<T> {
 export async function ensureUserProfile(uid: string, base: Partial<UserProfile>) {
     const ref = doc(db, "users", uid);
     const snap = await getDoc(ref);
-
-    const safeBase = stripEmptyStrings(base as any);
+    const safe = stripProtectedFields(stripEmptyStrings(base as any));  // 🔒 added
 
     if (!snap.exists()) {
-        return setDoc(
-            ref,
-            {
-                ...safeBase,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-            },
-            { merge: true }
-        );
+        return setDoc(ref, { ...safe, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
     }
-
-    return setDoc(
-        ref,
-        {
-            ...safeBase,
-            updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-    );
+    return setDoc(ref, { ...safe, updatedAt: serverTimestamp() }, { merge: true });
 }
 
+
 export async function upsertUserProfile(uid: string, profile: Partial<UserProfile>) {
+    const safe = stripProtectedFields(profile);          // 🔒 added
     return setDoc(
         doc(db, "users", uid),
-        {
-            ...profile,
-            updatedAt: serverTimestamp(),
-        },
+        { ...safe, updatedAt: serverTimestamp() },
         { merge: true }
     );
 }
 
 export async function createGuardianProfile(uid: string, profile: Partial<UserProfile>) {
     const now = new Date().toISOString();
+    const safe = stripProtectedFields(profile);          // 🔒 added
     return setDoc(
         doc(db, "users", uid),
-        {
-            ...profile,
-            createdAt: now,
-            updatedAt: now,
-        },
+        { ...safe, createdAt: now, updatedAt: now },
         { merge: true }
     );
 }

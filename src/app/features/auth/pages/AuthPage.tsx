@@ -474,7 +474,6 @@ function AdminInviteFlow({
                 fullName: name,
                 displayName: name,
                 mobile: regMobileValue.trim(),
-                primaryRole: "admin", // This is a UI hint, not a security permission
                 status: { isActive: true, isVerified: false },
                 consent: {
                     termsAcceptedAt: now,
@@ -952,48 +951,43 @@ export default function AuthPage() {
 
             const now = new Date().toISOString();
 
-            const profileBase: any = {
+            await upsertUserProfile(cred.user.uid, {
                 uid: cred.user.uid,
                 email: cred.user.email ?? cleanEmail,
                 fullName: name,
                 displayName: name,
-                primaryRole: selectedRoles[0],
-                roles: {},
+                gender:      selectedRoles.includes("rower") ? roleDetails.rower!.gender : undefined,
+                dateOfBirth: selectedRoles.includes("rower") ? roleDetails.rower!.dateOfBirth : undefined,
+                birthYear:   selectedRoles.includes("rower") ? Number(roleDetails.rower!.dateOfBirth.slice(0, 4)) : undefined,
+                isMinor:     false,
+                consent: {
+                    termsAcceptedAt:              now,
+                    privacyAcceptedAt:            now,
+                    performanceTrackingAccepted:  acceptedPerformanceTracking,
+                    dataSharingAccepted:          acceptedDataSharing,
+                    givenBy:    "self",
+                    givenByUid: cred.user.uid,
+                    updatedAt:  now,
+                },
+                permissions: {
+                    shareWithCoaches:      false,
+                    shareWithUniversities: false,
+                    shareWithFederations:  false,
+                },
+                status: { isActive: true, isVerified: false },
                 createdAt: now,
-                updatedAt: now,
-            };
+            });
 
-            for (const role of selectedRoles) {
-                if (role === "rower") {
-                    const r = roleDetails.rower!;
-                    profileBase.roles.rower = { club: r.club.trim() };
-                    profileBase.gender = r.gender;
-                    profileBase.dateOfBirth = r.dateOfBirth;
-                    profileBase.birthYear = Number(r.dateOfBirth.slice(0, 4));
-                    profileBase.isMinor = false;
-                    profileBase.consent = {
-                        termsAcceptedAt: now,
-                        privacyAcceptedAt: now,
-                        performanceTrackingAccepted: acceptedPerformanceTracking,
-                        dataSharingAccepted: acceptedDataSharing,
-                        givenBy: "self",
-                        givenByUid: cred.user.uid,
-                        updatedAt: now,
-                    };
-                    profileBase.permissions = {
-                        shareWithCoaches: false,
-                        shareWithUniversities: false,
-                        shareWithFederations: false,
-                    };
-                    profileBase.status = { isActive: true, isVerified: false };
-                } else if (role === "coach") {
-                    profileBase.roles.coach = { club: roleDetails.coach!.club.trim() };
-                } else if (role === "host") {
-                    profileBase.roles.host = { location: roleDetails.host!.location.trim() };
-                }
-            }
+            const setupUserRoles = httpsCallable(functions, "setupUserRoles");
+            await setupUserRoles({
+                roles: selectedRoles,
+                roleDetails: {
+                    rower:  selectedRoles.includes("rower")  ? { club: roleDetails.rower!.club.trim() }          : undefined,
+                    coach:  selectedRoles.includes("coach")  ? { club: roleDetails.coach!.club.trim() }          : undefined,
+                    host:   selectedRoles.includes("host")   ? { location: roleDetails.host!.location.trim() }   : undefined,
+                },
+            });
 
-            await upsertUserProfile(cred.user.uid, profileBase);
             await signOut(auth);
             setSuccessType("email");
             setVerificationSent(true);
