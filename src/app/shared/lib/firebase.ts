@@ -147,3 +147,10 @@ export async function checkPendingUserExists(email: string): Promise<boolean> {
     const result = await fn({ email });
     return result.data.exists;
 }
+
+export async function createAdminInvite(hostId: string, email: string): Promise<string> {
+    const fn = httpsCallable <{ hostId: string; email: string }, { inviteId: string }>(functions, "createAdminInvite");
+
+    const result = await fn({ hostId, email });
+    return result.data.inviteId;
+}
