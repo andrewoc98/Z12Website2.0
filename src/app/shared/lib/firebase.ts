@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import {getFunctions, connectFunctionsEmulator, httpsCallable} from "firebase/functions";
 import {
     getAuth,
-    connectAuthEmulator,
+    connectAuthEmulator, signOut, signInAnonymously
 } from "firebase/auth";
 import {
     getFirestore,
@@ -49,19 +49,20 @@ export async function getUserProfile(uid: string) {
 }
 
 export async function sendParentConsentEmail(
-    parentEmail: string,
     pendingUserId: string,
-    childName: string
 ) {
-    const consentLink = `${window.location.origin}/parent-consent?token=${pendingUserId}`;
+    const auth = getAuth();
     const callSendEmail = httpsCallable(functions, 'sendParentConsentEmail');
 
+    // Sign in anonymously so the callable function has a valid auth context
+    await signInAnonymously(auth);
+
     try {
-        await callSendEmail({ parentEmail, consentLink, childName });
+        await callSendEmail({ pendingUserId }); // only send the ID — server fetches the rest
         console.log('Parent consent email sent');
-    } catch (err) {
-        console.error('Email failed:', err);
-        throw new Error('Failed to send parent consent email');
+    } finally {
+        // Always clean up the anonymous session afterward
+        await signOut(auth);
     }
 }
 

@@ -933,7 +933,7 @@ export default function AuthPage() {
                     club: r.club,
                     gender: r.gender,
                 });
-                await sendParentConsentEmail(r.parentEmail, pendingId, name);
+                await sendParentConsentEmail(pendingId);
                 setSuccessType("parent");
                 setVerificationSent(true);
                 return;
