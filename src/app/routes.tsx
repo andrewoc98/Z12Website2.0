@@ -13,8 +13,6 @@ import RequireTimingAccess from "./guards/RequireTimingAccess.tsx";
 import ProfilePage from "./features/profile/pages/ProfilePage.tsx";
 import InviteJoinPage from "./features/signup/pages/InviteJoinPage.tsx";
 import HostEventListPage from "./features/events/pages/HostEventListPage.tsx";
-import CommunityPage from "./features/community/pages/CommunityPage.tsx";
-import PublicProfilePage from "./features/community/pages/PublicProfilePage.tsx";
 import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage.tsx";
 import AboutPage from "./features/about/pages/AboutPage.tsx";
 import Terms from "./features/terms/Terms.tsx";
@@ -137,22 +135,6 @@ export const router = createBrowserRouter([
             { path: "/privacy", element: <Privacy /> },
             { path: "/reset-password", element: <ResetPasswordPage /> },
             {path: "/events/:eventId/view", element:<EventPageView/>},
-            {
-                path: "/community",
-                element: (
-                    <RequireAuth>
-                        <CommunityPage />
-                    </RequireAuth>
-                ),
-            },
-            {
-                path: "/community/:uid",
-                element: (
-                    <RequireAuth>
-                        <PublicProfilePage />
-                    </RequireAuth>
-                ),
-            },
             {
                 path: "/timing",
                 element: (

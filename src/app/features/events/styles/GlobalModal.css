@@ -2,15 +2,14 @@
     position: fixed;
     inset: 0;
     z-index: 9999;
-
     display: grid;
-    place-items: center; /* PERFECT CENTER */
+    place-items: center;
 }
 
 .modal-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.45);
+    background: rgba(0,0,0,0.55);
     backdrop-filter: blur(4px);
 }
 
@@ -20,11 +19,19 @@
     max-height: 80vh;
     overflow-y: auto;
 
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(14px);
-
-    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 24px;
 
-    box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+    box-shadow: var(--shadow);
+    color: var(--text);
+}
+
+/* Mobile: full-width with breathing room */
+@media (max-width: 480px) {
+    .modal-window {
+        width: calc(100% - 32px);
+        padding: 20px 16px;
+    }
 }

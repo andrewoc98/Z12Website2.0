@@ -1,7 +1,7 @@
 .legal-page {
     padding: 40px 20px;
-    background: #0e0e0e;
-    color: #fff;
+    background: var(--bg);
+    color: var(--text);
     min-height: 100vh;
 }
 
@@ -36,9 +36,14 @@
 .return-btn {
     padding: 12px 24px;
     border: none;
-    background: gold;
-    color: black;
+    background: var(--brand-warm);
+    color: var(--brand-ink);
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: bold;
+    transition: filter 0.15s ease;
+}
+
+.return-btn:hover {
+    filter: brightness(95%);
 }

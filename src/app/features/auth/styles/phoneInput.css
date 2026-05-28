@@ -36,7 +36,7 @@
 }
 
 .phone-dial-trigger:hover {
-    border-color: var(--accent, #FEB959);
+    border-color: var(--accent, var(--brand-warm));
 }
 
 .phone-dial-flag {
@@ -91,7 +91,7 @@
 
 .phone-dial-option.selected {
     background: rgba(254, 185, 89, 0.12);
-    color: var(--accent, #FEB959);
+    color: var(--accent, var(--brand-warm));
 }
 
 .phone-dial-option-label {

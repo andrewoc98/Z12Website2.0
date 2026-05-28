@@ -1,23 +1,20 @@
-/* =========================================
-   OVERVIEW CONTAINER
-========================================= */
+/* --- OVERVIEW CONTAINER --- */
 .overview-container {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    background-color: #121212;
-    color: #e0e0e0;
+    background-color: var(--bg);
+    color: var(--text);
 }
 
-/* =========================================
-   CARDS
-========================================= */
+/* --- CARDS --- */
 .card {
-    background: #1e1e1e;
+    background: var(--surface);
     padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-    color: #e0e0e0;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft);
+    color: var(--text);
 }
 
 .card-header {
@@ -35,13 +32,14 @@
 
 .event-grid textarea {
     min-height: 80px;
-    background: #2a2a2a;
-    border: 1px solid #555;
-    color: #e0e0e0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
     border-radius: 6px;
     padding: 8px;
 }
 
+/* --- STATS --- */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -49,28 +47,27 @@
 }
 
 .stat {
-    background: #1e1e1e;
+    background: var(--surface);
     padding: 14px;
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    border: 1px solid #333;
+    border: 1px solid var(--border);
 }
 
 .stat.alert {
-    background: #3a1a1a;
+    background: rgba(255, 107, 107, 0.08);
+    border-color: rgba(255, 107, 107, 0.25);
     color: #ff6b6b;
 }
 
 .stat-value {
     font-size: 22px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text);
 }
 
-/* =========================================
-   CATEGORY GRID & CARD
-========================================= */
+/* --- CATEGORY GRID & CARD --- */
 .category-grid,
 .category-list {
     display: grid;
@@ -79,26 +76,26 @@
 }
 
 .category-card {
-    background: #1f1f1f;
-    border-radius: 10px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
     padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    border: 1px solid #333;
+    border: 1px solid var(--border);
     height: 90px;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .category-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 3px 10px rgba(255, 185, 89, 0.3);
+    box-shadow: 0 3px 10px rgba(255, 185, 89, 0.2);
 }
 
 .category-name {
     font-weight: 600;
     font-size: 14px;
-    color: #fff;
+    color: var(--text);
 }
 
 .category-stats {
@@ -107,35 +104,33 @@
 }
 
 .category-stat {
-    background: #2a2a2a;
+    background: var(--surface-2);
     border-radius: 8px;
     padding: 6px 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-width: 70px;
-    color: #e0e0e0;
+    color: var(--text);
 }
 
 .category-stat.alert {
-    background: #3a1a1a;
+    background: rgba(255, 107, 107, 0.08);
     color: #ff6b6b;
 }
 
 .stat-number {
     font-size: 16px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text);
 }
 
 .stat-label {
     font-size: 11px;
-    color: #aaa;
+    color: var(--muted);
 }
 
-/* =========================================
-   CATEGORY FILTERS
-========================================= */
+/* --- CATEGORY FILTERS --- */
 .category-filters {
     display: flex;
     flex-wrap: wrap;
@@ -143,15 +138,16 @@
     margin-bottom: 16px;
     align-items: center;
 }
+
 .category-filters select,
 .category-filters input[type="text"] {
     height: 38px;
     padding: 0 12px;
     border-radius: 6px;
-    border: 1px solid #3a3a3a;
+    border: 1px solid var(--border);
     font-size: 14px;
-    background: #2a2a2a;
-    color: #e0e0e0;
+    background: var(--surface-2);
+    color: var(--text);
     box-sizing: border-box;
     outline: none;
     transition: border-color 0.15s ease;
@@ -169,7 +165,7 @@
 
 .category-filters select:focus,
 .category-filters input[type="text"]:focus {
-    border-color: #ffb959;
+    border-color: var(--brand-warm);
 }
 
 .hide-empty-label {
@@ -178,11 +174,11 @@
     gap: 7px;
     height: 38px;
     padding: 0 12px;
-    background: #2a2a2a;
-    border: 1px solid #3a3a3a;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 14px;
-    color: #aaa;
+    color: var(--muted);
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
@@ -192,8 +188,8 @@
 }
 
 .hide-empty-label:hover {
-    border-color: #ffb959;
-    color: #e0e0e0;
+    border-color: var(--brand-warm);
+    color: var(--text);
 }
 
 .hide-empty-label input[type="checkbox"] {
@@ -202,45 +198,23 @@
     min-width: 14px;
     flex-shrink: 0;
     cursor: pointer;
-    accent-color: #ffb959;
+    accent-color: var(--brand-warm);
 }
 
-.hide-empty-label input[type="checkbox"]:checked {
-    background: #ffb959;
-    border-color: #ffb959;
-}
-
-.hide-empty-label input[type="checkbox"]:checked::after {
-    content: "";
-    position: absolute;
-    left: 3px;
-    top: 0px;
-    width: 3px;
-    height: 7px;
-    border: 1.5px solid #121212;
-    border-top: none;
-    border-left: none;
-    transform: rotate(45deg);
-}
-
-/* =========================================
-   ROWS / TABLES
-========================================= */
+/* --- ROWS / TABLES --- */
 .row {
     display: grid;
     grid-template-columns: 1fr 80px 100px 80px;
     padding: 8px 0;
-    border-bottom: 1px solid #333;
-    color: #e0e0e0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
 }
 
 .row.header {
     font-weight: 600;
 }
 
-/* =========================================
-   PAGINATION
-========================================= */
+/* --- PAGINATION --- */
 .pagination {
     display: flex;
     justify-content: center;
@@ -250,22 +224,22 @@
 }
 
 .pagination button {
-    background: #2a2a2a;
+    background: var(--surface-2);
     border: none;
     border-radius: 6px;
     padding: 6px 12px;
     cursor: pointer;
     font-size: 14px;
-    color: #e0e0e0;
+    color: var(--text);
+    min-height: unset;
+    transition: background 0.12s ease;
 }
 
-.pagination button:hover:not(:disabled) { background: #3a3a3a; }
+.pagination button:hover:not(:disabled) { background: var(--surface); }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.pagination span { font-size: 14px; color: #aaa; }
+.pagination span { font-size: 14px; color: var(--muted); }
 
-/* =========================================
-   MOBILE TWEAKS
-========================================= */
+/* --- MOBILE --- */
 @media (max-width: 700px) {
     .event-grid { grid-template-columns: 1fr; }
 
@@ -287,14 +261,10 @@
     .pagination { flex-wrap: wrap; }
 }
 
-
-/* =========================================
-   DANGER ZONE
-========================================= */
-
+/* --- DANGER ZONE --- */
 .danger-card {
-    border: 1px solid #5a1a1a;
-    background: #1b1212;
+    border: 1px solid rgba(255, 107, 107, 0.25);
+    background: rgba(255, 107, 107, 0.05);
 }
 
 .danger-card .card-header h3 {
@@ -303,7 +273,7 @@
 
 .danger-text {
     font-size: 14px;
-    color: #c9c9c9;
+    color: var(--muted);
     margin-bottom: 14px;
     line-height: 1.4;
 }
@@ -324,7 +294,7 @@
     transform: translateY(-1px);
 }
 
-/* Modal */
+/* --- DANGER MODAL --- */
 .danger-modal-overlay {
     position: fixed;
     inset: 0;
@@ -336,12 +306,12 @@
 }
 
 .danger-modal {
-    background: #1e1e1e;
-    border: 1px solid #333;
+    background: var(--surface);
+    border: 1px solid var(--border);
     padding: 20px;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     width: min(420px, 90%);
-    color: #e0e0e0;
+    color: var(--text);
 }
 
 .danger-modal h4 {
@@ -357,16 +327,16 @@
 }
 
 .btn-cancel {
-    background: #2a2a2a;
-    color: #e0e0e0;
-    border: 1px solid #444;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
     padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
 }
 
 .btn-cancel:hover {
-    background: #3a3a3a;
+    background: var(--surface);
 }
 
 .btn-delete {
@@ -388,7 +358,7 @@
     margin-top: 10px;
     padding: 10px;
     border-radius: 6px;
-    border: 1px solid #444;
-    background: #2a2a2a;
-    color: #fff;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
 }

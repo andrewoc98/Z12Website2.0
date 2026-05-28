@@ -5,7 +5,6 @@ import Navbar from "../../../shared/components/Navbar/Navbar.tsx";
 import { AthleteStats } from "../components/AthleteStats.tsx";
 import { Navigate } from "react-router-dom";
 import { ProfileEditor } from "../components/ProfileEditor.tsx";
-import ProfileDetails from "../components/ProfileDetails.tsx";
 import "../style/profile.css";
 import { PerformanceStats } from "../components/PreformanceStats.tsx";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
@@ -47,9 +46,6 @@ export default function ProfilePageElite() {
                         <PerformanceStats />
                     </>
                 )}
-
-                {/* ProfileDetails handles both coach athletes + rower coaches */}
-                <ProfileDetails />
 
                 <section className="card profile-section">
                     <h3 className="section-title">Edit Profile</h3>

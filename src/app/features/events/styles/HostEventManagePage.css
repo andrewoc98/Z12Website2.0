@@ -1,132 +1,122 @@
-/* =========================================
-   HOST DASHBOARD
-========================================= */
+/* --- HOST DASHBOARD --- */
 .host-dashboard {
-    height:100vh;
-    display:flex;
-    flex-direction:column;
-    background:#121212;
-    color:#e0e0e0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
 }
 
-/* =========================================
-   HEADER
-========================================= */
+/* --- HEADER --- */
 .event-header {
     height: 60px;
-    border-bottom:1px solid #333;
-    padding:14px 20px;
-    position:sticky;
-    top:0;
-    z-index:20;
-    background:#1e1e1e;
-    color:#e0e0e0;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--surface);
+    color: var(--text);
 }
 
 .event-title {
-    display:flex;
-    align-items:center;
-    gap:14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
 }
 
 .event-title h1 {
-    font-size:20px;
-    margin:0;
+    font-size: 20px;
+    margin: 0;
 }
 
 .status-badge {
-    padding:4px 10px;
-    border-radius:999px;
-    font-size:12px;
-    text-transform:capitalize;
-    color:#121212;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    text-transform: capitalize;
+    color: var(--brand-ink);
 }
 
-.status-badge.open { background:#22c55e; }       /* green */
-.status-badge.running { background:#FEB959; }   /* gold */
-.status-badge.finished { background:#555; }     /* muted gray */
-.status-badge.closed { background:#ff6b6b; }    /* red alert */
+.status-badge.open     { background: #22c55e; }
+.status-badge.running  { background: var(--brand-warm); }
+.status-badge.finished { background: var(--surface-2); color: var(--muted); }
+.status-badge.closed   { background: #ff6b6b; }
 
-/* =========================================
-   WORKSPACE
-========================================= */
+/* --- WORKSPACE --- */
 .workspace {
-    flex:1;
-    display:flex;
-    min-height:0;
+    flex: 1;
+    display: flex;
+    min-height: 0;
 }
 
-/* =========================================
-   SIDEBAR
-========================================= */
+/* --- SIDEBAR --- */
 .sidebar {
-    width:220px;
-    background:#1e1e1e;
-    border-right:1px solid #333;
-    display:flex;
-    flex-direction:column;
-    padding:10px;
-    gap:6px;
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 6px;
 }
 
 .nav-item {
-    padding:10px 12px;
-    border-radius:8px;
-    border:none;
-    background:none;
-    text-align:left;
-    cursor:pointer;
-    color:#e0e0e0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text);
+    min-height: 44px;
+    transition: background 0.12s ease;
 }
 
 .nav-item:hover {
-    background:#2a2a2a;
+    background: var(--surface-2);
+    box-shadow: none;
 }
 
 .nav-item.active {
-    background:#FEB959;
-    color:#121212;
-    font-weight:600;
+    background: var(--brand-warm);
+    color: var(--brand-ink);
+    font-weight: 600;
 }
 
-/* =========================================
-   CONTENT AREA
-========================================= */
+/* --- CONTENT AREA --- */
 .content-area {
-    flex:1;
-    overflow:auto;
-    padding:24px;
-    background:#121212;
-    color:#e0e0e0;
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
 }
 
-/* =========================================
-   MOBILE
-========================================= */
+/* --- MOBILE --- */
 .menu-toggle {
-    display:none;
-    border:none;
-    background:none;
-    font-size:20px;
-    cursor:pointer;
-    color:#e0e0e0;
+    display: none;
+    border: none;
+    background: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text);
+    min-height: unset;
 }
 
 .overlay {
-    display:none;
+    display: none;
 }
 
 .overlay.show {
-    display:block;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.7);
-    z-index:15;
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 15;
 }
 
-/* Mobile Sidebar */
 @media (max-width: 900px) {
-
     .menu-toggle {
         display: block;
     }
@@ -134,10 +124,10 @@
     .sidebar {
         position: fixed;
         left: -260px;
-        top: 120px; /* navbar (60px) + event header (60px) */
-        height: calc(100% - 120px); /* fill remaining viewport height */
+        top: 120px;
+        height: calc(100% - 120px);
         z-index: 30;
-        transition: 0.25s;
+        transition: left 0.25s ease;
     }
 
     .sidebar.open {
@@ -145,44 +135,43 @@
     }
 }
 
-/* =========================================
-   COLLAPSIBLE SECTIONS
-========================================= */
+/* --- COLLAPSIBLE SECTIONS --- */
 .collapsible {
-    padding:0;
-    overflow:hidden;
+    padding: 0;
+    overflow: hidden;
 }
 
 .collapsible-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:14px 16px;
-    cursor:pointer;
-    background:#2a2a2a;
-    user-select:none;
-    color:#e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    background: var(--surface-2);
+    user-select: none;
+    color: var(--text);
+    transition: background 0.12s ease;
 }
 
 .collapsible-header:hover {
-    background:#3a3a3a;
+    background: var(--surface);
 }
 
 .collapsible-header h3 {
-    margin:0;
-    font-size:16px;
+    margin: 0;
+    font-size: 16px;
 }
 
 .collapse-icon {
-    font-size:18px;
-    font-weight:bold;
-    color:#e0e0e0;
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--muted);
 }
 
 .collapsible-body {
-    padding:16px;
-    background:#1e1e1e;
-    color:#e0e0e0;
+    padding: 16px;
+    background: var(--surface);
+    color: var(--text);
 }
 
 label.event-form {

@@ -60,7 +60,7 @@
     margin: 0;
     font-size: 1.75rem;
     font-weight: 700;
-    color: #FEB959;
+    color: var(--brand-warm);
     letter-spacing: -0.01em;
 }
 
@@ -94,7 +94,7 @@
 
 .esu-pill--open     { background: rgba(52, 199, 89, 0.15);  color: #4cd964; border: 1px solid rgba(52, 199, 89, 0.25); }
 .esu-pill--closed   { background: rgba(255, 255, 255, 0.07); color: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.1); }
-.esu-pill--draft    { background: rgba(255, 185, 89, 0.12);  color: #FEB959; border: 1px solid rgba(255,185,89,0.2); }
+.esu-pill--draft    { background: rgba(255, 185, 89, 0.12);  color: var(--brand-warm); border: 1px solid rgba(255,185,89,0.2); }
 .esu-pill--running  { background: rgba(10, 132, 255, 0.15);  color: #4da6ff; border: 1px solid rgba(10,132,255,0.25); }
 .esu-pill--finished { background: rgba(255, 255, 255, 0.07); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); }
 
@@ -147,7 +147,7 @@
     position: relative;
     display: block;
     width: 100%;
-    border: 1.5px solid #e4a84d;
+    border: 1.5px solid var(--brand-warm);
     border-radius: 12px;
     background-color: var(--surface-1);
 }
@@ -182,7 +182,7 @@
 }
 
 .esu-custom-select:focus-within {
-    border-color: #FEB959;
+    border-color: var(--brand-warm);
     box-shadow: 0 0 0 3px rgba(254, 185, 89, 0.15);
 }
 
@@ -209,7 +209,7 @@
 
 .esu-badge--brand {
     background: rgba(254, 185, 89, 0.15);
-    color: #FEB959;
+    color: var(--brand-warm);
     border: 1px solid rgba(254, 185, 89, 0.25);
 }
 
@@ -285,7 +285,7 @@
 }
 
 .esu-inline-link {
-    color: #FEB959;
+    color: var(--brand-warm);
     text-decoration: underline;
 }
 
@@ -295,15 +295,15 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: linear-gradient(135deg, #FEB959 0%, #e49a2e 100%);
-    color: #1a0e00;
+    background: var(--brand-warm);
+    color: var(--brand-ink);
     font-weight: 700;
     font-size: 0.95rem;
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
+    transition: opacity 0.15s ease, transform 0.1s ease;
     width: 100%;
 }
 
@@ -416,7 +416,7 @@
     top: 0;
     right: 0;
     background: rgba(254, 185, 89, 0.15);
-    color: #FEB959;
+    color: var(--brand-warm);
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -462,7 +462,7 @@
 
 .esu-bow-number {
     font-weight: 700;
-    color: #FEB959;
+    color: var(--brand-warm);
     font-size: 0.9rem;
 }
 
@@ -537,7 +537,7 @@
     height: 26px;
     border-radius: 50%;
     background: rgba(254, 185, 89, 0.15);
-    color: #FEB959;
+    color: var(--brand-warm);
     font-size: 0.7rem;
     font-weight: 700;
     display: flex;
@@ -551,7 +551,7 @@
     font-size: 0.7rem;
     font-weight: 600;
     background: rgba(254, 185, 89, 0.12);
-    color: #FEB959;
+    color: var(--brand-warm);
     border-radius: 4px;
     padding: 1px 6px;
     margin-left: auto;

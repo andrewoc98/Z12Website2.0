@@ -1,4 +1,4 @@
-/* ── Badge ── */
+/* --- Badge --- */
 .cb-wrapper {
     position: relative;
 }
@@ -16,11 +16,13 @@
     color: var(--text);
     cursor: pointer;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    min-height: unset;
 }
 
 .connection-badge:hover {
-    border-color: #FEB959;
+    border-color: var(--brand-warm);
     box-shadow: 0 0 0 3px rgba(254, 185, 89, 0.1);
+    background: var(--surface);
 }
 
 .connection-badge__dot {
@@ -30,7 +32,7 @@
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.connection-badge.online .connection-badge__dot { background: #10b981; }
+.connection-badge.online  .connection-badge__dot { background: #10b981; }
 .connection-badge.offline .connection-badge__dot { background: #ef4444; animation: none; }
 
 .connection-badge__pending {
@@ -47,18 +49,18 @@
     font-size: 0.75rem;
 }
 
-/* ── Drawer ── */
+/* --- Drawer --- */
 .cb-drawer {
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
     width: 340px;
-    background: #111;
-    border: 2px solid #e4a84d;
-    border-radius: 16px;
+    background: var(--bg);
+    border: 2px solid var(--brand-warm);
+    border-radius: var(--radius);
     overflow: hidden;
     z-index: 999;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(254, 185, 89, 0.08);
+    box-shadow: var(--shadow), 0 0 0 1px rgba(254, 185, 89, 0.08);
     animation: cb-slide-in 0.18s ease;
 }
 
@@ -69,7 +71,7 @@
 
 .cb-drawer__header {
     padding: 16px 18px 12px;
-    border-bottom: 1px solid #1e1e1e;
+    border-bottom: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -79,12 +81,12 @@
     font-family: "Bebas Neue", sans-serif;
     font-size: 20px;
     letter-spacing: 1px;
-    color: #FEB959;
+    color: var(--brand-warm);
 }
 
 .cb-drawer__subtitle {
     font-size: 12px;
-    color: #888;
+    color: var(--muted);
 }
 
 .cb-drawer__status {
@@ -92,9 +94,9 @@
     align-items: center;
     gap: 8px;
     padding: 10px 18px;
-    border-bottom: 1px solid #1a1a1a;
+    border-bottom: 1px solid var(--border);
     font-size: 12px;
-    color: #aaa;
+    color: var(--muted);
 }
 
 .cb-drawer__dot {
@@ -113,7 +115,7 @@
     align-items: center;
     gap: 6px;
     padding: 28px 18px;
-    color: #555;
+    color: var(--muted);
     font-size: 13px;
 }
 
@@ -130,9 +132,9 @@
     overflow-y: auto;
 }
 
-.cb-drawer__list::-webkit-scrollbar { width: 4px; }
+.cb-drawer__list::-webkit-scrollbar       { width: 4px; }
 .cb-drawer__list::-webkit-scrollbar-track { background: transparent; }
-.cb-drawer__list::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+.cb-drawer__list::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 2px; }
 
 .cb-drawer__item {
     display: flex;
@@ -140,12 +142,12 @@
     justify-content: space-between;
     gap: 12px;
     padding: 10px 18px;
-    border-bottom: 1px solid #181818;
+    border-bottom: 1px solid var(--border);
     transition: background 0.1s ease;
 }
 
 .cb-drawer__item:last-child { border-bottom: none; }
-.cb-drawer__item:hover { background: #161616; }
+.cb-drawer__item:hover      { background: var(--surface); }
 
 .cb-drawer__item-left {
     display: flex;
@@ -170,13 +172,13 @@
 
 .cb-drawer__time {
     font-size: 11px;
-    color: #666;
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
 }
 
 .cb-drawer__meta {
     font-size: 11px;
-    color: #555;
+    color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -187,14 +189,15 @@
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    border: 1px solid #2a2a2a;
+    border: 1px solid var(--border);
     background: transparent;
-    color: #555;
+    color: var(--muted);
     font-size: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: unset;
     transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
 }
 
@@ -202,6 +205,7 @@
     background: rgba(239, 68, 68, 0.1);
     border-color: #ef4444;
     color: #ef4444;
+    box-shadow: none;
 }
 
 @keyframes pulse {

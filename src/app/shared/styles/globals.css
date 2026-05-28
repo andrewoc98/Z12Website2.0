@@ -1,4 +1,49 @@
 /* =====================================================
+   DESIGN TOKENS
+===================================================== */
+
+:root {
+    /* Colors */
+    --bg: #1e1e22;
+    --surface: #26262b;
+    --surface-2: #2e2e34;
+
+    --border: rgba(255,255,255,0.08);
+
+    --text: #f3f4f6;
+    --muted: rgba(255,255,255,0.65);
+
+    --brand: #ffd400;
+    --brand-warm: #FEB959;
+    --brand-ink: #141414;
+    --brand-soft: rgba(255,212,0,0.18);
+
+    --danger: #ff4d6d;
+
+    /* Spacing (multiples of 4px) */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 40px;
+
+    /* Shape */
+    --radius: 16px;
+    --radius-sm: 12px;
+
+    /* Shadows */
+    --shadow: 0 12px 28px rgba(0,0,0,0.45);
+    --shadow-soft: 0 6px 16px rgba(0,0,0,0.35);
+}
+
+/* Breakpoints (mobile-first)
+   sm:  480px  — large phones
+   md:  768px  — tablets
+   lg:  1024px — small laptops
+   xl:  1280px — desktop */
+
+
+/* =====================================================
    RESET
 ===================================================== */
 
@@ -17,38 +62,11 @@ html, body {
 body {
     margin: 0;
     font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
-}
-
-
-/* =====================================================
-   DESIGN TOKENS
-===================================================== */
-
-:root{
-
-    --bg: #1e1e22;
-    --surface: #26262b;
-    --surface-2: #2e2e34;
-
-    --border: rgba(255,255,255,0.08);
-
-    --text: #f3f4f6;
-    --muted: rgba(255,255,255,0.65);
-
-    --brand: #ffd400;
-    --brand-ink: #141414;
-    --brand-soft: rgba(255,212,0,0.18);
-
-    --danger: #ff4d6d;
-
-    --radius: 16px;
-    --radius-sm: 12px;
-
-    --shadow: 0 12px 28px rgba(0,0,0,0.45);
-    --shadow-soft: 0 6px 16px rgba(0,0,0,0.35);
 }
 
 
@@ -61,7 +79,7 @@ h2,
 h3 {
     font-family: "DIN Condensed", sans-serif;
     letter-spacing: 1px;
-    color: #FEB959;
+    color: var(--brand-warm);
 }
 
 p {
@@ -76,10 +94,16 @@ hr {
     margin: 18px 0;
 }
 
+img {
+    max-width: 100%;
+    height: auto;
+}
+
 
 /* =====================================================
    LAYOUT
 ===================================================== */
+
 main {
     width: min(980px, 100%);
     margin: 0 auto;
@@ -88,7 +112,6 @@ main {
 
 .page {
     padding: 14px 12px 28px;
-
 }
 
 .shell {
@@ -96,15 +119,36 @@ main {
     margin: 0 auto;
 }
 
-.stack { display: grid; gap: 12px; }
+.stack    { display: grid; gap: 12px; }
 .stack-sm { display: grid; gap: 14px; }
+
+html, body, #root {
+    height: 100%;
+    margin: 0;
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.page-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-content {
+    flex: 1;
+}
 
 
 /* =====================================================
    CARDS
 ===================================================== */
 
-.card{
+.card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -121,7 +165,7 @@ main {
    BUTTONS
 ===================================================== */
 
-button{
+button {
     appearance: none;
     font-family: "Oswald", sans-serif;
     text-transform: uppercase;
@@ -134,43 +178,60 @@ button{
     border-radius: 999px;
     padding: 10px 14px;
 
-    font-weight: 0;
+    font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
 
     transition: transform 0.08s ease,
-    box-shadow 0.12s ease,
-    background 0.12s ease;
+                box-shadow 0.12s ease,
+                background 0.12s ease;
 }
 
-button:hover{
+button:hover {
     box-shadow: var(--shadow-soft);
     background: var(--surface-2);
 }
 
-button:active{
+button:active {
     transform: translateY(1px);
 }
 
-button:disabled{
+button:focus-visible {
+    outline: 2px solid var(--brand-warm);
+    outline-offset: 2px;
+}
+
+button:disabled {
     opacity: 0.55;
     cursor: not-allowed;
 }
 
-.btn-primary{
-    background: #FEB959;
+.btn-primary {
+    background: var(--brand-warm);
     color: var(--brand-ink);
     border-color: rgba(0,0,0,0.10);
 }
 
-
-.btn-danger{
-    background: rgba(225, 29, 72, 0.10);
-    border-color: rgba(225, 29, 72, 0.22);
-    color: #9f1239;
+.btn-primary:hover {
+    background: #f5a940;
+    box-shadow: var(--shadow-soft);
 }
 
-.btn-ghost{
+.btn-danger {
+    background: rgba(225, 29, 72, 0.10);
+    border-color: rgba(225, 29, 72, 0.22);
+    color: #f87171;
+}
+
+.btn-ghost {
     background: transparent;
+}
+
+/* Minimum touch target on mobile */
+@media (max-width: 768px) {
+    button {
+        min-height: 44px;
+    }
 }
 
 
@@ -178,7 +239,7 @@ button:disabled{
    FORM ELEMENTS
 ===================================================== */
 
-label{
+label {
     display: grid;
     gap: 6px;
     margin-top: 12px;
@@ -190,7 +251,7 @@ label{
 
 input,
 select,
-textarea{
+textarea {
     width: 100%;
     border: 1px solid var(--border);
     background: var(--surface);
@@ -198,17 +259,18 @@ textarea{
 
     border-radius: 12px;
     padding: 10px 12px;
+    font-size: 1rem; /* prevents iOS auto-zoom */
     outline: none;
 }
 
 input:focus,
 select:focus,
-textarea:focus{
+textarea:focus {
     border-color: rgba(255, 212, 0, 0.65);
     box-shadow: 0 0 0 4px var(--brand-soft);
 }
 
-.form{
+.form {
     display: grid;
     gap: 16px;
     width: 100%;
@@ -216,78 +278,65 @@ textarea:focus{
 
 
 /* =====================================================
-   SMALL UTILITIES
+   UTILITIES
 ===================================================== */
 
-.row{
+.row {
     display: flex;
     gap: 10px;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.space-between{
+.space-between {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
 }
 
-.muted{
+.muted {
     color: var(--muted);
 }
-html, body, #root {
-    height: 100%;
-    margin: 0;
+
+/* Prevent text overflow on narrow containers */
+.overflow-wrap {
+    overflow-wrap: break-word;
 }
 
-.page-container {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
 
-.page-content {
-    flex: 1;
-}
+/* =====================================================
+   BADGES
+===================================================== */
 
-.badge{
-
+.badge {
     font-size: 12px;
-
     font-weight: 600;
-
     padding: 5px 10px;
-
     border-radius: 999px;
-
     border: 1px solid transparent;
-
 }
 
-.badge--brand{
-
+.badge--brand {
     background: rgba(255,212,0,0.2);
-
-    color: #ffd400;
-
+    color: var(--brand);
     border-color: rgba(255,212,0,0.45);
-
 }
 
-.badge--crew{
-
+.badge--crew {
     background: rgba(59,130,246,0.22);
-
     color: #60a5fa;
-
     border-color: rgba(96,165,250,0.45);
-
 }
 
 
-#root {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+/* =====================================================
+   REDUCED MOTION
+===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
+    }
 }

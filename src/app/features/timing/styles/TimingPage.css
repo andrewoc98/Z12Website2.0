@@ -78,7 +78,7 @@
 
 .category-section h3 {
     margin: 0 0 16px;
-    color: #FEB959;
+    color: var(--brand-warm);
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }

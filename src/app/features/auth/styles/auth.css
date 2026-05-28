@@ -37,18 +37,18 @@
     font-weight: 600;
 }
 
-.auth-card input{
+.auth-card input {
     background: transparent;
-    border: 2px solid #e4a84d;
+    border: 2px solid var(--brand-warm);
     border-radius: 12px;
     padding: 14px;
-    color: white;
-    font-size: 16px;
+    color: var(--text);
+    font-size: 1rem;
 }
 
-.auth-card input:focus{
+.auth-card input:focus {
     border-color: #f5b457;
-    box-shadow: none;
+    box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
 
@@ -68,20 +68,12 @@
    SIGN IN BUTTON (KEY PART)
 ========================================= */
 
-.auth-login-btn{
-
-    width: 70px;
-    height: 80px;
-
+.auth-login-btn {
     border-radius: 8px;
-
     font-size: 16px;
     font-weight: 800;
-
     line-height: 1.1;
-
     padding: 0;
-
     display: flex;
     align-items: center;
     justify-content: center;
@@ -151,8 +143,8 @@
     padding-top: 80px;
 }
 
-.auth-login-btn{
-    background: #FEB959;
+.auth-login-btn {
+    background: var(--brand-warm);
     color: var(--brand-ink);
 
     border-radius: 999px;
@@ -202,7 +194,7 @@
 
     background: transparent;
 
-    border: 2px solid #e4a84d;
+    border: 2px solid var(--brand-warm);
     border-radius: 12px;
 
     padding: 14px;
@@ -266,13 +258,13 @@
     margin-top: 3px;
 
     padding: 0;
-    border: 2px solid #e4a84d;
+    border: 2px solid var(--brand-warm);
     border-radius: 4px;
-    accent-color: #FEB959; /* modern browsers */
+    accent-color: var(--brand-warm);
 }
 
 .terms-checkbox a {
-    color: #FEB959;
+    color: var(--brand-warm);
     font-weight: 500;
 }
 
@@ -286,7 +278,7 @@
     width: 100%;
     padding-right: 50px; /* space for the eye icon */
     background: transparent;
-    border: 2px solid #e4a84d;
+    border: 2px solid var(--brand-warm);
     border-radius: 12px;
     padding: 14px;
     color: white;
@@ -307,7 +299,7 @@
     border: none;
     cursor: pointer;
     font-size: 18px;
-    color: #FEB959;
+    color: var(--brand-warm);
     padding: 0;
     line-height: 1;
     transition: transform 0.2s ease;
@@ -365,7 +357,7 @@
 }
 
 .consent-step.active {
-    color: #FEB959;
+    color: var(--brand-warm);
 }
 
 .consent-step.complete {
@@ -398,7 +390,7 @@
 
 .required-badge {
     background: rgba(254, 185, 89, 0.12);
-    color: #FEB959;
+    color: var(--brand-warm);
 }
 
 .optional-badge {
@@ -457,13 +449,13 @@
 }
 
 .wizard-step.active .wizard-step-num {
-    border-color: #FEB959;
-    color: #FEB959;
+    border-color: var(--brand-warm);
+    color: var(--brand-warm);
 }
 
 .wizard-step.done .wizard-step-num {
-    background: #FEB959;
-    border-color: #FEB959;
+    background: var(--brand-warm);
+    border-color: var(--brand-warm);
     color: #111;
 }
 
@@ -505,12 +497,12 @@
 }
 
 .role-card-checkbox:hover {
-    border-color: #FEB959;
+    border-color: var(--brand-warm);
 }
 
 .role-card-checkbox input[type="checkbox"] {
     margin-top: 0.15rem;
-    accent-color: #FEB959;
+    accent-color: var(--brand-warm);
     width: 1rem;
     height: 1rem;
     flex-shrink: 0;
@@ -521,7 +513,7 @@
 }
 
 .role-card-checkbox:has(input:checked) {
-    border-color: #FEB959;
+    border-color: var(--brand-warm);
     background: rgba(254, 185, 89, 0.06);
 }
 
@@ -570,8 +562,8 @@
 }
 
 .role-tab.active {
-    color: #FEB959;
-    border-bottom-color: #FEB959;
+    color: var(--brand-warm);
+    border-bottom-color: var(--brand-warm);
 }
 
 .role-tab-content {
@@ -609,8 +601,8 @@
 }
 
 .add-role-chip:hover {
-    border-color: #FEB959;
-    color: #FEB959;
+    border-color: var(--brand-warm);
+    color: var(--brand-warm);
 }
 
 .add-role-selected-label {
@@ -620,7 +612,7 @@
 }
 
 .add-role-selected-label strong {
-    color: #FEB959;
+    color: var(--brand-warm);
 }
 
 .add-role-form {
@@ -659,14 +651,14 @@
 
 .dob-label {
     font-size: 14px;
-    color: #e4a84d;
+    color: var(--brand-warm);
     font-weight: 500;
 }
 
 .dob-container {
     display: flex;
     align-items: center;
-    border: 2px solid #e4a84d;
+    border: 2px solid var(--brand-warm);
     border-radius: 12px;
     padding: 4px 8px;
     background: transparent;
@@ -691,7 +683,7 @@
 
 /* Subtle separators */
 .dob-separator {
-    color: #e4a84d;
+    color: var(--brand-warm);
     opacity: 0.6;
     font-weight: 500;
 }
@@ -733,7 +725,7 @@
 }
 
 .resend-verification p b {
-    color: #FEB959;
+    color: var(--brand-warm);
     font-weight: 600;
     word-break: break-all;
 }
@@ -745,7 +737,7 @@
     flex-direction: column;
     gap: 0.2rem;
     padding: 0.75rem 1rem;
-    border-left: 3px solid #FEB959;
+    border-left: 3px solid var(--brand-warm);
     background: rgba(254, 185, 89, 0.06);
     border-radius: 0 6px 6px 0;
     margin: 0.75rem 0 1rem;

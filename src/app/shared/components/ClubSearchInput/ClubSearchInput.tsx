@@ -2,6 +2,7 @@ import { httpsCallable }              from "firebase/functions";
 import { useEffect, useRef, useState } from "react";
 import { functions }                  from "../../../shared/lib/firebase";
 import type { ClubRef }               from "../../../features/auth/types.ts";
+import "./ClubSearch.css";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

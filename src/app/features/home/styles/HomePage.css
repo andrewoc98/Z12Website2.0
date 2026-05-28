@@ -34,7 +34,7 @@
 .hero-title {
     position: relative;
     text-align: center;
-    color: #FEB959;
+    color: var(--brand-warm);
     font-size: clamp(36px, 6vw, 100px);
     font-weight: 900;
     margin-top: -0.6em;
@@ -49,12 +49,11 @@
     padding: 0 24px;
     font-size: 20px;
     line-height: 1.6;
-    color: #111;
 }
 
 .challenge-text p {
     margin-bottom: 24px;
-    color: white;
+    color: var(--text);
 }
 
 /* IMAGE HELPERS (optional) */

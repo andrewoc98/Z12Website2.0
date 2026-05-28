@@ -10,6 +10,7 @@ import { httpsCallable }               from "firebase/functions";
 import { useEffect, useRef, useState }  from "react";
 import { functions }                   from "../../../shared/lib/firebase";
 import type {ClubSearchResult} from "../../../shared/components/ClubSearchInput/ClubSearchInput.tsx";
+import "../../../shared/components/ClubSearchInput/ClubSearch.css";
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
