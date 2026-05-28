@@ -48,7 +48,6 @@ function RootLayout() {
         const missing: string[] = [];
         if (!p.gender || p.gender === "unknown") missing.push("gender");
         if (!p.dateOfBirth) missing.push("dateOfBirth");
-        if (!(p.roles?.rower?.club ?? "").trim()) missing.push("club");
         return missing;
     }, [user, p]);
 

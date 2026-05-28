@@ -49,7 +49,9 @@ export default function PublicProfilePage() {
                         <h2>{profile.displayName}</h2>
                         <p className="muted">{profile.primaryRole}</p>
                         {profile.roles?.rower && (
-                            <p className="muted">Club: {profile.roles.rower.club ?? "-"}</p>
+                            <p className="muted">
+                                Club: {profile.roles.rower.clubMemberships[0]?.clubName ?? "-"}
+                            </p>
                         )}
                         {profile.roles?.rower && (
                             <button className="btn-toggle" onClick={toggleUnits}>

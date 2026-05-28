@@ -30,8 +30,8 @@ export function ProfileHero({
                 <h2>{profile.displayName || profile.fullName}</h2>
                 <p className="muted">{subtitle}</p>
 
-                {roles.rower?.club && (
-                    <p className="muted">Club: {roles.rower.club}</p>
+                {roles.rower?.clubMemberships && (
+                    <p className="muted">Club: {roles.rower.clubMemberships[0].clubName}</p>
                 )}
                 {roles.rower && (
                     <button className="btn-toggle" onClick={toggleUnit}>

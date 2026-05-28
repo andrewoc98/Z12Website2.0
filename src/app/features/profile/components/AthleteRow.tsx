@@ -35,7 +35,7 @@ export default function AthleteRow({
                     <div className="athlete-name">{name}</div>
 
                     <div className="muted">
-                        {athlete.roles?.rower?.club ?? "No club info"}
+                        {athlete.roles?.rower?.clubMemberships?.[0]?.clubName ?? "No club info"}
                     </div>
                 </div>
             </div>

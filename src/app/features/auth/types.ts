@@ -1,3 +1,18 @@
+/**
+ * user.types.ts
+ *
+ * Changes from previous version:
+ *  - roles.rower.clubMembership  (ClubRef)   → roles.rower.clubMemberships  (ClubRef[])
+ *  - roles.coach.clubMembership  (ClubRef)   → roles.coach.clubMemberships  (ClubRef[])
+ *  - PendingUser.club            (string)    → PendingUser.clubId            (string | undefined)
+ *
+ * A ClubRef is a lightweight pointer that avoids a second Firestore read in
+ * common rendering scenarios while keeping the canonical source of truth in
+ * /clubs/{clubId}/members/{uid}.
+ */
+import type {ClubMemberRole} from "./club.ts";
+
+
 export type Role = "rower" | "host" | "admin" | "coach" | "guardian";
 export type Gender = "male" | "female" | "unknown";
 
@@ -6,8 +21,31 @@ export type LinkedChild = {
     childPendingId: string;
     childName: string;
     approvedAt: string;
-    childUid?: string; // populated once the child's auth account is created
+    childUid?: string;
 };
+
+// ── Club reference (denormalised snapshot stored on the user) ─────────────────
+
+/**
+ * A lightweight, denormalised pointer to a club membership.
+ * Stored in the clubMemberships array on the user document so that club names
+ * can be rendered without extra Firestore reads.
+ *
+ * IMPORTANT: When Club.name or Club.logoUrl changes, update every ClubRef that
+ * points to that club via a Cloud Function triggered on /clubs/{clubId} writes.
+ */
+export type ClubRef = {
+    clubId: string;
+    clubName: string;       // denormalised — kept in sync via Cloud Function
+    clubShortName?: string; // denormalised
+    logoUrl?: string;       // denormalised
+    federationId?:    string;
+    role: ClubMemberRole;   // the member's role within this club
+    membershipStatus: "pending" | "active" | "suspended";
+    joinedAt: string;       // ISOTimestamp
+};
+
+// ── User Profile ──────────────────────────────────────────────────────────────
 
 export type UserProfile = {
     uid: string;
@@ -33,15 +71,11 @@ export type UserProfile = {
     consent: {
         termsAcceptedAt?: string;
         privacyAcceptedAt?: string;
-
         performanceTrackingAccepted?: boolean;
         dataSharingAccepted?: boolean;
-
         biometricProcessingAccepted?: boolean;
-
         givenBy: "self" | "parent";
         givenByUid?: string;
-
         updatedAt?: string;
     };
 
@@ -53,7 +87,13 @@ export type UserProfile = {
 
     roles: {
         rower?: {
-            club?: string;
+            /**
+             * All clubs this rower currently belongs to.
+             * Empty array = not a member of any club yet.
+             * Canonical membership records live at /clubs/{clubId}/members/{uid}.
+             */
+            clubMemberships: ClubRef[];
+
             coachId?: string;
 
             stats: {
@@ -72,7 +112,11 @@ export type UserProfile = {
         };
 
         coach?: {
-            club: string;
+            /**
+             * All clubs this coach currently belongs to.
+             * Empty array = not attached to any club yet.
+             */
+            clubMemberships: ClubRef[];
         };
 
         host?: {
@@ -109,10 +153,17 @@ export type UserProfile = {
     updatedAt: string;
 };
 
+// ── Pending User ──────────────────────────────────────────────────────────────
+
 export type PendingUser = {
     fullName: string;
     email: string;
-    club: string;
+    /**
+     * Optional: the club the pending user intends to join.
+     * Storing the ID (not the name string) makes it resilient to club renames.
+     * Resolved to a ClubRef once the account is fully created.
+     */
+    clubId?: string;
     dateOfBirth: string;
     parentEmail?: string;
     consent?: {
@@ -124,6 +175,8 @@ export type PendingUser = {
         approvedAt?: string;
     };
 };
+
+// ── Supporting types (unchanged) ──────────────────────────────────────────────
 
 export type ConsentOptions = {
     termsAccepted: boolean;

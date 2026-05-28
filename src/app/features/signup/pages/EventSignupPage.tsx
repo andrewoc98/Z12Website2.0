@@ -19,7 +19,7 @@ type Profile = {
     uuid?: string;
     email?: string;
     gender?: "male" | "female";
-    roles?: { rower?: { club?: string; coach?: string } };
+    roles?: { rower?: { clubMemberships?: Array<{ clubId: string; clubName: string }> } };
 };
 
 type UserDoc = {
@@ -181,7 +181,7 @@ export default function EventPageSignUp() {
     const [err, setErr] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-    const clubName = useMemo(() => (p?.roles?.rower?.club ?? "").trim(), [p]);
+    const clubName = useMemo(() => p?.roles?.rower?.clubMemberships?.[0]?.clubName ?? "", [p]);
     const inviteLink = (eid: string, code: string) => `${window.location.origin}/invite/${eid}/${code}`;
 
     useEffect(() => {

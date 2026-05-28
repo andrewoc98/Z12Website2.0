@@ -11,7 +11,6 @@ type Props = {
 const FIELD_LABELS: Record<string, string> = {
     gender: "Gender",
     dateOfBirth: "Date of birth",
-    club: "Club name",
 };
 
 export default function ProfileCompletionModal({ missingFields }: Props) {
@@ -46,7 +45,6 @@ export default function ProfileCompletionModal({ missingFields }: Props) {
             const updates: Record<string, any> = {};
             if (values.gender) updates.gender = values.gender;
             if (values.dateOfBirth) updates.dateOfBirth = values.dateOfBirth;
-            if (values.club) updates["roles.rower.club"] = values.club.trim();
             await updateDoc(doc(db, "users", user.uid), updates);
             setDismissed(true);
         } catch (e: any) {
@@ -96,16 +94,6 @@ export default function ProfileCompletionModal({ missingFields }: Props) {
                                     max={new Date().toISOString().slice(0, 10)}
                                     value={values.dateOfBirth ?? ""}
                                     onChange={(e) => set("dateOfBirth", e.target.value)}
-                                />
-                            )}
-
-                            {field === "club" && (
-                                <input
-                                    id="pcm-club"
-                                    type="text"
-                                    placeholder="e.g. Neptun Rowing Club"
-                                    value={values.club ?? ""}
-                                    onChange={(e) => set("club", e.target.value)}
                                 />
                             )}
                         </div>

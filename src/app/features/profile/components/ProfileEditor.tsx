@@ -1,6 +1,6 @@
 import { useAuth } from "../../../providers/AuthProvider.tsx";
 import { useState } from "react";
-import type { UserProfile } from "../../auth/types.ts";
+import type { ClubRef, UserProfile } from "../../auth/types.ts";
 import {
     saveCoreProfile,
     saveUserRole,
@@ -8,6 +8,7 @@ import {
 } from "../api/user.ts";
 import "../style/profile.css";
 import DateOfBirthInput from "../../auth/components/DateOfBirthInput.tsx";
+import {ClubSearchInput} from "../../../shared/components/ClubSearchInput/ClubSearchInput.tsx";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -28,17 +29,6 @@ function formatTime(seconds?: number): string {
     return `${m}:${s}`;
 }
 
-/**
- * Returns a suggested correction if the value looks like the user typed
- * a decimal when they meant a colon-separated time.
- *
- * e.g. "6.02"  → "6:02"   (minutes.seconds, seconds part looks like clock seconds)
- *      "1.302" → "1:30.2" is ambiguous — leave alone
- *      "0.5"   → fine as a raw decimal (half a second)
- *
- * Rule: value has no ":" and has exactly one ".", the integer part is >= 1,
- * and the fractional digits (treated as an integer) are 0-59.
- */
 function detectTimeMistake(value: string): string | null {
     const trimmed = value.trim();
     if (!trimmed || trimmed.includes(":")) return null;
@@ -49,24 +39,19 @@ function detectTimeMistake(value: string): string | null {
     const intPart  = trimmed.slice(0, dotIdx);
     const fracPart = trimmed.slice(dotIdx + 1);
 
-    // Only act when there are exactly 2 fractional digits (classic clock-seconds pattern)
     if (fracPart.length !== 2) return null;
 
     const minutes = Number(intPart);
     const seconds = Number(fracPart);
 
     if (isNaN(minutes) || isNaN(seconds)) return null;
-    if (minutes < 1) return null;           // sub-minute, decimal is fine
-    if (seconds > 59) return null;          // not valid clock seconds
+    if (minutes < 1) return null;
+    if (seconds > 59) return null;
 
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-/**
- * Reasonable bounds for erg distances (seconds).
- * World records give the lower bound; ~4× WR gives a generous upper.
- */
-const PERF_BOUNDS ={
+const PERF_BOUNDS = {
     best100m:   { min: 12,   max: 60,    label: "100 m"   },
     best500m:   { min: 69,   max: 300,   label: "500 m"   },
     best2000m:  { min: 330,  max: 1200,  label: "2000 m"  },
@@ -77,15 +62,14 @@ const PERF_BOUNDS ={
 type PerfKey = keyof typeof PERF_BOUNDS;
 
 interface PerfValidation {
-    suggestion: string | null;   // auto-correctable decimal mistake
-    warning:    string | null;   // out-of-bounds after parsing
+    suggestion: string | null;
+    warning:    string | null;
 }
 
 function validatePerf(key: PerfKey, value: string): PerfValidation {
     const suggestion = detectTimeMistake(value);
-    if (suggestion) {
-        return { suggestion, warning: null };
-    }
+    if (suggestion) return { suggestion, warning: null };
+
     const parsed = parseTime(value);
     if (parsed == null) return { suggestion: null, warning: null };
 
@@ -147,16 +131,17 @@ function AddRoleForm({ role, onSave, onCancel }: {
     onSave: (data: any) => Promise<void>;
     onCancel: () => void;
 }) {
-    const [club,        setClub]        = useState("");
     const [location,    setLocation]    = useState("");
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [saving,      setSaving]      = useState(false);
     const [err,         setErr]         = useState<string | null>(null);
 
+    // For rower/coach the role is added first without a club.
+    // The user joins clubs via ClubSearchInput in the role panel after the role exists.
     const canSubmit =
         (role === "host"  && location.trim().length >= 2) ||
-        (role === "coach" && club.trim().length >= 2) ||
-        (role === "rower" && club.trim().length >= 2 && dateOfBirth.trim().length > 0);
+        (role === "coach") ||
+        (role === "rower" && dateOfBirth.trim().length > 0);
 
     async function handleSave() {
         setErr(null);
@@ -164,7 +149,9 @@ function AddRoleForm({ role, onSave, onCancel }: {
         try {
             const data = role === "host"
                 ? { location: location.trim() }
-                : { club: club.trim(), dateOfBirth, stats: {}, performances: {} };
+                : role === "rower"
+                    ? { clubMemberships: [], dateOfBirth, stats: {}, performances: {} }
+                    : { clubMemberships: [] };
             await onSave(data);
         } catch (e: any) {
             setErr(e?.message ?? "Failed to add role.");
@@ -174,20 +161,12 @@ function AddRoleForm({ role, onSave, onCancel }: {
 
     return (
         <div className="add-role-form">
-            {role === "host" ? (
+            {role === "host" && (
                 <Field label="Location">
                     <input
                         value={location}
                         onChange={e => setLocation(e.target.value)}
                         placeholder="Event location"
-                    />
-                </Field>
-            ) : (
-                <Field label="Club">
-                    <input
-                        value={club}
-                        onChange={e => setClub(e.target.value)}
-                        placeholder={role === "coach" ? "Club you coach at" : "Your rowing club"}
                     />
                 </Field>
             )}
@@ -199,6 +178,12 @@ function AddRoleForm({ role, onSave, onCancel }: {
                         onChange={setDateOfBirth}
                     />
                 </Field>
+            )}
+
+            {(role === "rower" || role === "coach") && (
+                <p className="muted field-hint">
+                    You can search for and join clubs after adding the role.
+                </p>
             )}
 
             {err && <p className="error">{err}</p>}
@@ -228,9 +213,9 @@ function AddRoleForm({ role, onSave, onCancel }: {
 // ─── Performance field with inline validation ─────────────────────────────────
 
 function PerfField({ perfKey, label, value, onChange }: {
-    perfKey: PerfKey;
-    label:   string;
-    value:   string;
+    perfKey:  PerfKey;
+    label:    string;
+    value:    string;
     onChange: (val: string) => void;
 }) {
     const { suggestion, warning } = validatePerf(perfKey, value);
@@ -266,14 +251,15 @@ function PerfField({ perfKey, label, value, onChange }: {
 
 // ─── Role panels ──────────────────────────────────────────────────────────────
 
-function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
-    rower: NonNullable<UserProfile["roles"]["rower"]>;
-    dob: string;
-    uid: string;
-    onSave: (data: NonNullable<UserProfile["roles"]["rower"]>) => Promise<void>;
-    onRemove: () => Promise<void>;
+function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLeft }: {
+    rower:        NonNullable<UserProfile["roles"]["rower"]>;
+    dob:          string;
+    uid:          string;
+    onSave:       (data: NonNullable<UserProfile["roles"]["rower"]>) => Promise<void>;
+    onRemove:     () => Promise<void>;
+    onClubJoined: (ref: ClubRef) => void;
+    onClubLeft:   (clubId: string) => void;
 }) {
-    const [club,        setClub]        = useState(rower.club ?? "");
     const [dateOfBirth, setDateOfBirth] = useState(dob ?? "");
     const [stats,  setStats]  = useState({
         heightCm:   String(rower.stats?.heightCm   ?? ""),
@@ -291,8 +277,7 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
     const [removing, setRemoving] = useState(false);
     const { msg, msgType, notify } = useNotify();
 
-    // Block save only if there are unresolved decimal-mistake suggestions
-    const perfKeys = Object.keys(perf) as PerfKey[];
+    const perfKeys       = Object.keys(perf) as PerfKey[];
     const hasSuggestions = perfKeys.some(k => detectTimeMistake(perf[k as PerfKey]) !== null);
 
     async function handleSave() {
@@ -302,8 +287,7 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
                 await saveCoreProfile(uid, { dateOfBirth });
             }
             await onSave({
-                // Save empty string as undefined so optional fields don't error
-                club: club.trim() || undefined,
+                clubMemberships: rower.clubMemberships ?? [],
                 stats: {
                     heightCm:   Number(stats.heightCm)   || undefined,
                     wingspanCm: Number(stats.wingspanCm) || undefined,
@@ -337,10 +321,10 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
     }
 
     const perfLabels: [PerfKey, string][] = [
-        ["best100m", "100 m"],
-        ["best500m", "500 m"],
-        ["best2000m", "2000 m"],
-        ["best6000m", "6000 m"],
+        ["best100m",   "100 m"],
+        ["best500m",   "500 m"],
+        ["best2000m",  "2000 m"],
+        ["best6000m",  "6000 m"],
         ["best10000m", "10000 m"],
     ];
 
@@ -358,8 +342,13 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
                 </button>
             </div>
 
-            <Field label="Club">
-                <input value={club} onChange={e => setClub(e.target.value)} placeholder="-" />
+            <Field label="Clubs">
+                <ClubSearchInput
+                    currentMemberships={rower.clubMemberships ?? []}
+                    memberRole="rower"
+                    onJoined={onClubJoined}
+                    onLeft={onClubLeft}
+                />
             </Field>
 
             <Field label="Date of birth">
@@ -425,12 +414,13 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove }: {
     );
 }
 
-function CoachPanel({ coach, onSave, onRemove }: {
-    coach: NonNullable<UserProfile["roles"]["coach"]>;
-    onSave: (data: NonNullable<UserProfile["roles"]["coach"]>) => Promise<void>;
-    onRemove: () => Promise<void>;
+function CoachPanel({ coach, onSave, onRemove, onClubJoined, onClubLeft }: {
+    coach:        NonNullable<UserProfile["roles"]["coach"]>;
+    onSave:       (data: NonNullable<UserProfile["roles"]["coach"]>) => Promise<void>;
+    onRemove:     () => Promise<void>;
+    onClubJoined: (ref: ClubRef) => void;
+    onClubLeft:   (clubId: string) => void;
 }) {
-    const [club,     setClub]     = useState(coach.club ?? "");
     const [saving,   setSaving]   = useState(false);
     const [removing, setRemoving] = useState(false);
     const { msg, msgType, notify } = useNotify();
@@ -438,7 +428,7 @@ function CoachPanel({ coach, onSave, onRemove }: {
     async function handleSave() {
         setSaving(true);
         try {
-            await onSave({ club: club.trim() });
+            await onSave({ clubMemberships: coach.clubMemberships ?? [] });
             notify("Coach saved.");
         } catch (e: any) {
             notify(e?.message ?? "Save failed.", "error");
@@ -471,9 +461,16 @@ function CoachPanel({ coach, onSave, onRemove }: {
                     {removing ? "Removing…" : "Remove role"}
                 </button>
             </div>
-            <Field label="Club">
-                <input value={club} onChange={e => setClub(e.target.value)} placeholder="-" />
+
+            <Field label="Clubs">
+                <ClubSearchInput
+                    currentMemberships={coach.clubMemberships ?? []}
+                    memberRole="coach"
+                    onJoined={onClubJoined}
+                    onLeft={onClubLeft}
+                />
             </Field>
+
             {msg && <Toast msg={msg} type={msgType} />}
             <div className="panel-actions">
                 <button
@@ -490,8 +487,8 @@ function CoachPanel({ coach, onSave, onRemove }: {
 }
 
 function HostPanel({ host, onSave, onRemove }: {
-    host: NonNullable<UserProfile["roles"]["host"]>;
-    onSave: (data: NonNullable<UserProfile["roles"]["host"]>) => Promise<void>;
+    host:     NonNullable<UserProfile["roles"]["host"]>;
+    onSave:   (data: NonNullable<UserProfile["roles"]["host"]>) => Promise<void>;
     onRemove: () => Promise<void>;
 }) {
     const [location, setLocation] = useState(host.location ?? "");
@@ -610,8 +607,15 @@ function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function ProfileEditor({ profile }: { profile: UserProfile }) {
-    const { user } = useAuth();
+export function ProfileEditor({ profile, onProfileChange }: {
+    profile:         UserProfile;
+    /**
+     * Called when a club join/leave changes the profile so the parent can
+     * re-fetch or optimistically update its local copy.
+     */
+    onProfileChange: (updated: Partial<UserProfile>) => void;
+}) {
+    const { user }                    = useAuth();
     const [addingRole, setAddingRole] = useState<RoleKey | null>(null);
     const { msg, msgType, notify }    = useNotify();
 
@@ -620,13 +624,69 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
     const roles          = profile.roles ?? {};
     const availableRoles = ALL_ROLES.filter(r => !roles[r]);
 
+    // ── Club join/leave handlers — optimistic local update ───────────────────
+
+    function handleRowerClubJoined(ref: ClubRef) {
+        const prev = profile.roles?.rower?.clubMemberships ?? [];
+        onProfileChange({
+            roles: {
+                ...profile.roles,
+                rower: {
+                    ...profile.roles?.rower!,
+                    clubMemberships: [...prev, ref],
+                },
+            },
+        });
+        notify(`Joined ${ref.clubName}.`);
+    }
+
+    function handleRowerClubLeft(clubId: string) {
+        const prev = profile.roles?.rower?.clubMemberships ?? [];
+        onProfileChange({
+            roles: {
+                ...profile.roles,
+                rower: {
+                    ...profile.roles?.rower!,
+                    clubMemberships: prev.filter(m => m.clubId !== clubId),
+                },
+            },
+        });
+        notify("Left club.");
+    }
+
+    function handleCoachClubJoined(ref: ClubRef) {
+        const prev = profile.roles?.coach?.clubMemberships ?? [];
+        onProfileChange({
+            roles: {
+                ...profile.roles,
+                coach: {
+                    ...profile.roles?.coach,
+                    clubMemberships: [...prev, ref],
+                },
+            },
+        });
+        notify(`Joined ${ref.clubName}.`);
+    }
+
+    function handleCoachClubLeft(clubId: string) {
+        const prev = profile.roles?.coach?.clubMemberships ?? [];
+        onProfileChange({
+            roles: {
+                ...profile.roles,
+                coach: {
+                    ...profile.roles?.coach,
+                    clubMemberships: prev.filter(m => m.clubId !== clubId),
+                },
+            },
+        });
+        notify("Left club.");
+    }
+
+    // ── Role save / remove ───────────────────────────────────────────────────
+
     async function handleSaveRole(role: RoleKey, data: any) {
         if (!user) return;
-        try {
-            await saveUserRole(user.uid, role, data);
-        } catch (e: any) {
-            throw e;
-        }
+        await saveUserRole(user.uid, role, data);
     }
 
     async function handleRemoveRole(role: RoleKey) {
@@ -654,6 +714,8 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
         }
     }
 
+    // ── Render ───────────────────────────────────────────────────────────────
+
     return (
         <div className="profile-editor">
             <CoreFields profile={profile} uid={user.uid} />
@@ -666,6 +728,8 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
                     uid={user.uid}
                     onSave={data => handleSaveRole("rower", data)}
                     onRemove={() => handleRemoveRole("rower")}
+                    onClubJoined={handleRowerClubJoined}
+                    onClubLeft={handleRowerClubLeft}
                 />
             )}
 
@@ -675,6 +739,8 @@ export function ProfileEditor({ profile }: { profile: UserProfile }) {
                     coach={roles.coach}
                     onSave={data => handleSaveRole("coach", data)}
                     onRemove={() => handleRemoveRole("coach")}
+                    onClubJoined={handleCoachClubJoined}
+                    onClubLeft={handleCoachClubLeft}
                 />
             )}
 

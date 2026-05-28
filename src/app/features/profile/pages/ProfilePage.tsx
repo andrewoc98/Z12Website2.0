@@ -10,10 +10,16 @@ import "../style/profile.css";
 import { PerformanceStats } from "../components/PreformanceStats.tsx";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 import DangerZone from "../components/DangerZone.tsx";
+import type { UserProfile } from "../../auth/types.ts";
 
 export default function ProfilePageElite() {
-    const { user, profile, loading } = useAuth();
+    const { user, profile: authProfile, loading } = useAuth();
     const [unit, setUnit] = useState<"metric" | "imperial">("metric");
+
+    // Local copy of profile so club join/leave updates can be applied
+    // optimistically without waiting for AuthProvider to re-fetch.
+    // Initialised once from authProfile — onProfileChange handles subsequent updates.
+    const [profile, setProfile] = useState<UserProfile | null>(authProfile ?? null);
 
     if (!loading && !user) return <Navigate to="/auth" replace />;
 
@@ -47,7 +53,12 @@ export default function ProfilePageElite() {
 
                 <section className="card profile-section">
                     <h3 className="section-title">Edit Profile</h3>
-                    <ProfileEditor profile={profile} />
+                    <ProfileEditor
+                        profile={profile}
+                        onProfileChange={(updated) =>
+                            setProfile(p => p ? { ...p, ...updated } : p)
+                        }
+                    />
                 </section>
                 <DangerZone user={user}/>
             </main>

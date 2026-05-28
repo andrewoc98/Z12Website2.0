@@ -47,8 +47,8 @@ export default function RelationshipCard({
                 <div>
                     <div className="relationship-name">{name}</div>
                     <div className="muted">
-                        {user.roles?.rower?.club ||
-                            user.roles?.coach?.club ||
+                        {user.roles?.rower?.clubMemberships?.[0]?.clubName ||
+                            user.roles?.coach?.clubMemberships?.[0]?.clubName ||
                             "—"}
                     </div>
                 </div>

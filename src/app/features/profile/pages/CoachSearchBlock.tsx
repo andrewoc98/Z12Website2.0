@@ -76,7 +76,7 @@ export default function CoachSearchBlock() {
                         <li key={coach.uid} className="card search-card">
                             <div className="list-main">
                                 <div className="list-title">{coach.fullName}</div>
-                                <div className="muted">{coach.roles?.coach?.club ?? "No club info"}</div>
+                                <div className="muted">{coach.roles?.coach?.clubMemberships?.[0]?.clubName ?? "No club info"}</div>
                             </div>
                             <button
                                 className="btn btn--brand"
