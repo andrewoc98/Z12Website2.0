@@ -651,7 +651,7 @@ export function ProfileEditor({ profile, onProfileChange }: {
 
     async function handleRemoveRole(role: RoleKey) {
         if (!user) return;
-        await removeUserRole(user.uid, role);
+        await removeUserRole(role);
         const updatedRoles = { ...profile.roles };
         delete updatedRoles[role];
         onProfileChange({ roles: updatedRoles });

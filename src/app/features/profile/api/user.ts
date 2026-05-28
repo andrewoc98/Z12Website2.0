@@ -9,7 +9,6 @@ import {
     getDoc,
     serverTimestamp,
     updateDoc,
-    deleteField,
     deleteDoc
 } from "firebase/firestore";
 import { startAt, endAt, limit} from "firebase/firestore";
@@ -132,7 +131,7 @@ export function formatTime(seconds: number) {
  * Do NOT use the old client-side deleteField() path — it leaves active
  * membership docs in the clubs subcollection that block future re-joins.
  */
-export async function removeUserRole(uid: string, role: keyof UserProfile["roles"]) {
+export async function removeUserRole(role: keyof UserProfile["roles"]) {
     const fn = httpsCallable(functions, "removeRole");
     await fn({ role });
 }
