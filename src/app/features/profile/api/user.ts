@@ -13,7 +13,8 @@ import {
     deleteDoc
 } from "firebase/firestore";
 import { startAt, endAt, limit} from "firebase/firestore";
-import { db, auth } from "../../../shared/lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, auth, functions } from "../../../shared/lib/firebase";
 import type {UserProfile} from "../../auth/types.ts";
 import { deleteUser } from "firebase/auth";
 
@@ -122,14 +123,18 @@ export function formatTime(seconds: number) {
     }
 }
 
+/**
+ * Removes a role via the `removeRole` Cloud Function, which atomically:
+ *   1. Marks every club membership for that role as "left" in Firestore
+ *   2. Decrements the club member counts
+ *   3. Deletes the role from the user document
+ *
+ * Do NOT use the old client-side deleteField() path — it leaves active
+ * membership docs in the clubs subcollection that block future re-joins.
+ */
 export async function removeUserRole(uid: string, role: keyof UserProfile["roles"]) {
-    return updateDoc(
-        doc(db, "users", uid),
-        {
-            [`roles.${role}`]: deleteField(),
-            updatedAt: serverTimestamp(),
-        }
-    );
+    const fn = httpsCallable(functions, "removeRole");
+    await fn({ role });
 }
 
 export async function saveUserRole(
@@ -153,6 +158,7 @@ export async function saveCoreProfile(
         fullName: string;
         displayName: string;
         dateOfBirth: string;
+        gender: string;
     }>
 ) {
     return updateDoc(

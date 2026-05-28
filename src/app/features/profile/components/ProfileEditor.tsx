@@ -8,7 +8,7 @@ import {
 } from "../api/user.ts";
 import "../style/profile.css";
 import DateOfBirthInput from "../../auth/components/DateOfBirthInput.tsx";
-import {ClubSearchInput} from "../../../shared/components/ClubSearchInput/ClubSearchInput.tsx";
+import { ClubSearchInput } from "../../../shared/components/ClubSearchInput/ClubSearchInput.tsx";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -32,22 +32,16 @@ function formatTime(seconds?: number): string {
 function detectTimeMistake(value: string): string | null {
     const trimmed = value.trim();
     if (!trimmed || trimmed.includes(":")) return null;
-
     const dotIdx = trimmed.indexOf(".");
     if (dotIdx === -1) return null;
-
     const intPart  = trimmed.slice(0, dotIdx);
     const fracPart = trimmed.slice(dotIdx + 1);
-
     if (fracPart.length !== 2) return null;
-
     const minutes = Number(intPart);
     const seconds = Number(fracPart);
-
     if (isNaN(minutes) || isNaN(seconds)) return null;
     if (minutes < 1) return null;
     if (seconds > 59) return null;
-
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
@@ -61,35 +55,24 @@ const PERF_BOUNDS = {
 
 type PerfKey = keyof typeof PERF_BOUNDS;
 
-interface PerfValidation {
-    suggestion: string | null;
-    warning:    string | null;
-}
-
-function validatePerf(key: PerfKey, value: string): PerfValidation {
+function validatePerf(key: PerfKey, value: string): { suggestion: string | null; warning: string | null } {
     const suggestion = detectTimeMistake(value);
     if (suggestion) return { suggestion, warning: null };
-
     const parsed = parseTime(value);
     if (parsed == null) return { suggestion: null, warning: null };
-
     const bounds = PERF_BOUNDS[key];
     if (parsed < bounds.min) {
-        return {
-            suggestion: null,
-            warning: `${formatTime(parsed)} seems too fast for ${bounds.label} — did you mean a different distance or format?`,
-        };
+        return { suggestion: null, warning: `${formatTime(parsed)} seems too fast for ${bounds.label} — did you mean a different distance or format?` };
     }
     if (parsed > bounds.max) {
-        return {
-            suggestion: null,
-            warning: `${formatTime(parsed)} seems very slow for ${bounds.label} — please double-check.`,
-        };
+        return { suggestion: null, warning: `${formatTime(parsed)} seems very slow for ${bounds.label} — please double-check.` };
     }
     return { suggestion: null, warning: null };
 }
 
 type RoleKey = "rower" | "coach" | "host";
+type TabKey  = "personal" | RoleKey | "roles";
+
 const ALL_ROLES: RoleKey[] = ["rower", "coach", "host"];
 
 // ─── Small shared components ──────────────────────────────────────────────────
@@ -127,31 +110,29 @@ function useNotify() {
 // ─── Add-role form ────────────────────────────────────────────────────────────
 
 function AddRoleForm({ role, onSave, onCancel }: {
-    role: RoleKey;
-    onSave: (data: any) => Promise<void>;
+    role:     RoleKey;
+    onSave:   (data: any) => Promise<void>;
     onCancel: () => void;
 }) {
     const [location,    setLocation]    = useState("");
     const [dateOfBirth, setDateOfBirth] = useState("");
+    const [gender,      setGender]      = useState("");
     const [saving,      setSaving]      = useState(false);
     const [err,         setErr]         = useState<string | null>(null);
 
-    // For rower/coach the role is added first without a club.
-    // The user joins clubs via ClubSearchInput in the role panel after the role exists.
     const canSubmit =
         (role === "host"  && location.trim().length >= 2) ||
         (role === "coach") ||
-        (role === "rower" && dateOfBirth.trim().length > 0);
+        (role === "rower" && dateOfBirth.trim().length > 0 && gender !== "");
 
     async function handleSave() {
         setErr(null);
         setSaving(true);
         try {
-            const data = role === "host"
-                ? { location: location.trim() }
-                : role === "rower"
-                    ? { clubMemberships: [], dateOfBirth, stats: {}, performances: {} }
-                    : { clubMemberships: [] };
+            const data =
+                role === "host"  ? { location: location.trim() }
+              : role === "rower" ? { gender, clubMemberships: [], dateOfBirth, stats: {}, performances: {} }
+              :                    { clubMemberships: [] };
             await onSave(data);
         } catch (e: any) {
             setErr(e?.message ?? "Failed to add role.");
@@ -172,18 +153,31 @@ function AddRoleForm({ role, onSave, onCancel }: {
             )}
 
             {role === "rower" && (
-                <Field label="Date of birth">
-                    <DateOfBirthInput
-                        value={dateOfBirth}
-                        onChange={setDateOfBirth}
-                    />
-                </Field>
+                <>
+                    <Field label="Date of birth">
+                        <DateOfBirthInput value={dateOfBirth} onChange={setDateOfBirth} />
+                    </Field>
+                    <Field label="Gender">
+                        <div className="radio-group">
+                            {["male", "female"].map(g => (
+                                <label key={g} className={`radio-option ${gender === g ? "radio-option--active" : ""}`}>
+                                    <input
+                                        type="radio"
+                                        name="add-role-gender"
+                                        value={g}
+                                        checked={gender === g}
+                                        onChange={() => setGender(g)}
+                                    />
+                                    {g.charAt(0).toUpperCase() + g.slice(1)}
+                                </label>
+                            ))}
+                        </div>
+                    </Field>
+                </>
             )}
 
-            {(role === "rower" || role === "coach") && (
-                <p className="muted field-hint">
-                    You can search for and join clubs after adding the role.
-                </p>
+            {role === "coach" && (
+                <p className="muted field-hint">You can search for and join clubs after adding the role.</p>
             )}
 
             {err && <p className="error">{err}</p>}
@@ -197,12 +191,7 @@ function AddRoleForm({ role, onSave, onCancel }: {
                 >
                     {saving ? "Adding…" : `Add ${role} role`}
                 </button>
-                <button
-                    type="button"
-                    className="btn"
-                    onClick={onCancel}
-                    disabled={saving}
-                >
+                <button type="button" className="btn" onClick={onCancel} disabled={saving}>
                     Cancel
                 </button>
             </div>
@@ -261,7 +250,7 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLef
     onClubLeft:   (clubId: string) => void;
 }) {
     const [dateOfBirth, setDateOfBirth] = useState(dob ?? "");
-    const [stats,  setStats]  = useState({
+    const [stats, setStats] = useState({
         heightCm:   String(rower.stats?.heightCm   ?? ""),
         wingspanCm: String(rower.stats?.wingspanCm ?? ""),
         weightKg:   String(rower.stats?.weightKg   ?? ""),
@@ -283,9 +272,7 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLef
     async function handleSave() {
         setSaving(true);
         try {
-            if (dateOfBirth.trim()) {
-                await saveCoreProfile(uid, { dateOfBirth });
-            }
+            if (dateOfBirth.trim()) await saveCoreProfile(uid, { dateOfBirth });
             await onSave({
                 clubMemberships: rower.clubMemberships ?? [],
                 stats: {
@@ -329,19 +316,7 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLef
     ];
 
     return (
-        <div className="panel">
-            <div className="panel-header">
-                <h3>Rower</h3>
-                <button
-                    type="button"
-                    className="btn btn--danger btn--sm"
-                    onClick={handleRemove}
-                    disabled={removing}
-                >
-                    {removing ? "Removing…" : "Remove role"}
-                </button>
-            </div>
-
+        <div className="role-panel">
             <Field label="Clubs">
                 <ClubSearchInput
                     currentMemberships={rower.clubMemberships ?? []}
@@ -355,46 +330,50 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLef
                 <DateOfBirthInput value={dateOfBirth} onChange={setDateOfBirth} />
             </Field>
 
-            <h4>Physical stats</h4>
-            <Field label="Height (cm)">
-                <input
-                    type="number"
-                    value={stats.heightCm}
-                    onChange={e => setStats(s => ({ ...s, heightCm: e.target.value }))}
-                    placeholder="-"
-                />
-            </Field>
-            <Field label="Wingspan (cm)">
-                <input
-                    type="number"
-                    value={stats.wingspanCm}
-                    onChange={e => setStats(s => ({ ...s, wingspanCm: e.target.value }))}
-                    placeholder="-"
-                />
-            </Field>
-            <Field label="Weight (kg)">
-                <input
-                    type="number"
-                    value={stats.weightKg}
-                    onChange={e => setStats(s => ({ ...s, weightKg: e.target.value }))}
-                    placeholder="-"
-                />
-            </Field>
+            <div className="role-panel-section">
+                <h4 className="role-panel-section-title">Physical stats</h4>
+                <Field label="Height (cm)">
+                    <input
+                        type="number"
+                        value={stats.heightCm}
+                        onChange={e => setStats(s => ({ ...s, heightCm: e.target.value }))}
+                        placeholder="-"
+                    />
+                </Field>
+                <Field label="Wingspan (cm)">
+                    <input
+                        type="number"
+                        value={stats.wingspanCm}
+                        onChange={e => setStats(s => ({ ...s, wingspanCm: e.target.value }))}
+                        placeholder="-"
+                    />
+                </Field>
+                <Field label="Weight (kg)">
+                    <input
+                        type="number"
+                        value={stats.weightKg}
+                        onChange={e => setStats(s => ({ ...s, weightKg: e.target.value }))}
+                        placeholder="-"
+                    />
+                </Field>
+            </div>
 
-            <h4>Best erg scores (mm:ss.s)</h4>
-            {perfLabels.map(([key, label]) => (
-                <PerfField
-                    key={key}
-                    perfKey={key}
-                    label={label}
-                    value={perf[key as PerfKey]}
-                    onChange={val => setPerf(p => ({ ...p, [key]: val }))}
-                />
-            ))}
+            <div className="role-panel-section">
+                <h4 className="role-panel-section-title">Best erg scores (mm:ss.s)</h4>
+                {perfLabels.map(([key, label]) => (
+                    <PerfField
+                        key={key}
+                        perfKey={key}
+                        label={label}
+                        value={perf[key as PerfKey]}
+                        onChange={val => setPerf(p => ({ ...p, [key]: val }))}
+                    />
+                ))}
+            </div>
 
             {msg && <Toast msg={msg} type={msgType} />}
 
-            <div className="panel-actions">
+            <div className="role-panel-actions">
                 <button
                     type="button"
                     className="btn btn--brand"
@@ -409,6 +388,14 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLef
                         Please review the time format suggestions above.
                     </span>
                 )}
+                <button
+                    type="button"
+                    className="btn btn--danger btn--sm role-panel-remove"
+                    onClick={handleRemove}
+                    disabled={removing}
+                >
+                    {removing ? "Removing…" : "Remove role"}
+                </button>
             </div>
         </div>
     );
@@ -449,19 +436,7 @@ function CoachPanel({ coach, onSave, onRemove, onClubJoined, onClubLeft }: {
     }
 
     return (
-        <div className="panel">
-            <div className="panel-header">
-                <h3>Coach</h3>
-                <button
-                    type="button"
-                    className="btn btn--danger btn--sm"
-                    onClick={handleRemove}
-                    disabled={removing}
-                >
-                    {removing ? "Removing…" : "Remove role"}
-                </button>
-            </div>
-
+        <div className="role-panel">
             <Field label="Clubs">
                 <ClubSearchInput
                     currentMemberships={coach.clubMemberships ?? []}
@@ -472,14 +447,17 @@ function CoachPanel({ coach, onSave, onRemove, onClubJoined, onClubLeft }: {
             </Field>
 
             {msg && <Toast msg={msg} type={msgType} />}
-            <div className="panel-actions">
+            <div className="role-panel-actions">
+                <button type="button" className="btn btn--brand" onClick={handleSave} disabled={saving}>
+                    {saving ? "Saving…" : "Save coach"}
+                </button>
                 <button
                     type="button"
-                    className="btn btn--brand"
-                    onClick={handleSave}
-                    disabled={saving}
+                    className="btn btn--danger btn--sm role-panel-remove"
+                    onClick={handleRemove}
+                    disabled={removing}
                 >
-                    {saving ? "Saving…" : "Save coach"}
+                    {removing ? "Removing…" : "Remove role"}
                 </button>
             </div>
         </div>
@@ -520,30 +498,22 @@ function HostPanel({ host, onSave, onRemove }: {
     }
 
     return (
-        <div className="panel">
-            <div className="panel-header">
-                <h3>Host</h3>
-                <button
-                    type="button"
-                    className="btn btn--danger btn--sm"
-                    onClick={handleRemove}
-                    disabled={removing}
-                >
-                    {removing ? "Removing…" : "Remove role"}
-                </button>
-            </div>
+        <div className="role-panel">
             <Field label="Location">
                 <input value={location} onChange={e => setLocation(e.target.value)} placeholder="-" />
             </Field>
             {msg && <Toast msg={msg} type={msgType} />}
-            <div className="panel-actions">
+            <div className="role-panel-actions">
+                <button type="button" className="btn btn--brand" onClick={handleSave} disabled={saving}>
+                    {saving ? "Saving…" : "Save host"}
+                </button>
                 <button
                     type="button"
-                    className="btn btn--brand"
-                    onClick={handleSave}
-                    disabled={saving}
+                    className="btn btn--danger btn--sm role-panel-remove"
+                    onClick={handleRemove}
+                    disabled={removing}
                 >
-                    {saving ? "Saving…" : "Save host"}
+                    {removing ? "Removing…" : "Remove role"}
                 </button>
             </div>
         </div>
@@ -574,8 +544,7 @@ function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
     }
 
     return (
-        <div className="panel">
-            <h3>Personal info</h3>
+        <div className="role-panel">
             <Field label="Full name">
                 <input
                     value={fullName}
@@ -591,13 +560,8 @@ function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
                 />
             </Field>
             {msg && <Toast msg={msg} type={msgType} />}
-            <div className="panel-actions">
-                <button
-                    type="button"
-                    className="btn btn--brand"
-                    onClick={handleSave}
-                    disabled={saving}
-                >
+            <div className="role-panel-actions">
+                <button type="button" className="btn btn--brand" onClick={handleSave} disabled={saving}>
                     {saving ? "Saving…" : "Save"}
                 </button>
             </div>
@@ -609,13 +573,10 @@ function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
 
 export function ProfileEditor({ profile, onProfileChange }: {
     profile:         UserProfile;
-    /**
-     * Called when a club join/leave changes the profile so the parent can
-     * re-fetch or optimistically update its local copy.
-     */
     onProfileChange: (updated: Partial<UserProfile>) => void;
 }) {
     const { user }                    = useAuth();
+    const [activeTab,  setActiveTab]  = useState<TabKey>("personal");
     const [addingRole, setAddingRole] = useState<RoleKey | null>(null);
     const { msg, msgType, notify }    = useNotify();
 
@@ -624,6 +585,17 @@ export function ProfileEditor({ profile, onProfileChange }: {
     const roles          = profile.roles ?? {};
     const availableRoles = ALL_ROLES.filter(r => !roles[r]);
 
+    const tabs: { key: TabKey; label: string }[] = [
+        { key: "personal", label: "Personal" },
+        ...(roles.rower  ? [{ key: "rower"  as TabKey, label: "Rower"    }] : []),
+        ...(roles.coach  ? [{ key: "coach"  as TabKey, label: "Coach"    }] : []),
+        ...(roles.host   ? [{ key: "host"   as TabKey, label: "Host"     }] : []),
+        ...(availableRoles.length > 0 ? [{ key: "roles" as TabKey, label: "Add Role" }] : []),
+    ];
+
+    // Guard against stale active tab after role removal
+    const validTab = tabs.some(t => t.key === activeTab) ? activeTab : "personal";
+
     // ── Club join/leave handlers — optimistic local update ───────────────────
 
     function handleRowerClubJoined(ref: ClubRef) {
@@ -631,10 +603,7 @@ export function ProfileEditor({ profile, onProfileChange }: {
         onProfileChange({
             roles: {
                 ...profile.roles,
-                rower: {
-                    ...profile.roles?.rower!,
-                    clubMemberships: [...prev, ref],
-                },
+                rower: { ...profile.roles?.rower!, clubMemberships: [...prev, ref] },
             },
         });
         notify(`Joined ${ref.clubName}.`);
@@ -645,10 +614,7 @@ export function ProfileEditor({ profile, onProfileChange }: {
         onProfileChange({
             roles: {
                 ...profile.roles,
-                rower: {
-                    ...profile.roles?.rower!,
-                    clubMemberships: prev.filter(m => m.clubId !== clubId),
-                },
+                rower: { ...profile.roles?.rower!, clubMemberships: prev.filter(m => m.clubId !== clubId) },
             },
         });
         notify("Left club.");
@@ -659,10 +625,7 @@ export function ProfileEditor({ profile, onProfileChange }: {
         onProfileChange({
             roles: {
                 ...profile.roles,
-                coach: {
-                    ...profile.roles?.coach,
-                    clubMemberships: [...prev, ref],
-                },
+                coach: { ...profile.roles?.coach, clubMemberships: [...prev, ref] },
             },
         });
         notify(`Joined ${ref.clubName}.`);
@@ -673,10 +636,7 @@ export function ProfileEditor({ profile, onProfileChange }: {
         onProfileChange({
             roles: {
                 ...profile.roles,
-                coach: {
-                    ...profile.roles?.coach,
-                    clubMemberships: prev.filter(m => m.clubId !== clubId),
-                },
+                coach: { ...profile.roles?.coach, clubMemberships: prev.filter(m => m.clubId !== clubId) },
             },
         });
         notify("Left club.");
@@ -692,21 +652,34 @@ export function ProfileEditor({ profile, onProfileChange }: {
     async function handleRemoveRole(role: RoleKey) {
         if (!user) return;
         await removeUserRole(user.uid, role);
+        const updatedRoles = { ...profile.roles };
+        delete updatedRoles[role];
+        onProfileChange({ roles: updatedRoles });
+        setActiveTab("personal");
     }
 
     async function handleAddRole(role: RoleKey, data: any) {
         if (!user) return;
         try {
-            if (role === "rower" && data.dateOfBirth) {
+            const coreUpdates: Partial<UserProfile> = {};
+            if (role === "rower") {
                 await saveCoreProfile(user.uid, {
                     fullName:    profile.fullName    ?? "",
                     displayName: profile.displayName ?? profile.fullName ?? "",
-                    dateOfBirth: data.dateOfBirth,
+                    ...(data.dateOfBirth ? { dateOfBirth: data.dateOfBirth } : {}),
+                    ...(data.gender      ? { gender: data.gender }           : {}),
                 });
+                if (data.dateOfBirth) coreUpdates.dateOfBirth = data.dateOfBirth;
+                if (data.gender)      coreUpdates.gender = data.gender as "male" | "female";
             }
-            const { dateOfBirth: _dob, ...roleData } = data;
+            const { dateOfBirth: _dob, gender: _gender, ...roleData } = data;
             await saveUserRole(user.uid, role, roleData);
+            onProfileChange({
+                ...coreUpdates,
+                roles: { ...profile.roles, [role]: roleData },
+            });
             setAddingRole(null);
+            setActiveTab(role);
             notify(`${role.charAt(0).toUpperCase() + role.slice(1)} role added.`);
         } catch (e: any) {
             notify(e?.message ?? "Failed to add role.", "error");
@@ -718,75 +691,88 @@ export function ProfileEditor({ profile, onProfileChange }: {
 
     return (
         <div className="profile-editor">
-            <CoreFields profile={profile} uid={user.uid} />
+            <div className="editor-tabs" role="tablist">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={validTab === tab.key}
+                        className={`editor-tab${validTab === tab.key ? " editor-tab--active" : ""}`}
+                        onClick={() => { setActiveTab(tab.key); setAddingRole(null); }}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
-            {roles.rower && (
-                <RowerPanel
-                    key="rower"
-                    rower={roles.rower}
-                    dob={profile.dateOfBirth ?? ""}
-                    uid={user.uid}
-                    onSave={data => handleSaveRole("rower", data)}
-                    onRemove={() => handleRemoveRole("rower")}
-                    onClubJoined={handleRowerClubJoined}
-                    onClubLeft={handleRowerClubLeft}
-                />
-            )}
+            <div className="editor-tab-content" role="tabpanel">
+                {validTab === "personal" && (
+                    <CoreFields profile={profile} uid={user.uid} />
+                )}
 
-            {roles.coach && (
-                <CoachPanel
-                    key="coach"
-                    coach={roles.coach}
-                    onSave={data => handleSaveRole("coach", data)}
-                    onRemove={() => handleRemoveRole("coach")}
-                    onClubJoined={handleCoachClubJoined}
-                    onClubLeft={handleCoachClubLeft}
-                />
-            )}
+                {validTab === "rower" && roles.rower && (
+                    <RowerPanel
+                        rower={roles.rower}
+                        dob={profile.dateOfBirth ?? ""}
+                        uid={user.uid}
+                        onSave={data => handleSaveRole("rower", data)}
+                        onRemove={() => handleRemoveRole("rower")}
+                        onClubJoined={handleRowerClubJoined}
+                        onClubLeft={handleRowerClubLeft}
+                    />
+                )}
 
-            {roles.host && (
-                <HostPanel
-                    key="host"
-                    host={roles.host}
-                    onSave={data => handleSaveRole("host", data)}
-                    onRemove={() => handleRemoveRole("host")}
-                />
-            )}
+                {validTab === "coach" && roles.coach && (
+                    <CoachPanel
+                        coach={roles.coach}
+                        onSave={data => handleSaveRole("coach", data)}
+                        onRemove={() => handleRemoveRole("coach")}
+                        onClubJoined={handleCoachClubJoined}
+                        onClubLeft={handleCoachClubLeft}
+                    />
+                )}
 
-            {availableRoles.length > 0 && (
-                <div className="panel add-role-panel">
-                    <h3>Add a role</h3>
-                    <p className="muted">Expand your account by adding another role.</p>
+                {validTab === "host" && roles.host && (
+                    <HostPanel
+                        host={roles.host}
+                        onSave={data => handleSaveRole("host", data)}
+                        onRemove={() => handleRemoveRole("host")}
+                    />
+                )}
 
-                    {!addingRole ? (
-                        <div className="add-role-chips">
-                            {availableRoles.map(role => (
-                                <button
-                                    key={role}
-                                    type="button"
-                                    className="btn add-role-chip"
-                                    onClick={() => setAddingRole(role)}
-                                >
-                                    + {role.charAt(0).toUpperCase() + role.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <>
-                            <p className="add-role-selected-label">
-                                Adding: <strong>
-                                {addingRole.charAt(0).toUpperCase() + addingRole.slice(1)}
-                            </strong>
-                            </p>
-                            <AddRoleForm
-                                role={addingRole}
-                                onSave={data => handleAddRole(addingRole, data)}
-                                onCancel={() => setAddingRole(null)}
-                            />
-                        </>
-                    )}
-                </div>
-            )}
+                {validTab === "roles" && availableRoles.length > 0 && (
+                    <div className="role-panel">
+                        <p className="muted">Select a role to add to your account.</p>
+                        {!addingRole ? (
+                            <div className="add-role-grid">
+                                {availableRoles.map(role => (
+                                    <button
+                                        key={role}
+                                        type="button"
+                                        className="add-role-card"
+                                        onClick={() => setAddingRole(role)}
+                                    >
+                                        <span className="add-role-card-icon">+</span>
+                                        <span>{role.charAt(0).toUpperCase() + role.slice(1)}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div>
+                                <p className="muted" style={{ marginBottom: "16px" }}>
+                                    Adding: <strong>{addingRole.charAt(0).toUpperCase() + addingRole.slice(1)}</strong>
+                                </p>
+                                <AddRoleForm
+                                    role={addingRole}
+                                    onSave={data => handleAddRole(addingRole, data)}
+                                    onCancel={() => setAddingRole(null)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {msg && <Toast msg={msg} type={msgType} />}
         </div>
