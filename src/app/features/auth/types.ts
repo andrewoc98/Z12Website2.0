@@ -117,6 +117,7 @@ export type UserProfile = {
              * Empty array = not attached to any club yet.
              */
             clubMemberships: ClubRef[];
+            openAssignment?: boolean; // defaults to true when absent
         };
 
         host?: {

@@ -10,6 +10,8 @@ import { PerformanceStats } from "../components/PreformanceStats.tsx";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 import DangerZone from "../components/DangerZone.tsx";
 import type { UserProfile } from "../../auth/types.ts";
+import { MyCoachesSection } from "../../coaches/components/MyCoachesSection.tsx";
+import { MyAthletesSection } from "../../coaches/components/MyAthletesSection.tsx";
 
 export default function ProfilePageElite() {
     const { user, profile: authProfile, loading } = useAuth();
@@ -40,10 +42,13 @@ export default function ProfilePageElite() {
             <main className="profile-page-elite">
                 <ProfileHero profile={profile} unit={unit} toggleUnit={toggleUnit} />
 
+                {roles.coach && <MyAthletesSection profile={profile} />}
+
                 {roles.rower && (
                     <>
                         <AthleteStats unit={unit} />
                         <PerformanceStats />
+                        <MyCoachesSection profile={profile} />
                     </>
                 )}
 
