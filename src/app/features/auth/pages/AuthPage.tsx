@@ -634,7 +634,7 @@ export default function AuthPage() {
                 id: clubInviteId,
                 clubId: clubInviteClubId,
                 clubName: clubInviteClubName,
-                memberRole: role,
+                memberRole: role as "rower" | "coach",
                 targetEmail: "",
                 status: "pending",
             });

@@ -313,7 +313,7 @@ function Step3({
                     ["Location",     form.proposedClubLocation],
                     ["Description",  form.proposedClubDescription],
                     form.supportingInfo ? ["Supporting info", form.supportingInfo] : null,
-                ] as ([string, string] | null)[]).filter(Boolean).map(([label, value]) => (
+                ] as ([string, string] | null)[]).filter((x): x is [string, string] => x !== null).map(([label, value]) => (
                     <div key={label} className="cr-review__row">
                         <div className="cr-review__label">{label}</div>
                         <div className="cr-review__value">{value}</div>

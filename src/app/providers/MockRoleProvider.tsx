@@ -19,7 +19,7 @@ export function MockRoleProvider({
     const { user } = useMockAuth();
 
     function hasRole(role: CheckableRole) {
-        return !!user?.roles?.[role];
+        return !!(user?.roles as Record<string, unknown>)?.[role];
     }
 
     return (
