@@ -9,7 +9,7 @@ import { useRoles } from "../providers/RoleProvider";
 import { useMockRoles } from "../providers/MockRoleProvider";
 import type {JSX} from "react";
 
-type Role = "rower" | "host" | "admin";
+type Role = "rower" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
 
 export default function RequireRole({
                                         role,

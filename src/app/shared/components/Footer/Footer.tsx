@@ -66,6 +66,7 @@ const Footer: React.FC = () => {
                     >
                         HOST A RACE
                     </button>
+
                 </div>
 
                 {/* Links */}
@@ -73,6 +74,9 @@ const Footer: React.FC = () => {
                     <a href="/terms">TERMS AND CONDITIONS</a>
                     <a href="/privacy">PRIVACY SETTINGS</a>
                     <a href="#">MANAGE COOKIES</a>
+                    {!loading && !hasRole("clubAdmin") && (
+                        <a href="/club/request">START A CLUB</a>
+                    )}
                 </div>
             </div>
 

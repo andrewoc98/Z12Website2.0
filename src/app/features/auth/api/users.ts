@@ -74,3 +74,26 @@ export async function fetchAdminInvite(
     };
 }
 
+export type ClubInvitePreview = {
+    id:          string;
+    clubId:      string;
+    clubName:    string;
+    memberRole:  "rower" | "coach";
+    targetEmail: string;
+    status:      string;
+};
+
+export async function fetchClubInvite(inviteId: string): Promise<ClubInvitePreview | null> {
+    const snap = await getDoc(doc(db, "clubInvites", inviteId));
+    if (!snap.exists()) return null;
+    const d = snap.data() as any;
+    return {
+        id:          snap.id,
+        clubId:      d.clubId,
+        clubName:    d.clubName,
+        memberRole:  d.memberRole,
+        targetEmail: d.targetEmail,
+        status:      d.status,
+    };
+}
+

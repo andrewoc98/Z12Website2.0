@@ -15,7 +15,6 @@ import Footer from "../../../shared/components/Footer/Footer.tsx";
 // ---------- Types ----------
 type Profile = {
     dateOfBirth?: string;
-    primaryRole?: string;
     uuid?: string;
     email?: string;
     gender?: "male" | "female";

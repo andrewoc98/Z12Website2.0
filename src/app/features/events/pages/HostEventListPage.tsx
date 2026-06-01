@@ -63,7 +63,7 @@ export default function HostEventListPage() {
         <div className="page-container">
             <Navbar />
             <div className="page-content">
-                <main className="events-page">
+                <main className="events-page" data-tour="host-events-list">
                     {/* header */}
                     <div className="events-header">
                         <div className="events-title">

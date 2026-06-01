@@ -9,7 +9,7 @@ export function PerformanceStats() {
     const safeTime = (val?: number) => val != null ? formatTime(val) : "-";
 
     return (
-        <section className="card profile-section stats-section">
+        <section className="card profile-section stats-section" data-tour="profile-performances">
             <h3 className="section-title">Best Erg Scores</h3>
             <div className="stats-grid">
                 <div className="stat-card">

@@ -1,0 +1,58 @@
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+/* ── Role colours ─────────────────────────────────────── */
+
+.role-badge--rower {
+    background: rgba(255, 212, 0, 0.15);
+    color: #ffd400;
+    border-color: rgba(255, 212, 0, 0.35);
+}
+
+.role-badge--coach {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+    border-color: rgba(96, 165, 250, 0.35);
+}
+
+.role-badge--clubAdmin {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.35);
+}
+
+.role-badge--federationAdmin {
+    background: rgba(167, 139, 250, 0.15);
+    color: #a78bfa;
+    border-color: rgba(167, 139, 250, 0.35);
+}
+
+.role-badge--platformAdmin {
+    background: rgba(254, 185, 89, 0.15);
+    color: #feb959;
+    border-color: rgba(254, 185, 89, 0.35);
+}
+
+.role-badge--host {
+    background: rgba(45, 212, 191, 0.15);
+    color: #2dd4bf;
+    border-color: rgba(45, 212, 191, 0.35);
+}
+
+.role-badge--admin,
+.role-badge--guardian {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.55);
+    border-color: rgba(255, 255, 255, 0.12);
+}

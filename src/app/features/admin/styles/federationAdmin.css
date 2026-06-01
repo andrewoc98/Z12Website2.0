@@ -1,0 +1,569 @@
+/* ─── Federation Admin Styles ─────────────────────────────────────────────────
+   Prefix: fa-  (federation admin)
+   Extends platformAdmin.css tokens and patterns
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Club overview card ───────────────────────────────────────────────────────── */
+
+.fa-club-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.fa-club-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+}
+
+.fa-club-card--suspended {
+    opacity: 0.65;
+    border-color: rgba(255,77,109,0.25);
+    border-left: 3px solid rgba(255,77,109,0.5);
+}
+
+.fa-club-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.fa-club-card__name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+.fa-club-card__location {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.fa-club-card__counts {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.fa-club-card__count {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 48px;
+}
+
+.fa-club-card__count-val {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    font-family: "DIN Condensed", sans-serif;
+}
+
+.fa-club-card__count-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+    font-family: "Inter", system-ui, sans-serif;
+}
+
+/* ── Club grid ────────────────────────────────────────────────────────────────── */
+
+.fa-club-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-md);
+}
+
+/* ── Request row ──────────────────────────────────────────────────────────────── */
+
+.fa-req-row {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.fa-req-row__main {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: 14px 16px;
+}
+
+.fa-req-row__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.fa-req-row__club {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text);
+}
+
+.fa-req-row__meta {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 3px;
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.fa-req-row__description {
+    font-size: 0.825rem;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+.fa-req-row__actions {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+
+/* Reject inline form */
+.fa-req-row__reject-form {
+    padding: 0 16px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    animation: fa-expand 0.18s ease;
+}
+
+@keyframes fa-expand {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.fa-req-row__reject-form textarea {
+    min-height: 72px;
+    resize: vertical;
+}
+
+.fa-req-row__reject-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+}
+
+/* ── Athlete selection grid ───────────────────────────────────────────────────── */
+
+.fa-athlete-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-md);
+}
+
+.fa-athlete-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+}
+
+.fa-athlete-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+    border-color: rgba(167,139,250,0.35);
+}
+
+.fa-athlete-card__avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(167,139,250,0.2), rgba(167,139,250,0.45));
+    color: #a78bfa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    font-family: "Inter", system-ui, sans-serif;
+    flex-shrink: 0;
+}
+
+.fa-athlete-card__name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.3;
+}
+
+.fa-athlete-card__meta {
+    font-size: 0.775rem;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+/* ── Athlete profile modal ────────────────────────────────────────────────────── */
+
+.fa-profile-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.fa-profile-stat {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+}
+
+.fa-profile-stat__val {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: "DIN Condensed", sans-serif;
+    letter-spacing: 0.02em;
+}
+
+.fa-profile-stat__label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+    font-family: "Inter", system-ui, sans-serif;
+}
+
+.fa-profile-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+    margin: 0;
+}
+
+/* ── National selection toolbar ──────────────────────────────────────────────── */
+
+.fa-selection-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.fa-selection-top-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.fa-selection-search-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.fa-selection-search {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    font-family: "Inter", system-ui, sans-serif;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.fa-selection-search:focus {
+    border-color: rgba(255,212,0,0.4);
+}
+
+.fa-selection-search::placeholder {
+    color: var(--muted);
+}
+
+.fa-selection-select {
+    padding: 5px 28px 5px 10px;
+    font-size: 0.8rem;
+    font-family: "Inter", system-ui, sans-serif;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--muted);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.35)'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.fa-selection-select:focus {
+    border-color: rgba(255,212,0,0.4);
+    color: var(--text);
+}
+
+.fa-selection-count {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+    letter-spacing: 0.02em;
+}
+
+/* ── Filter tabs (fa- prefixed) ───────────────────────────────────────────────── */
+
+.fa-filter-tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px;
+}
+
+.fa-filter-tab {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-family: "Inter", system-ui, sans-serif;
+    font-weight: 500;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.fa-filter-tab:hover {
+    color: var(--text);
+}
+
+.fa-filter-tab--active {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+/* ── Shortlist star button on athlete card ────────────────────────────────────── */
+
+.fa-shortlist-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    line-height: 1;
+    min-height: unset;
+    font-family: "Inter", system-ui, sans-serif;
+    text-transform: none;
+    letter-spacing: 0;
+    box-shadow: none;
+    z-index: 1;
+    transition: color 0.15s, background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.fa-shortlist-btn:hover {
+    color: var(--brand);
+    border-color: rgba(255,212,0,0.4);
+    background: rgba(255,212,0,0.08);
+    transform: scale(1.12);
+    box-shadow: none;
+}
+
+.fa-shortlist-btn--active {
+    color: var(--brand);
+    background: rgba(255,212,0,0.12);
+    border-color: rgba(255,212,0,0.4);
+}
+
+.fa-shortlist-btn--active:hover {
+    background: rgba(255,212,0,0.2);
+}
+
+/* ── Shortlisted card state ───────────────────────────────────────────────────── */
+
+.fa-athlete-card--shortlisted {
+    border-color: rgba(255,212,0,0.3);
+    box-shadow: 0 0 0 1px rgba(255,212,0,0.1);
+}
+
+/* ── 2000m time chip on athlete card ─────────────────────────────────────────── */
+
+.fa-athlete-card__2k {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: 6px;
+    padding: 5px 10px;
+    background: rgba(255,212,0,0.07);
+    border: 1px solid rgba(255,212,0,0.18);
+    border-radius: var(--radius-sm);
+}
+
+.fa-athlete-card__2k-time {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--brand);
+    font-family: "DIN Condensed", sans-serif;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+}
+
+.fa-athlete-card__2k-time--empty {
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.fa-athlete-card__2k-label {
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: "Inter", system-ui, sans-serif;
+    margin-top: 1px;
+}
+
+/* ── 2000m hero in profile modal ─────────────────────────────────────────────── */
+
+.fa-profile-2k-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 16px;
+    background: rgba(255,212,0,0.06);
+    border: 1px solid rgba(255,212,0,0.2);
+    border-radius: var(--radius-sm);
+    text-align: center;
+}
+
+.fa-profile-2k-hero__time {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--brand);
+    font-family: "DIN Condensed", sans-serif;
+    letter-spacing: 0.04em;
+    line-height: 1;
+}
+
+.fa-profile-2k-hero__label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: "Inter", system-ui, sans-serif;
+    margin-top: 4px;
+}
+
+/* ── Highlighted stat (2000m in performances grid) ───────────────────────────── */
+
+.fa-profile-stat--highlight {
+    border-color: rgba(255,212,0,0.3);
+    background: rgba(255,212,0,0.06);
+}
+
+.fa-profile-stat--highlight .fa-profile-stat__val {
+    color: var(--brand);
+}
+
+/* ── Auto-approve toggle ──────────────────────────────────────────────────────── */
+
+.fa-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fa-toggle-text {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+    white-space: nowrap;
+}
+
+.fa-toggle {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.fa-toggle__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.fa-toggle__track {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 10px;
+    transition: background 0.2s ease;
+    pointer-events: none;
+}
+
+.fa-toggle__track::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.fa-toggle__input:checked + .fa-toggle__track {
+    background: var(--brand, #a78bfa);
+}
+
+.fa-toggle__input:checked + .fa-toggle__track::after {
+    transform: translateX(16px);
+}
+
+.fa-toggle__input:disabled + .fa-toggle__track {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

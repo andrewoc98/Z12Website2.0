@@ -1,0 +1,126 @@
+/* ── Z12 Driver.js theme override ───────────────────────────────────────────
+   Imported after driver.js/dist/driver.css so these rules win the cascade.
+   Using !important only where driver.js hardcodes values that would otherwise
+   override the custom properties. */
+
+/* Popover container */
+.driver-popover {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: var(--shadow) !important;
+    color: var(--text) !important;
+    min-width: 280px;
+    max-width: 340px;
+}
+
+/* Brand accent bar along the top edge of the popover */
+.driver-popover::before {
+    content: "";
+    display: block;
+    height: 3px;
+    background: var(--brand);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    margin: -16px -16px 14px;
+}
+
+.driver-popover-title {
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    color: var(--text) !important;
+}
+
+.driver-popover-description {
+    font-size: 0.9rem !important;
+    line-height: 1.6 !important;
+    color: var(--muted) !important;
+}
+
+/* Progress text — "1 of 5" */
+.driver-popover-progress-text {
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+    color: var(--brand) !important;
+}
+
+/* Next / Done button */
+.driver-popover-next-btn {
+    background: var(--brand) !important;
+    color: var(--brand-ink) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1.1rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    transition: opacity 0.15s !important;
+}
+
+.driver-popover-next-btn:hover:not(:disabled),
+.driver-popover-next-btn:focus:not(:disabled) {
+    background: var(--brand) !important;
+    color: var(--brand-ink) !important;
+    opacity: 0.88 !important;
+    box-shadow: none !important;
+}
+
+/* Prev button */
+.driver-popover-prev-btn {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1.1rem !important;
+    font-size: 0.875rem !important;
+    color: var(--muted) !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    transition: color 0.15s, border-color 0.15s !important;
+}
+
+.driver-popover-prev-btn:hover:not(:disabled),
+.driver-popover-prev-btn:focus:not(:disabled) {
+    color: var(--text) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Disabled state (first step has no Prev) */
+.driver-popover-prev-btn:disabled {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+}
+
+/* Close (×) button */
+.driver-popover-close-btn {
+    color: var(--muted) !important;
+    font-size: 1rem !important;
+}
+
+.driver-popover-close-btn:hover {
+    color: var(--text) !important;
+}
+
+/* Arrow — tint to match the surface background */
+.driver-popover-arrow::before {
+    border-color: var(--surface) transparent transparent transparent !important;
+}
+
+.driver-popover[data-popper-placement^="top"] .driver-popover-arrow::before {
+    border-color: var(--surface) transparent transparent transparent !important;
+}
+
+.driver-popover[data-popper-placement^="bottom"] .driver-popover-arrow::before {
+    border-color: transparent transparent var(--surface) transparent !important;
+}
+
+.driver-popover[data-popper-placement^="left"] .driver-popover-arrow::before {
+    border-color: transparent transparent transparent var(--surface) !important;
+}
+
+.driver-popover[data-popper-placement^="right"] .driver-popover-arrow::before {
+    border-color: transparent var(--surface) transparent transparent !important;
+}

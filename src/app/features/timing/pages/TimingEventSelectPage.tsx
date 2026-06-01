@@ -122,7 +122,7 @@ export default function TimingEventSelectPage() {
     return (
         <>
             <Navbar />
-            <div className="timing-select-page page">
+            <div className="timing-select-page page" data-tour="timing-select">
                 <div className="timing-select-header">
                     <div className="timing-select-title">
                         <h1>TIMING</h1>

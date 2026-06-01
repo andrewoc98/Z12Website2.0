@@ -12,7 +12,7 @@ import {
     getUserProfile,
     sendParentConsentEmail, sendVerificationEmail,
 } from "../../../shared/lib/firebase";
-import {fetchAdminInvite, upsertUserProfile} from "../api/users";
+import { fetchAdminInvite, fetchClubInvite, type ClubInvitePreview, upsertUserProfile } from "../api/users";
 import { isMinor, signInEmail } from "../api/auth";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../../shared/lib/firebase";
@@ -239,23 +239,31 @@ function StepRoleDetails({
                                 </>
                             )}
 
-                            {/* ── CHANGED: ClubPicker replaces plain text input ── */}
                             <label>Club <span className="optional-badge">Optional</span></label>
                             <ClubPicker
                                 value={d.rower.club}
                                 onChange={(club) => patch("rower", { club })}
                             />
+                            {!d.rower.club && (
+                                <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
+                                    You can join a club later from your profile.
+                                </p>
+                            )}
                         </>
                     )}
 
                     {role === "coach" && d.coach && (
                         <>
-                            {/* ── CHANGED: ClubPicker replaces plain text input ── */}
                             <label>Club <span className="optional-badge">Optional</span></label>
                             <ClubPicker
                                 value={d.coach.club}
                                 onChange={(club) => patch("coach", { club })}
                             />
+                            {!d.coach.club && (
+                                <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}>
+                                    You can join a club later from your profile.
+                                </p>
+                            )}
                         </>
                     )}
 
@@ -276,19 +284,38 @@ function StepRoleDetails({
 
 function StepConsent({
                          selectedRoles,
-                         acceptedTerms,         setAcceptedTerms,
-                         acceptedPrivacy,       setAcceptedPrivacy,
-                         acceptedDataSharing,   setAcceptedDataSharing,
+                         acceptedTerms,               setAcceptedTerms,
+                         acceptedPrivacy,             setAcceptedPrivacy,
+                         acceptedDataSharing,         setAcceptedDataSharing,
                          acceptedPerformanceTracking, setAcceptedPerformanceTracking,
+                         acceptedNationalFederation,  setAcceptedNationalFederation,
                      }: {
     selectedRoles: RoleChoice[];
-    acceptedTerms: boolean;              setAcceptedTerms: (v: boolean) => void;
-    acceptedPrivacy: boolean;            setAcceptedPrivacy: (v: boolean) => void;
-    acceptedDataSharing: boolean;        setAcceptedDataSharing: (v: boolean) => void;
+    acceptedTerms: boolean;               setAcceptedTerms: (v: boolean) => void;
+    acceptedPrivacy: boolean;             setAcceptedPrivacy: (v: boolean) => void;
+    acceptedDataSharing: boolean;         setAcceptedDataSharing: (v: boolean) => void;
     acceptedPerformanceTracking: boolean; setAcceptedPerformanceTracking: (v: boolean) => void;
+    acceptedNationalFederation: boolean;  setAcceptedNationalFederation: (v: boolean) => void;
 }) {
+    const isRower = selectedRoles.includes("rower");
+
     return (
         <div className="terms-checkbox">
+            {isRower && (
+            <>
+            <label>
+                <input type="checkbox" checked={acceptedNationalFederation} onChange={(e) => setAcceptedNationalFederation(e.target.checked)} />
+                I agree to share my data with my national federation
+                <span className="optional-badge">Optional</span>
+            </label>
+
+            <label>
+                <input type="checkbox" checked={acceptedDataSharing} onChange={(e) => setAcceptedDataSharing(e.target.checked)} />
+                I agree to share my data with coaches/universities
+                <span className="optional-badge">Optional</span>
+            </label>
+            </>
+            )}
             <label>
                 <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
                 I agree to the terms and conditions
@@ -299,18 +326,15 @@ function StepConsent({
                 I agree to the privacy policy
                 <span className="required-badge">Required</span>
             </label>
-            {selectedRoles.includes("rower") && (
-                <label>
-                    <input type="checkbox" checked={acceptedPerformanceTracking} onChange={(e) => setAcceptedPerformanceTracking(e.target.checked)} />
-                    I agree to performance tracking
-                    <span className="required-badge">Required</span>
-                </label>
+            {isRower && (
+                <>
+                    <label>
+                        <input type="checkbox" checked={acceptedPerformanceTracking} onChange={(e) => setAcceptedPerformanceTracking(e.target.checked)} />
+                        I agree to performance tracking
+                        <span className="required-badge">Required</span>
+                    </label>
+                </>
             )}
-            <label>
-                <input type="checkbox" checked={acceptedDataSharing} onChange={(e) => setAcceptedDataSharing(e.target.checked)} />
-                I agree to share my data with coaches/universities
-                <span className="optional-badge">Optional</span>
-            </label>
         </div>
     );
 }
@@ -536,7 +560,11 @@ function AdminInviteFlow({
 export default function AuthPage() {
     const navigate      = useNavigate();
     const [searchParams] = useSearchParams();
-    const inviteId      = searchParams.get("adminInvite");
+    const inviteId           = searchParams.get("adminInvite");
+    const clubInviteId       = searchParams.get("clubInvite");
+    const clubInviteClubId   = searchParams.get("clubId");
+    const clubInviteClubName = searchParams.get("clubName");
+    const clubInviteRole     = searchParams.get("role") as RoleChoice | null;
 
     const goAfterAuth = () => {
         const raw = searchParams.get("returnTo");
@@ -559,6 +587,7 @@ export default function AuthPage() {
     const [verificationSent,   setVerificationSent]   = useState(false);
     const [successType,        setSuccessType]        = useState<"email" | "parent" | "admin-existing" | "admin-new" | null>(null);
     const [adminInvite,        setAdminInvite]        = useState<any | null>(null);
+    const [clubInviteData,     setClubInviteData]     = useState<ClubInvitePreview | null>(null);
     const [unverifiedEmail,    setUnverifiedEmail]    = useState<string | null>(null);
     const [resendCooldown,     setResendCooldown]     = useState(0);
     const [resendCount,        setResendCount]        = useState(0);
@@ -573,6 +602,7 @@ export default function AuthPage() {
     const [acceptedPrivacy,             setAcceptedPrivacy]             = useState(false);
     const [acceptedDataSharing,         setAcceptedDataSharing]         = useState(false);
     const [acceptedPerformanceTracking, setAcceptedPerformanceTracking] = useState(false);
+    const [acceptedNationalFederation,  setAcceptedNationalFederation]  = useState(false);
 
     const loc = useLocation();
 
@@ -593,6 +623,50 @@ export default function AuthPage() {
             setMode("register");
         });
     }, [inviteId]);
+
+    useEffect(() => {
+        if (!clubInviteId) return;
+
+        // URL params are embedded in new invite emails — use them directly (no auth needed)
+        if (clubInviteClubId && clubInviteClubName && clubInviteRole) {
+            const role = clubInviteRole;
+            setClubInviteData({
+                id: clubInviteId,
+                clubId: clubInviteClubId,
+                clubName: clubInviteClubName,
+                memberRole: role,
+                targetEmail: "",
+                status: "pending",
+            });
+            setMode("register");
+            setSelectedRoles([role]);
+            setRoleDetails(prev => ({
+                ...prev,
+                [role]: {
+                    ...(prev as any)[role],
+                    club: { clubId: clubInviteClubId, clubName: clubInviteClubName },
+                },
+            }));
+            return;
+        }
+
+        // Fallback for older invite links (requires user to be signed in)
+        fetchClubInvite(clubInviteId).then((invite) => {
+            if (!invite || invite.status !== "pending") return;
+            setClubInviteData(invite);
+            setMode("register");
+            setEmail(invite.targetEmail);
+            const role = invite.memberRole as RoleChoice;
+            setSelectedRoles([role]);
+            setRoleDetails(prev => ({
+                ...prev,
+                [role]: {
+                    ...(prev as any)[role],
+                    club: { clubId: invite.clubId, clubName: invite.clubName },
+                },
+            }));
+        }).catch(() => {});
+    }, [clubInviteId, clubInviteClubId, clubInviteClubName, clubInviteRole]);
 
     const canSignIn = useMemo(
         () => email.trim().length > 0 && password.trim().length > 0,
@@ -748,8 +822,10 @@ export default function AuthPage() {
                     shareWithUniversities: false,
                     shareWithFederations:  false,
                 },
-                status:    { isActive: true, isVerified: false },
-                createdAt: now,
+                ...(selectedRoles.includes("rower") ? { nationalSelectionVisible: acceptedNationalFederation } : {}),
+                status:      { isActive: true, isVerified: false },
+                hasSeenTour: false,
+                createdAt:   now,
             });
 
             // ── CHANGED: setupUserRoles now receives clubId instead of club string.
@@ -884,6 +960,11 @@ export default function AuthPage() {
                             ) : (
                                 <>
                                     <h3>REGISTER</h3>
+                                    {clubInviteData && (
+                                        <div className="club-invite-banner">
+                                            You've been invited to join <strong>{clubInviteData.clubName}</strong> — the club has been pre-selected. You can remove it if you prefer.
+                                        </div>
+                                    )}
                                     {err && <p className="error">{err}</p>}
 
                                     {wizardStep === 1 && (
@@ -931,10 +1012,11 @@ export default function AuthPage() {
                                         {wizardStep === 3 && (
                                             <StepConsent
                                                 selectedRoles={selectedRoles}
-                                                acceptedTerms={acceptedTerms}                     setAcceptedTerms={setAcceptedTerms}
-                                                acceptedPrivacy={acceptedPrivacy}                 setAcceptedPrivacy={setAcceptedPrivacy}
-                                                acceptedDataSharing={acceptedDataSharing}         setAcceptedDataSharing={setAcceptedDataSharing}
+                                                acceptedTerms={acceptedTerms}                             setAcceptedTerms={setAcceptedTerms}
+                                                acceptedPrivacy={acceptedPrivacy}                         setAcceptedPrivacy={setAcceptedPrivacy}
+                                                acceptedDataSharing={acceptedDataSharing}                 setAcceptedDataSharing={setAcceptedDataSharing}
                                                 acceptedPerformanceTracking={acceptedPerformanceTracking} setAcceptedPerformanceTracking={setAcceptedPerformanceTracking}
+                                                acceptedNationalFederation={acceptedNationalFederation}   setAcceptedNationalFederation={setAcceptedNationalFederation}
                                             />
                                         )}
 

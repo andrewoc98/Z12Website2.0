@@ -150,6 +150,28 @@ export async function saveUserRole(
     );
 }
 
+export async function saveConsentSettings(
+    uid: string,
+    payload: {
+        dataSharingAccepted: boolean;
+        performanceTrackingAccepted?: boolean;
+        nationalSelectionVisible?: boolean;
+    }
+) {
+    const update: Record<string, unknown> = {
+        "consent.dataSharingAccepted": payload.dataSharingAccepted,
+        "consent.updatedAt":           new Date().toISOString(),
+        updatedAt: serverTimestamp(),
+    };
+    if (payload.performanceTrackingAccepted !== undefined) {
+        update["consent.performanceTrackingAccepted"] = payload.performanceTrackingAccepted;
+    }
+    if (payload.nationalSelectionVisible !== undefined) {
+        update["nationalSelectionVisible"] = payload.nationalSelectionVisible;
+    }
+    return updateDoc(doc(db, "users", uid), update);
+}
+
 // Core fields only — never touches roles
 export async function saveCoreProfile(
     uid: string,

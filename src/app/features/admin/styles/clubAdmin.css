@@ -1,0 +1,142 @@
+/* ─── Club Admin Styles ───────────────────────────────────────────────────────
+   Prefix: cl-  (club admin)
+   All values use design tokens from globals.css
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Info editor ─────────────────────────────────────────────────────────────── */
+
+.cl-editor {
+    display: grid;
+    gap: 14px;
+}
+
+.cl-editor__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 480px) {
+    .cl-editor__row { grid-template-columns: 1fr; }
+}
+
+.cl-editor__toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    gap: var(--space-md);
+}
+
+.cl-editor__toggle-label { font-size: 0.875rem; color: var(--text); font-weight: 500; }
+.cl-editor__toggle-sub   { font-size: 0.775rem; color: var(--muted); margin-top: 2px; }
+
+/* ── Member row ──────────────────────────────────────────────────────────────── */
+
+.cl-member-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cl-member-row:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+}
+
+.cl-member-row__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(96,165,250,0.4));
+    color: #93c5fd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    font-family: "Inter", system-ui, sans-serif;
+}
+
+.cl-member-row__avatar--coach {
+    background: linear-gradient(135deg, rgba(254,185,89,0.2), rgba(254,185,89,0.4));
+    color: var(--brand-warm);
+}
+
+.cl-member-row__body { flex: 1; min-width: 0; }
+
+.cl-member-row__name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cl-member-row__email {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cl-member-row__right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+}
+
+/* ── Section header with filter ──────────────────────────────────────────────── */
+
+.cl-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.cl-filter-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.cl-filter-tab {
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: "Inter", system-ui, sans-serif;
+    text-transform: none;
+    letter-spacing: 0;
+    min-height: unset;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    box-shadow: none;
+}
+
+.cl-filter-tab:hover { color: var(--text); background: var(--surface-2); box-shadow: none; }
+
+.cl-filter-tab--active {
+    background: rgba(255,212,0,0.12);
+    color: var(--brand);
+    border-color: rgba(255,212,0,0.35);
+    font-weight: 600;
+}

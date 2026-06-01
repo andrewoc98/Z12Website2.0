@@ -1,8 +1,10 @@
 import { createContext, useContext } from "react";
 import { useMockAuth } from "./MockAuthProvider";
 
+type CheckableRole = "rower" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
+
 type RoleCtx = {
-    hasRole: (r: "rower" | "host" | "admin") => boolean;
+    hasRole: (r: CheckableRole) => boolean;
 };
 
 const Ctx = createContext<RoleCtx>({
@@ -16,7 +18,7 @@ export function MockRoleProvider({
 }) {
     const { user } = useMockAuth();
 
-    function hasRole(role: "rower" | "host" | "admin") {
+    function hasRole(role: CheckableRole) {
         return !!user?.roles?.[role];
     }
 

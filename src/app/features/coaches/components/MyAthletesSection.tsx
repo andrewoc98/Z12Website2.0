@@ -41,7 +41,7 @@ export function MyAthletesSection({ profile }: Props) {
     const openAssignment = profile.roles?.coach?.openAssignment ?? true;
 
     return (
-        <section className="card profile-section ca-section">
+        <section className="card profile-section ca-section" data-tour="my-athletes">
             <div className="ca-section__header">
                 <h3 className="ca-section__title">My Athletes</h3>
             </div>

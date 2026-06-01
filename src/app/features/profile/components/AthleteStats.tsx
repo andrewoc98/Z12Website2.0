@@ -10,7 +10,7 @@ export function AthleteStats({ unit }: { unit: "metric" | "imperial" }) {
     const safeWeight = (val?: number) => val != null ? formatWeight(val, unit) : "-";
 
     return (
-        <section className="card profile-section stats-section">
+        <section className="card profile-section stats-section" data-tour="profile-stats">
             <h3 className="section-title">Athlete Stats</h3>
             <div className="stats-grid">
                 <div className="stat-card">

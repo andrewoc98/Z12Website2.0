@@ -22,8 +22,14 @@ import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage.tsx";
 import TimingPage from "./features/timing/pages/TimingPage.tsx";
 import TimingEventSelectPage from "./features/timing/pages/TimingEventSelectPage.tsx";
 import RequireMaintenance from "./guards/RequireMaintenance.tsx";
+import AcceptInvitePage          from "./features/admin/pages/AcceptInvitePage.tsx";
+import PlatformAdminDashboard    from "./features/admin/pages/PlatformAdminDashboard.tsx";
+import FederationAdminDashboard  from "./features/admin/pages/FederationAdminDashboard.tsx";
+import ClubAdminDashboard          from "./features/admin/pages/ClubAdminDashboard.tsx";
+import ClubCreationRequestPage     from "./features/admin/pages/ClubCreationRequestPage.tsx";
 import EventPageView from "./features/signup/pages/EventPageView.tsx";
 import ProfileCompletionModal from "./features/home/components/ProfileCompletionModal.tsx";
+import TourController from "./features/home/components/TourController.tsx";
 import {useMemo} from "react";
 import {useAuth} from "./providers/AuthProvider.tsx";
 
@@ -34,6 +40,7 @@ const EXCLUDED_PATHS = [
     "/reset-password",
     "/terms",
     "/privacy",
+    "/accept-invite",
 ];
 
 function RootLayout() {
@@ -56,6 +63,7 @@ function RootLayout() {
     return (
         <RequireMaintenance>
             {showModal && <ProfileCompletionModal missingFields={missingFields} />}
+            <TourController />
             <Outlet />
         </RequireMaintenance>
     );
@@ -134,7 +142,31 @@ export const router = createBrowserRouter([
             { path: "/terms", element: <Terms /> },
             { path: "/privacy", element: <Privacy /> },
             { path: "/reset-password", element: <ResetPasswordPage /> },
-            {path: "/events/:eventId/view", element:<EventPageView/>},
+            { path: "/events/:eventId/view", element: <EventPageView /> },
+            {
+                path: "/accept-invite",
+                element: (
+                    <RequireAuth>
+                        <AcceptInvitePage />
+                    </RequireAuth>
+                ),
+            },
+            {
+                path: "/admin/platform",
+                element: <PlatformAdminDashboard />,
+            },
+            {
+                path: "/admin/federation",
+                element: <FederationAdminDashboard />,
+            },
+            {
+                path: "/admin/club",
+                element: <ClubAdminDashboard />,
+            },
+            {
+                path: "/club/request",
+                element: <ClubCreationRequestPage />,
+            },
             {
                 path: "/timing",
                 element: (

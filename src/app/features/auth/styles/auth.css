@@ -829,3 +829,40 @@
     color: #e53e3e;
     margin: 0;
 }
+/* ── Club invite banner ── */
+.club-invite-banner {
+    background: rgba(254, 185, 89, 0.1);
+    border: 1px solid var(--brand-warm);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 14px;
+    color: #cfcfcf;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.club-invite-banner strong {
+    color: var(--brand-warm);
+}
+
+/* ── Agree to all button ── */
+.btn-agree-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0.75rem;
+    padding: 6px 14px;
+    border: 1px solid var(--brand-warm);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--brand-warm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-agree-all:hover {
+    background: var(--brand-warm);
+    color: #1a1a1a;
+}

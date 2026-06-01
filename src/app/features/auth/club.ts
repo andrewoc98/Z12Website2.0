@@ -39,6 +39,9 @@ export type Federation = {
     shortName?: string; // "RI"
     sport: string; // "rowing" — free-form to support future sports
 
+    /** URL-safe unique slug derived from name, e.g. "rowing-ireland" */
+    slug: string;
+
     logoUrl?: string;
     websiteUrl?: string;
     contactEmail?: string;
@@ -52,13 +55,19 @@ export type Federation = {
 
     status: "active" | "inactive" | "suspended";
 
+    /** When true, club creation requests are approved immediately on submission */
+    autoApproveClubRequests?: boolean;
+
     createdAt: ISOTimestamp;
     updatedAt: ISOTimestamp;
+
+    /** UID of the platformAdmin who created this federation */
+    createdBy: string;
 };
 
 // ── Club ──────────────────────────────────────────────────────────────────────
 
-export type ClubStatus = "active" | "inactive" | "suspended" | "pending_approval";
+export type ClubStatus = "active" | "inactive" | "suspended" | "pending_approval" | "pending";
 
 /**
  * Public, readable club document.
@@ -106,6 +115,15 @@ export type Club = {
 
     createdAt: ISOTimestamp;
     updatedAt: ISOTimestamp;
+
+    /** UID of the user whose club creation request was approved */
+    createdBy: string;
+
+    /** Timestamp when a federationAdmin or platformAdmin approved the club */
+    approvedAt: ISOTimestamp | null;
+
+    /** UID of the federationAdmin or platformAdmin who approved the club */
+    approvedBy: string | null;
 };
 
 export type ClubLocation = {

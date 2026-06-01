@@ -13,7 +13,15 @@
 import type {ClubMemberRole} from "./club.ts";
 
 
-export type Role = "rower" | "host" | "admin" | "coach" | "guardian";
+export type Role =
+    | "rower"
+    | "host"
+    | "admin"
+    | "coach"
+    | "guardian"
+    | "clubAdmin"
+    | "federationAdmin"
+    | "platformAdmin";
 export type Gender = "male" | "female" | "unknown";
 
 // ── Guardian child reference ───────────────────────────────────────────────────
@@ -55,6 +63,13 @@ export type UserProfile = {
     fullName?: string;
     mobile?: string;
 
+    /**
+     * @deprecated Use `roles.*` sub-objects to determine a user's role.
+     * Still written by the existing rower/coach/host onboarding flow for
+     * backward compatibility, but admin roles (clubAdmin, federationAdmin,
+     * platformAdmin) no longer set this field. Check `roles.clubAdmin`,
+     * `roles.federationAdmin`, or `roles.platformAdmin` instead.
+     */
     primaryRole?: Role;
 
     // -------------------
@@ -84,6 +99,14 @@ export type UserProfile = {
         shareWithUniversities: boolean;
         shareWithFederations: boolean;
     };
+
+    /**
+     * Athlete-controlled flag. When true, federationAdmins in the same
+     * federation can see this athlete's full selection profile (stats,
+     * performances, coach assignments). Defaults to false.
+     * Only meaningful when roles.rower is present.
+     */
+    nationalSelectionVisible?: boolean;
 
     roles: {
         rower?: {
@@ -136,6 +159,23 @@ export type UserProfile = {
         guardian?: {
             linkedChildren: LinkedChild[];
         };
+
+        // ── Admin roles (dual-role: a clubAdmin may also have roles.rower) ──
+
+        clubAdmin?: {
+            clubId: string;
+            federationId: string;
+        };
+
+        federationAdmin?: {
+            federationId: string;
+        };
+
+        /**
+         * No extra fields — presence of this key is sufficient.
+         * The custom claim `role: "platformAdmin"` is the enforcement mechanism.
+         */
+        platformAdmin?: Record<string, never>;
     };
 
     // -------------------
@@ -152,6 +192,8 @@ export type UserProfile = {
     // -------------------
     createdAt: string;
     updatedAt: string;
+
+    hasSeenTour?: boolean;
 };
 
 // ── Pending User ──────────────────────────────────────────────────────────────

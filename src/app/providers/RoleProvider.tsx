@@ -4,10 +4,12 @@ import { db } from "../shared/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import type { UserProfile } from "../features/auth/types";
 
+type CheckableRole = "rower" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
+
 type RoleCtx = {
     profile: UserProfile | null;
     loading: boolean;
-    hasRole: (r: "rower" | "host" | "admin") => boolean;
+    hasRole: (r: CheckableRole) => boolean;
 };
 
 const Ctx = createContext<RoleCtx>({
@@ -40,7 +42,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     }, [user, authLoading]);
 
     const hasRole = useMemo(
-        () => (r: "rower" | "host" | "admin") => !!profile?.roles?.[r],
+        () => (r: CheckableRole) => !!profile?.roles?.[r],
         [profile]
     );
 

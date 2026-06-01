@@ -12,6 +12,8 @@ import DangerZone from "../components/DangerZone.tsx";
 import type { UserProfile } from "../../auth/types.ts";
 import { MyCoachesSection } from "../../coaches/components/MyCoachesSection.tsx";
 import { MyAthletesSection } from "../../coaches/components/MyAthletesSection.tsx";
+import { ClubInvitesSection } from "../components/ClubInvitesSection.tsx";
+import { ConsentSettings } from "../components/ConsentSettings.tsx";
 
 export default function ProfilePageElite() {
     const { user, profile: authProfile, loading } = useAuth();
@@ -52,6 +54,8 @@ export default function ProfilePageElite() {
                     </>
                 )}
 
+                <ClubInvitesSection />
+
                 <section className="card profile-section">
                     <h3 className="section-title">Edit Profile</h3>
                     <ProfileEditor
@@ -61,6 +65,17 @@ export default function ProfilePageElite() {
                         }
                     />
                 </section>
+
+                <section className="card profile-section">
+                    <h3 className="section-title">Privacy & Data</h3>
+                    <ConsentSettings
+                        profile={profile}
+                        onProfileChange={(updated) =>
+                            setProfile(p => p ? { ...p, ...updated } : p)
+                        }
+                    />
+                </section>
+
                 <DangerZone user={user}/>
             </main>
             <Footer />

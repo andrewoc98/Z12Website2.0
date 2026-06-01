@@ -229,7 +229,6 @@ export default function ParentConsentPage() {
                 email: cred.user.email ?? cleanEmail,
                 fullName: guardianName.trim(),
                 displayName: guardianName.trim(),
-                primaryRole: "guardian",
                 roles: {
                     guardian: {
                         linkedChildren: [],
@@ -334,6 +333,12 @@ export default function ParentConsentPage() {
 
                             <div className="terms-checkbox">
                                 <label>
+                                    <input type="checkbox" checked={dataSharingAccepted}
+                                           onChange={e => setDataSharingAccepted(e.target.checked)} />
+                                    I consent to data sharing with coaches / universities{" "}
+                                    <span className="optional-badge">Optional</span>
+                                </label>
+                                <label>
                                     <input type="checkbox" checked={termsAccepted}
                                            onChange={e => setTermsAccepted(e.target.checked)} />
                                     I agree to the <a href="/terms" target="_blank">Terms of Service</a>{" "}
@@ -350,12 +355,6 @@ export default function ParentConsentPage() {
                                            onChange={e => setPerformanceTrackingAccepted(e.target.checked)} />
                                     I consent to performance tracking{" "}
                                     <span className="required-badge">Required</span>
-                                </label>
-                                <label>
-                                    <input type="checkbox" checked={dataSharingAccepted}
-                                           onChange={e => setDataSharingAccepted(e.target.checked)} />
-                                    I consent to data sharing with coaches / universities{" "}
-                                    <span className="optional-badge">Optional</span>
                                 </label>
                             </div>
 
