@@ -148,7 +148,7 @@ export async function getAthleteSelectionProfiles(
     profileSnaps.flat().forEach(snap => {
         snap.docs.forEach(d => {
             const u = d.data();
-            if (!u.nationalSelectionVisible) return;
+            if (!u.consent?.nationalSelectionVisible && !u.nationalSelectionVisible) return;
 
             const clubId   = uidToClubId.get(u.uid) ?? "";
             const clubSnap = clubIds.includes(clubId) ? clubId : "";

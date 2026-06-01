@@ -89,6 +89,8 @@ export type UserProfile = {
         performanceTrackingAccepted?: boolean;
         dataSharingAccepted?: boolean;
         biometricProcessingAccepted?: boolean;
+        /** Athlete-controlled: when true, federationAdmins can see this athlete's selection profile. */
+        nationalSelectionVisible?: boolean;
         givenBy: "self" | "parent";
         givenByUid?: string;
         updatedAt?: string;
@@ -100,12 +102,7 @@ export type UserProfile = {
         shareWithFederations: boolean;
     };
 
-    /**
-     * Athlete-controlled flag. When true, federationAdmins in the same
-     * federation can see this athlete's full selection profile (stats,
-     * performances, coach assignments). Defaults to false.
-     * Only meaningful when roles.rower is present.
-     */
+    /** @deprecated Moved to consent.nationalSelectionVisible. Kept for backward compat with existing Firestore documents. */
     nationalSelectionVisible?: boolean;
 
     roles: {

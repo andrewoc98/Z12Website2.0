@@ -167,7 +167,7 @@ export async function saveConsentSettings(
         update["consent.performanceTrackingAccepted"] = payload.performanceTrackingAccepted;
     }
     if (payload.nationalSelectionVisible !== undefined) {
-        update["nationalSelectionVisible"] = payload.nationalSelectionVisible;
+        update["consent.nationalSelectionVisible"] = payload.nationalSelectionVisible;
     }
     return updateDoc(doc(db, "users", uid), update);
 }

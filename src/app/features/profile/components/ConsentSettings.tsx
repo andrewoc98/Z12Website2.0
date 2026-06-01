@@ -37,7 +37,7 @@ export function ConsentSettings({ profile, onProfileChange }: Props) {
     const isRower = !!profile.roles?.rower;
 
     const [dataSharing,           setDataSharing]           = useState(profile.consent?.dataSharingAccepted         ?? false);
-    const [nationalFederation,    setNationalFederation]    = useState(profile.nationalSelectionVisible             ?? false);
+    const [nationalFederation,    setNationalFederation]    = useState(profile.consent?.nationalSelectionVisible ?? profile.nationalSelectionVisible ?? false);
 
     const [saving, setSaving] = useState(false);
     const [msg,    setMsg]    = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -56,9 +56,9 @@ export function ConsentSettings({ profile, onProfileChange }: Props) {
                 consent: {
                     ...profile.consent,
                     dataSharingAccepted: dataSharing,
+                    ...(isRower ? { nationalSelectionVisible: nationalFederation } : {}),
                     updatedAt: new Date().toISOString(),
                 },
-                ...(isRower ? { nationalSelectionVisible: nationalFederation } : {}),
             });
             setMsg({ text: "Saved.", type: "success" });
         } catch (e: any) {
