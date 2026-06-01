@@ -247,7 +247,8 @@ const ROLE_PRIORITY: Array<{ key: keyof UserProfile["roles"]; steps: TourStep[] 
     { key: "rower",           steps: ROWER_STEPS },
 ];
 
-export function getStepsForProfile(roles: UserProfile["roles"]): TourStep[] {
+export function getStepsForProfile(roles: UserProfile["roles"] | undefined): TourStep[] {
+    if (!roles) return ROWER_STEPS;
     const matching = ROLE_PRIORITY
         .filter(({ key }) => !!roles[key])
         .map(({ steps }) => steps);
