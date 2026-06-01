@@ -40,15 +40,17 @@ export function useAdminClaims(): State {
 
         user.getIdTokenResult(/* forceRefresh */ true).then(result => {
             const claims = result.claims as Record<string, unknown>;
-            // Federation/platform admins who created a club keep their higher-privilege
-            // JWT claim, so clubId is never written to the token. Fall back to the
-            // Firestore profile's roles.clubAdmin.clubId in that case.
-            const jwtClubId = (claims["clubId"] as string) ?? null;
-            const profileClubId = (profile as UserProfile | null)?.roles?.clubAdmin?.clubId ?? null;
+            // Higher-privilege roles keep their elevated JWT claim, so clubId/federationId
+            // may not be written to the token. Fall back to the Firestore profile in that case.
+            const jwtClubId        = (claims["clubId"]        as string) ?? null;
+            const jwtFederationId  = (claims["federationId"]  as string) ?? null;
+            const p                = profile as UserProfile | null;
+            const profileClubId      = p?.roles?.clubAdmin?.clubId         ?? null;
+            const profileFederationId = p?.roles?.federationAdmin?.federationId ?? null;
             setState({
-                adminRole:    (claims["role"]         as AdminRole) ?? null,
-                federationId: (claims["federationId"] as string)   ?? null,
-                clubId:       jwtClubId ?? profileClubId,
+                adminRole:    (claims["role"] as AdminRole) ?? null,
+                federationId: jwtFederationId ?? profileFederationId,
+                clubId:       jwtClubId       ?? profileClubId,
                 loading:      false,
             });
         }).catch(() => {
