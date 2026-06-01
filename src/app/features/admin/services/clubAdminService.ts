@@ -113,12 +113,15 @@ export async function getAthleteSelectionProfiles(
 ): Promise<import("../types/admin.types").AthleteSelectionProfile[]> {
     if (clubIds.length === 0) return [];
 
-    // 1. Collect rower UIDs across all clubs in the federation
+    // 1. Collect active member UIDs across all clubs in the federation.
+    // We intentionally do NOT filter by role="rower" here because a user
+    // who has both rower and coach roles in the same club gets a single
+    // member document whose `role` reflects whichever role joined first.
+    // Rower eligibility is confirmed at step 3 via the user profile.
     const memberSnaps = await Promise.all(
         clubIds.map(clubId =>
             getDocs(query(
                 collection(db, `clubs/${clubId}/members`),
-                where("role",   "==", "rower"),
                 where("status", "==", "active"),
             ))
         )
@@ -145,9 +148,12 @@ export async function getAthleteSelectionProfiles(
 
     const results: import("../types/admin.types").AthleteSelectionProfile[] = [];
 
-    profileSnaps.flat().forEach(snap => {
+    profileSnaps.forEach(snap => {
         snap.docs.forEach(d => {
             const u = d.data();
+            // 3. Only include users who actually have the rower role on their
+            //    profile and have opted in to national selection visibility.
+            if (!u.roles?.rower) return;
             if (!u.consent?.nationalSelectionVisible && !u.nationalSelectionVisible) return;
 
             const clubId   = uidToClubId.get(u.uid) ?? "";
