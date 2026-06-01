@@ -42,8 +42,9 @@ function initials(name: string): string {
 
 function fmtTime(seconds?: number): string {
     if (seconds == null) return "—";
+    if (seconds < 60) return seconds.toFixed(1);
     const m = Math.floor(seconds / 60);
-    const s = String(seconds % 60).padStart(2, "0");
+    const s = (seconds % 60).toFixed(1).padStart(4, "0");
     return `${m}:${s}`;
 }
 
