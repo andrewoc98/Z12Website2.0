@@ -32,7 +32,13 @@ const PlatformAdminDashboard  = lazy(() => import("./features/admin/pages/Platfo
 const FederationAdminDashboard = lazy(() => import("./features/admin/pages/FederationAdminDashboard"));
 const ClubAdminDashboard      = lazy(() => import("./features/admin/pages/ClubAdminDashboard"));
 const ClubCreationRequestPage = lazy(() => import("./features/admin/pages/ClubCreationRequestPage"));
-const EventPageView           = lazy(() => import("./features/signup/pages/EventPageView"));
+const EventPageView              = lazy(() => import("./features/signup/pages/EventPageView"));
+const SessionListPage            = lazy(() => import("./features/trainingSessions/pages/SessionListPage"));
+const SessionCreatePage          = lazy(() => import("./features/trainingSessions/pages/SessionCreatePage"));
+const SessionRunPage             = lazy(() => import("./features/trainingSessions/pages/SessionRunPage"));
+const SessionResultsPage         = lazy(() => import("./features/trainingSessions/pages/SessionResultsPage"));
+const RowerSessionListPage       = lazy(() => import("./features/trainingSessions/pages/RowerSessionListPage"));
+const RowerSessionDetailPage     = lazy(() => import("./features/trainingSessions/pages/RowerSessionDetailPage"));
 import {useAuth} from "./providers/AuthProvider";
 
 const EXCLUDED_PATHS = [
@@ -134,6 +140,56 @@ export const router = createBrowserRouter([
                 element: (
                     <RequireRole role="rower">
                         <InviteJoinPage />
+                    </RequireRole>
+                ),
+            },
+            // ── Training Sessions (Coach) ────────────────────────────────
+            {
+                path: "/coach/sessions",
+                element: (
+                    <RequireRole role="coach">
+                        <SessionListPage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/coach/sessions/new",
+                element: (
+                    <RequireRole role="coach">
+                        <SessionCreatePage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/coach/sessions/:sessionId/run",
+                element: (
+                    <RequireRole role="coach">
+                        <SessionRunPage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/coach/sessions/:sessionId/results",
+                element: (
+                    <RequireRole role="coach">
+                        <SessionResultsPage />
+                    </RequireRole>
+                ),
+            },
+            // ── Training Sessions (Rower / Athlete) ──────────────────────
+            {
+                path: "/rower/my-sessions",
+                element: (
+                    <RequireRole role="rower">
+                        <RowerSessionListPage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: "/rower/my-sessions/:sessionId",
+                element: (
+                    <RequireRole role="rower">
+                        <RowerSessionDetailPage />
                     </RequireRole>
                 ),
             },

@@ -4,7 +4,7 @@ import { db } from "../shared/lib/firebase";
 import { useAuth } from "./AuthProvider";
 import type { UserProfile } from "../features/auth/types";
 
-type CheckableRole = "rower" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
+type CheckableRole = "rower" | "coach" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
 
 type RoleCtx = {
     profile: UserProfile | null;

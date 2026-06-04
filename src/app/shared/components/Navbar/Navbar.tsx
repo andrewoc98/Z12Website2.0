@@ -26,7 +26,7 @@ export default function Navbar() {
     const user = DEV_MODE ? mockAuth?.user ?? null : fbAuth?.user ?? null;
     const rolesLoading = DEV_MODE ? false : fbRoles?.loading ?? true;
 
-    type CheckableRole = "rower" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
+    type CheckableRole = "rower" | "coach" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
 
     const hasRole = (r: CheckableRole) => {
         if (DEV_MODE) return !!mockRoles?.hasRole(r);
@@ -46,6 +46,12 @@ export default function Navbar() {
             base.push({ to: "/about", label: "About" });
             base.push({ to: "/events", label: "Races" });
 
+            if (hasRole("coach")) {
+                base.push({ to: "/coach/sessions", label: "Sessions" });
+            }
+            if (hasRole("rower")) {
+                base.push({ to: "/rower/my-sessions", label: "My Sessions" });
+            }
             if (hasRole("host") || hasRole("admin")) {
                 base.push({ to: "/timing", label: "Timing" });
             }

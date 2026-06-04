@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import { useMockAuth } from "./MockAuthProvider";
 
-type CheckableRole = "rower" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
+type CheckableRole = "rower" | "coach" | "host" | "admin" | "clubAdmin" | "federationAdmin" | "platformAdmin";
 
 type RoleCtx = {
     hasRole: (r: CheckableRole) => boolean;
