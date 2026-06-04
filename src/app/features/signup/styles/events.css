@@ -1,6 +1,8 @@
 .events-page {
     display: grid;
     gap: 24px;
+    flex: 1;
+    align-content: start;
 }
 
 .events-header {

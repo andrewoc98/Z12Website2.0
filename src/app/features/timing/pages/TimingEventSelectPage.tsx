@@ -72,15 +72,20 @@ export default function TimingEventSelectPage() {
                     <div key={i} className="timing-event-card">
                         <div className="timing-event-grid">
                             <div className="timing-event-left">
-                                <div className="skeleton-bar" style={{ width: "55%", height: 24, borderRadius: 6, marginBottom: 10 }} />
-                                <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-                                    <div className="skeleton-bar" style={{ width: 100, height: 13, borderRadius: 999 }} />
-                                    <div className="skeleton-bar" style={{ width: 120, height: 13, borderRadius: 999 }} />
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                                    <div className="skeleton-bar" style={{ width: "55%", height: 24, borderRadius: 6 }} />
+                                    <div className="skeleton-bar" style={{ width: 120, height: 14, borderRadius: 999 }} />
                                 </div>
-                                <div className="skeleton-bar" style={{ width: 180, height: 13, borderRadius: 999 }} />
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                                    <div className="skeleton-bar" style={{ width: 130, height: 13, borderRadius: 999 }} />
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                        <div className="skeleton-bar" style={{ width: 110, height: 12, borderRadius: 999 }} />
+                                        <div className="skeleton-bar" style={{ width: 110, height: 12, borderRadius: 999 }} />
+                                    </div>
+                                </div>
                             </div>
                             <div className="timing-event-action">
-                                <div className="skeleton-bar" style={{ width: 70, height: 60, borderRadius: 14 }} />
+                                <div className="skeleton-bar" style={{ width: 90, height: 70, borderRadius: 14 }} />
                             </div>
                         </div>
                     </div>
@@ -99,15 +104,18 @@ export default function TimingEventSelectPage() {
         >
             <div className="timing-event-grid">
                 <div className="timing-event-left">
-                    <div className="timing-event-name">{event.name}</div>
-                    <div className="timing-event-meta">
-                        <span>{event.location}</span>
+                    <div className="timing-event-line">
+                        <div className="timing-event-name">{event.name}</div>
                         {event.lengthMeters && (
                             <span className="timing-event-type">{event.lengthMeters}m Time Trial</span>
                         )}
                     </div>
-                    <div className="timing-event-date">
-                        {formatDate(event.startAt)} — {formatDate(event.endAt)}
+                    <div className="timing-event-line timing-event-meta">
+                        <span>{event.location}</span>
+                        <div className="timing-event-dates">
+                            <div>{formatDate(event.startAt)}</div>
+                            <div>{formatDate(event.endAt)}</div>
+                        </div>
                     </div>
                 </div>
                 <div className="timing-event-action">

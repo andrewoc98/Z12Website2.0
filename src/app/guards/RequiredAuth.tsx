@@ -1,7 +1,8 @@
 import type { JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { signOut } from "firebase/auth";
 import { DEV_MODE } from "../shared/lib/config";
-
+import { auth } from "../shared/lib/firebase";
 import { useAuth } from "../providers/AuthProvider";
 import { useMockAuth } from "../providers/MockAuthProvider";
 
@@ -12,8 +13,9 @@ export default function RequireAuth({ children }: { children: JSX.Element }) {
     const realAuth = useAuth();
     const mockAuth = useMockAuth();
 
-    const user = DEV_MODE ? mockAuth.user : realAuth.user;
-    const loading = DEV_MODE ? false : realAuth.loading;
+    const user    = DEV_MODE ? mockAuth.user    : realAuth.user;
+    const profile = DEV_MODE ? null             : realAuth.profile;
+    const loading = DEV_MODE ? false            : realAuth.loading;
 
     if (loading) {
         return (
@@ -35,6 +37,11 @@ export default function RequireAuth({ children }: { children: JSX.Element }) {
         );
 
         return <Navigate to={`/auth?returnTo=${returnTo}`} replace />;
+    }
+
+    if (profile?.status?.requiresParentalConsent) {
+        signOut(auth);
+        return <Navigate to="/auth?error=parental-consent" replace />;
     }
 
     return children;

@@ -6,6 +6,8 @@ import type { EventDoc } from "../types";
 import { DEV_MODE } from "../../../shared/lib/config";
 import { useMockAuth } from "../../../providers/MockAuthProvider";
 import { useAuth } from "../../../providers/AuthProvider";
+import { useTourMock } from "../../../providers/TourMockContext";
+import { TOUR_HOST_EVENTS } from "../../home/components/tourMockData";
 import { formatDate, getEventStatus } from "../lib/categories.ts";
 import "../../signup/styles/events.css";
 
@@ -23,12 +25,19 @@ export default function HostEventListPage() {
     const fb = !DEV_MODE ? useAuth() : null;
     const hostUid = DEV_MODE ? mock?.user?.uid ?? null : fb?.user?.uid ?? null;
 
+    const { isTourActive } = useTourMock();
+
     const [events, setEvents] = useState<(EventDoc & { id: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
     const [mode, setMode] = useState<Mode>("active");
 
     useEffect(() => {
+        if (isTourActive) {
+            setEvents(TOUR_HOST_EVENTS);
+            setLoading(false);
+            return;
+        }
         if (!hostUid) return;
         (async () => {
             setLoading(true);
@@ -42,7 +51,7 @@ export default function HostEventListPage() {
                 setLoading(false);
             }
         })();
-    }, [hostUid]);
+    }, [hostUid, isTourActive]);
 
     const visible = useMemo(() => {
         return events
@@ -60,10 +69,9 @@ export default function HostEventListPage() {
     }, [events, mode]);
 
     return (
-        <div className="page-container">
+        <>
             <Navbar />
-            <div className="page-content">
-                <main className="events-page" data-tour="host-events-list">
+            <div className="events-page page" data-tour="host-events-list">
                     {/* header */}
                     <div className="events-header">
                         <div className="events-title">
@@ -141,7 +149,7 @@ export default function HostEventListPage() {
                                         <Link
                                             key={e.id}
                                             to={`/host/events/${e.id}`}
-                                            style={{ textDecoration: "none", color: "inherit" }}
+                                            style={{ textDecoration: "none", color: "inherit", display: "block" }}
                                         >
                                             <div className="event-card">
                                                 <div className="event-grid">
@@ -176,8 +184,7 @@ export default function HostEventListPage() {
                             </div>
                         </>
                     )}
-                </main>
             </div>
-        </div>
+        </>
     );
 }

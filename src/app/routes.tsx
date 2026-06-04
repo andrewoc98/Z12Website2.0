@@ -1,37 +1,39 @@
 // src/router.tsx
 import {createBrowserRouter, Outlet, useLocation} from "react-router-dom";
+import {lazy, useMemo} from "react";
 import HomePage from "./features/home/pages/HomePage";
-import RequireRole from "./guards/RequireRole";
-import EventCreatePage from "./features/events/pages/EventCreatePage";
-import EventSignupPage from "./features/signup/pages/EventSignupPage";
-import HostEventManagePage from "./features/events/pages/HostEventManagePage";
-import RowerEventListPage from "./features/signup/pages/RowerEventListPage.tsx";
-import EventResultsPage from "./features/results/pages/EventResultsPage.tsx";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
+import RequireRole from "./guards/RequireRole";
 import RequireAuth from "./guards/RequiredAuth.tsx";
 import RequireTimingAccess from "./guards/RequireTimingAccess.tsx";
-import ProfilePage from "./features/profile/pages/ProfilePage.tsx";
-import InviteJoinPage from "./features/signup/pages/InviteJoinPage.tsx";
-import HostEventListPage from "./features/events/pages/HostEventListPage.tsx";
-import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage.tsx";
-import AboutPage from "./features/about/pages/AboutPage.tsx";
-import Terms from "./features/terms/Terms.tsx";
-import Privacy from "./features/privacy/Privacy.tsx";
-import ParentConsentPage from "./features/auth/pages/ParentConsentPage.tsx";
-import ResetPasswordPage from "./features/auth/pages/ResetPasswordPage.tsx";
-import TimingPage from "./features/timing/pages/TimingPage.tsx";
-import TimingEventSelectPage from "./features/timing/pages/TimingEventSelectPage.tsx";
 import RequireMaintenance from "./guards/RequireMaintenance.tsx";
-import AcceptInvitePage          from "./features/admin/pages/AcceptInvitePage.tsx";
-import PlatformAdminDashboard    from "./features/admin/pages/PlatformAdminDashboard.tsx";
-import FederationAdminDashboard  from "./features/admin/pages/FederationAdminDashboard.tsx";
-import ClubAdminDashboard          from "./features/admin/pages/ClubAdminDashboard.tsx";
-import ClubCreationRequestPage     from "./features/admin/pages/ClubCreationRequestPage.tsx";
-import EventPageView from "./features/signup/pages/EventPageView.tsx";
 import ProfileCompletionModal from "./features/home/components/ProfileCompletionModal.tsx";
 import TourController from "./features/home/components/TourController.tsx";
-import {useMemo} from "react";
-import {useAuth} from "./providers/AuthProvider.tsx";
+import { TourMockProvider } from "./providers/TourMockContext";
+
+const EventCreatePage         = lazy(() => import("./features/events/pages/EventCreatePage"));
+const EventSignupPage         = lazy(() => import("./features/signup/pages/EventSignupPage"));
+const HostEventManagePage     = lazy(() => import("./features/events/pages/HostEventManagePage"));
+const RowerEventListPage      = lazy(() => import("./features/signup/pages/RowerEventListPage"));
+const EventResultsPage        = lazy(() => import("./features/results/pages/EventResultsPage"));
+const ProfilePage             = lazy(() => import("./features/profile/pages/ProfilePage"));
+const InviteJoinPage          = lazy(() => import("./features/signup/pages/InviteJoinPage"));
+const HostEventListPage       = lazy(() => import("./features/events/pages/HostEventListPage"));
+const ForgotPasswordPage      = lazy(() => import("./features/auth/pages/ForgotPasswordPage"));
+const AboutPage               = lazy(() => import("./features/about/pages/AboutPage"));
+const Terms                   = lazy(() => import("./features/terms/Terms"));
+const Privacy                 = lazy(() => import("./features/privacy/Privacy"));
+const ParentConsentPage       = lazy(() => import("./features/auth/pages/ParentConsentPage"));
+const ResetPasswordPage       = lazy(() => import("./features/auth/pages/ResetPasswordPage"));
+const TimingPage              = lazy(() => import("./features/timing/pages/TimingPage"));
+const TimingEventSelectPage   = lazy(() => import("./features/timing/pages/TimingEventSelectPage"));
+const AcceptInvitePage        = lazy(() => import("./features/admin/pages/AcceptInvitePage"));
+const PlatformAdminDashboard  = lazy(() => import("./features/admin/pages/PlatformAdminDashboard"));
+const FederationAdminDashboard = lazy(() => import("./features/admin/pages/FederationAdminDashboard"));
+const ClubAdminDashboard      = lazy(() => import("./features/admin/pages/ClubAdminDashboard"));
+const ClubCreationRequestPage = lazy(() => import("./features/admin/pages/ClubCreationRequestPage"));
+const EventPageView           = lazy(() => import("./features/signup/pages/EventPageView"));
+import {useAuth} from "./providers/AuthProvider";
 
 const EXCLUDED_PATHS = [
     "/auth",
@@ -62,9 +64,11 @@ function RootLayout() {
 
     return (
         <RequireMaintenance>
-            {showModal && <ProfileCompletionModal missingFields={missingFields} />}
-            <TourController />
-            <Outlet />
+            <TourMockProvider>
+                {showModal && <ProfileCompletionModal missingFields={missingFields} />}
+                <TourController />
+                <Outlet />
+            </TourMockProvider>
         </RequireMaintenance>
     );
 }

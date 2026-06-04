@@ -115,15 +115,25 @@
 }
 
 .placeholder-item {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
+    display: grid;
+    grid-template-areas:
+        "time    select  actions"
+        "msg     msg     msg";
+    grid-template-columns: auto 1fr auto;
+    gap: 10px 12px;
+    align-items: center;
     padding: 14px 16px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--surface-2);
     color: var(--text);
 }
+
+.placeholder-time    { grid-area: time; white-space: nowrap; font-size: 0.875rem; color: var(--muted); }
+.placeholder-select  { grid-area: select; width: 100%; }
+.placeholder-actions { grid-area: actions; display: flex; gap: 8px; }
+.placeholder-msg     { grid-area: msg; font-size: 0.8rem; }
+.placeholder-delete-btn { color: var(--danger); }
 
 @media (max-width: 720px) {
     .boat-item {
@@ -133,6 +143,23 @@
 
     .timing-tabs {
         flex-wrap: wrap;
+    }
+
+    .placeholder-item {
+        grid-template-areas:
+            "time    time"
+            "select  select"
+            "actions actions"
+            "msg     msg";
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .placeholder-actions {
+        width: 100%;
+    }
+
+    .placeholder-actions button {
+        flex: 1;
     }
 }
 
@@ -194,4 +221,180 @@
     background: #2a2a2a;
     color: white;
     font-weight: 600;
+}
+
+/* ── Finish tab flag button ─────────────────────────────────────────────────── */
+
+.finish-flag-btn {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.boat-item:hover .finish-flag-btn {
+    opacity: 1;
+}
+
+/* ── Review tab ─────────────────────────────────────────────────────────────── */
+
+.timing-tab-review {
+    color: var(--brand-warm) !important;
+}
+
+.timing-tab-review.active {
+    color: var(--brand-warm) !important;
+}
+
+.review-tab {
+    display: grid;
+    gap: 16px;
+}
+
+.review-tab-notice {
+    font-size: 0.875rem;
+    color: var(--muted);
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--brand-warm);
+    border-radius: var(--radius-sm);
+    margin: 0;
+}
+
+.review-boat-card {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    background: var(--surface);
+    border: 1px solid var(--brand-warm);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-soft);
+}
+
+.review-boat-main {
+    display: grid;
+    gap: 2px;
+}
+
+.review-boat-id {
+    font-weight: 700;
+    color: var(--text);
+}
+
+.review-boat-rowers {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.review-boat-category {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.review-boat-time {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.review-time-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.review-time {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-weight: 700;
+    color: var(--brand);
+    font-size: 1.1rem;
+}
+
+.review-flag {
+    font-size: 0.8rem;
+    color: var(--brand-warm);
+    font-weight: 600;
+    margin-left: auto;
+}
+
+.review-boat-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.review-btn-danger {
+    color: var(--danger) !important;
+    border-color: var(--danger) !important;
+}
+
+.review-btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 10%, transparent) !important;
+}
+
+.review-msg {
+    font-size: 0.8rem;
+    color: var(--danger);
+}
+
+/* ── Tour action menu demo ──────────────────────────────────────────────────── */
+
+.timing-action-demo {
+    margin-top: 20px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+}
+
+.timing-action-demo-hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-weight: 600;
+    margin: 0 0 12px;
+}
+
+.timing-demo-sheet {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    max-width: 320px;
+}
+
+.timing-demo-sheet-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--muted);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.timing-demo-action {
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.timing-demo-action--danger {
+    color: var(--danger);
+}
+
+.timing-demo-cancel {
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #2a2a2a;
+    color: rgba(255,255,255,0.55);
+    font-weight: 600;
+    font-size: 0.9rem;
 }

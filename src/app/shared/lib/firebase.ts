@@ -1,6 +1,9 @@
 import { initializeApp }                                    from "firebase/app";
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from "firebase/functions";
-import { getAuth, connectAuthEmulator, signOut, signInAnonymously } from "firebase/auth";
+import {
+    initializeAuth, browserLocalPersistence, indexedDBLocalPersistence,
+    connectAuthEmulator, signOut, signInAnonymously,
+} from "firebase/auth";
 import {
     getFirestore,
     connectFirestoreEmulator,
@@ -20,7 +23,11 @@ const firebaseConfig = {
 const useEmulators  = import.meta.env.VITE_USE_EMULATORS === "true";
 const functionsPort = Number(import.meta.env.VITE_FUNCTIONS_EMULATOR_PORT || "5001");
 export const app       = initializeApp(firebaseConfig);
-export const auth      = getAuth(app);
+// localStorage is preferred: faster on Safari (no IndexedDB overhead). IndexedDB
+// is listed as a fallback so the SDK migrates existing sessions automatically.
+export const auth      = initializeAuth(app, {
+    persistence: [browserLocalPersistence, indexedDBLocalPersistence],
+});
 export const db        = getFirestore(app);
 export const functions = getFunctions(app);
 
@@ -39,13 +46,12 @@ export async function getUserProfile(uid: string) {
 }
 
 export async function sendParentConsentEmail(pendingUserId: string) {
-    const a = getAuth();
-    await signInAnonymously(a);
+    await signInAnonymously(auth);
     try {
         await httpsCallable(functions, "sendParentConsentEmail")({ pendingUserId });
         console.log("Parent consent email sent");
     } finally {
-        await signOut(a);
+        await signOut(auth);
     }
 }
 

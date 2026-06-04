@@ -9,7 +9,6 @@ import {
 import {
     auth, checkPendingUserExists,
     createPendingUser,
-    getUserProfile,
     sendParentConsentEmail, sendVerificationEmail,
 } from "../../../shared/lib/firebase";
 import { fetchAdminInvite, fetchClubInvite, type ClubInvitePreview, upsertUserProfile } from "../api/users";
@@ -616,6 +615,12 @@ export default function AuthPage() {
     }, [loc.state]);
 
     useEffect(() => {
+        if (searchParams.get("error") === "parental-consent") {
+            setErr("Parental consent is required before you can access this account. Please contact support.");
+        }
+    }, []);
+
+    useEffect(() => {
         if (!inviteId) return;
         fetchAdminInvite(inviteId).then((invite) => {
             if (!invite || invite.used) return;
@@ -715,12 +720,6 @@ export default function AuthPage() {
                 await signOut(auth);
                 setUnverifiedEmail(email.trim());
                 setErr("Please verify your email before signing in.");
-                return;
-            }
-            const profile = await getUserProfile(cred.user.uid);
-            if (profile?.status?.requiresParentalConsent) {
-                await signOut(auth);
-                setErr("Parental consent required before access.");
                 return;
             }
             goAfterAuth();

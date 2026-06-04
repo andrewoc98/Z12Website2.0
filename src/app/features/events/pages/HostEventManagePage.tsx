@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
+import { useTourMock } from "../../../providers/TourMockContext";
+import { TOUR_HOST_EVENTS } from "../../home/components/tourMockData";
 import {categoriesFromIds, getEvent, subscribeToEventBoats, updateEventCategories} from "../api/events";
 import "../styles/HostEventManagePage.css";
 import CategoriesTab from "../components/tabs/categories/CategoriesTab.tsx";
@@ -14,6 +16,7 @@ type Tab = "overview" | "categories" | "registrations"  | "race" | "contacts";
 export default function HostEventManagePage() {
 
     const { eventId } = useParams();
+    const { isTourActive } = useTourMock();
     const [event, setEvent] = useState<any>(null);
     const [tab, setTab] = useState<Tab>("overview");
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -42,19 +45,20 @@ export default function HostEventManagePage() {
     };
 
     useEffect(() => {
-
         if (!eventId) return;
+
+        if (isTourActive) {
+            const mock = TOUR_HOST_EVENTS.find(e => e.id === eventId) ?? TOUR_HOST_EVENTS[0];
+            setEvent(mock);
+            setBoats([]);
+            return;
+        }
 
         getEvent(eventId).then(setEvent);
 
-        const unsubscribe = subscribeToEventBoats(
-            eventId,
-            setBoats
-        );
-
+        const unsubscribe = subscribeToEventBoats(eventId, setBoats);
         return unsubscribe;
-
-    }, [eventId]);
+    }, [eventId, isTourActive]);
 
     const status = useMemo(() => {
         if (!event) return "—";
@@ -124,11 +128,12 @@ export default function HostEventManagePage() {
                 {/* WORKSPACE */}
                 <div className="workspace">
 
-                    <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+                    <aside className={`sidebar ${sidebarOpen ? "open" : ""}`} data-tour="host-manage-tabs">
 
                         {tabs.map(t => (
                             <button
                                 key={t}
+                                data-tour={`tab-${t}`}
                                 className={`nav-item ${tab === t ? "active" : ""}`}
                                 onClick={() => {
                                     setTab(t);
@@ -141,7 +146,7 @@ export default function HostEventManagePage() {
 
                     </aside>
 
-                    <section className="content-area">
+                    <section className="content-area" data-tour="host-manage-content">
                         {renderTab()}
                     </section>
 

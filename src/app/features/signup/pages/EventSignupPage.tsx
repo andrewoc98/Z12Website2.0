@@ -8,6 +8,8 @@ import {parseBoatClassFromCategory, boatSizeFromBoatClass, formatDate} from "../
 import { collection, doc, getDoc, getDocs, query, where, documentId } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import { useAuth } from "../../../providers/AuthProvider";
+import { useTourMock } from "../../../providers/TourMockContext";
+import { TOUR_ROWER_EVENTS } from "../../home/components/tourMockData";
 import { mapEvent } from "../../events/lib/mapper.tsx";
 import "../styles/eventSignUp.css";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
@@ -168,6 +170,7 @@ function EsuCopyInvite({ url }: { url: string }) {
 export default function EventPageSignUp() {
     const { eventId } = useParams<{ eventId: string }>();
     const { user, profile } = useAuth() as any;
+    const { isTourActive } = useTourMock();
     const p: Profile | null = profile ?? null;
 
     const [selectedEvent, setSelectedEvent] = useState<(EventDoc & { id: string }) | null>(null);
@@ -185,6 +188,12 @@ export default function EventPageSignUp() {
 
     useEffect(() => {
         if (!eventId) return;
+        if (isTourActive) {
+            const mock = TOUR_ROWER_EVENTS.find(e => e.id === eventId) ?? TOUR_ROWER_EVENTS[0];
+            setSelectedEvent(mock as any);
+            setLoadingEvent(false);
+            return;
+        }
         (async () => {
             setLoadingEvent(true);
             setErr(null);
@@ -198,15 +207,20 @@ export default function EventPageSignUp() {
                 setLoadingEvent(false);
             }
         })();
-    }, [eventId]);
+    }, [eventId, isTourActive]);
 
     const reloadBoats = async () => {
         if (!eventId) return;
+        if (isTourActive) {
+            setBoats([]);
+            setLoadingBoats(false);
+            return;
+        }
         setLoadingBoats(true);
         try { setBoats(await listBoatsForEvent(eventId)); }
         finally { setLoadingBoats(false); }
     };
-    useEffect(() => { void reloadBoats(); }, [eventId]);
+    useEffect(() => { void reloadBoats(); }, [eventId, isTourActive]);
 
     useEffect(() => {
         (async () => {
@@ -387,7 +401,7 @@ export default function EventPageSignUp() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="esu-card esu-signup-card">
+                                <div className="esu-card esu-signup-card" data-tour="signup-form">
                                     <h3 className="esu-card-section-title">Enter a category</h3>
 
                                     {eligibleCategories.length === 0 ? (
@@ -479,7 +493,7 @@ export default function EventPageSignUp() {
                             )}
 
                             {/* ── Start list ── */}
-                            <section className="esu-section">
+                            <section className="esu-section" data-tour="signup-start-list">
                                 <h2 className="esu-section-title">
                                     <span>Start list</span>
                                     {!loadingBoats && (

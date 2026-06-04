@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { groupBoatsByCategory, sortBoatsByBowNumber, formatElapsedTime, formatRowerNames } from "../lib/utils";
 import { useUserProfiles } from "../useUserProfiles";
 import type { BoatTimingDoc, PlaceholderFinish } from "../types";
-import { assignPlaceholderToBoat } from "../api/timing";
+import { assignPlaceholderToBoat, flagBoatForReview, deletePlaceholder } from "../api/timing";
+import Modal from "../../../shared/components/Modal/Modal";
 
 interface FinishTabProps {
     eventId: string;
@@ -15,6 +16,8 @@ export default function FinishTab({ eventId, boats, placeholders }: FinishTabPro
     const [selectedBoat, setSelectedBoat] = useState<Record<string, string>>({});
     const [msgs, setMsgs] = useState<Record<string, string>>({});
     const [grouped, setGrouped] = useState(false);
+    const [flagPending, setFlagPending] = useState<BoatTimingDoc | null>(null);
+    const [deletePending, setDeletePending] = useState<PlaceholderFinish | null>(null);
 
     const sortResolvedBoats = (list: BoatTimingDoc[]) => {
         return [...list].sort((a, b) => {
@@ -98,26 +101,86 @@ export default function FinishTab({ eventId, boats, placeholders }: FinishTabPro
                 {boat.status === "finished" ? `#${position}` : "—"}
             </span>
             <span>{boat.bowNumber}# {boat.clubName} {formatRowerNames(boat.rowerUids, profiles, boat.boatSize)}</span>
-            <span className="timer font-bold">
-                {boat.status === "dns" && <span style={{color: "var(--red)"}}>DNS</span>}
-                {boat.status === "dnf" && <span style={{color: "var(--orange)"}}>DNF</span>}
-                {boat.status === "finished" && boat.startedAt && boat.finishedAt
-                    ? formatElapsedTime(boat.finishedAt - boat.startedAt + boat.adjustmentMs)
-                    : ""
-                }
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span className="timer font-bold">
+                    {boat.status === "dns" && <span style={{color: "var(--red)"}}>DNS</span>}
+                    {boat.status === "dnf" && <span style={{color: "var(--orange)"}}>DNF</span>}
+                    {boat.status === "finished" && boat.startedAt && boat.finishedAt
+                        ? formatElapsedTime(boat.finishedAt - boat.startedAt + boat.adjustmentMs)
+                        : ""
+                    }
+                </span>
+                {boat.status === "finished" && (
+                    <button
+                        className="btn-ghost finish-flag-btn"
+                        onClick={() => setFlagPending(boat)}
+                        title="Flag for review"
+                    >
+                        Flag
+                    </button>
+                )}
+            </div>
         </div>
     );
 
+    const handleDeletePlaceholder = async () => {
+        if (!deletePending) return;
+        const ph = deletePending;
+        setDeletePending(null);
+        try {
+            await deletePlaceholder(eventId, ph.id);
+        } catch {
+            showMsg(ph.id, "Failed to delete — try again");
+        }
+    };
+
+    const handleFlag = async () => {
+        if (!flagPending) return;
+        const boat = flagPending;
+        setFlagPending(null);
+        try {
+            await flagBoatForReview(eventId, boat.id);
+        } catch {
+            showMsg(boat.id, "Failed to flag — try again");
+        }
+    };
+
     return (
         <div className="finish-tab">
+            {flagPending && (
+                <Modal
+                    title="Flag for review?"
+                    message={`Move #${flagPending.bowNumber} ${flagPending.clubName} to the Review tab. The time will be hidden from results until an admin confirms or corrects it.`}
+                    onClose={() => setFlagPending(null)}
+                    actions={[
+                        { label: "Flag",   onClick: handleFlag,                 variant: "primary"   },
+                        { label: "Cancel", onClick: () => setFlagPending(null), variant: "secondary" },
+                    ]}
+                />
+            )}
+
+            {deletePending && (
+                <Modal
+                    title="Delete placeholder?"
+                    message={`Remove the placeholder recorded at ${new Date(deletePending.finishedAt).toLocaleTimeString()}. This cannot be undone.`}
+                    onClose={() => setDeletePending(null)}
+                    actions={[
+                        { label: "Delete", onClick: handleDeletePlaceholder,      variant: "primary"   },
+                        { label: "Cancel", onClick: () => setDeletePending(null), variant: "secondary" },
+                    ]}
+                />
+            )}
+
             {placeholders.length > 0 && (
                 <>
                     <h3>Unassigned Placeholders</h3>
                     {placeholders.map((placeholder) => (
                         <div key={placeholder.id} className="placeholder-item">
-                            <span>Finish at {new Date(placeholder.finishedAt).toLocaleTimeString()}</span>
+                            <span className="placeholder-time">
+                                Finish at {new Date(placeholder.finishedAt).toLocaleTimeString()}
+                            </span>
                             <select
+                                className="placeholder-select"
                                 value={selectedBoat[placeholder.id] || ""}
                                 onChange={(e) => setSelectedBoat(prev => ({
                                     ...prev,
@@ -132,15 +195,24 @@ export default function FinishTab({ eventId, boats, placeholders }: FinishTabPro
                                     </option>
                                 ))}
                             </select>
-                            <button
-                                className="btn-primary"
-                                onClick={() => handleAssign(placeholder)}
-                                disabled={!selectedBoat[placeholder.id] || assigning === placeholder.id}
-                            >
-                                {assigning === placeholder.id ? "Assigning..." : "Assign"}
-                            </button>
+                            <div className="placeholder-actions">
+                                <button
+                                    className="btn-primary"
+                                    onClick={() => handleAssign(placeholder)}
+                                    disabled={!selectedBoat[placeholder.id] || assigning === placeholder.id}
+                                >
+                                    {assigning === placeholder.id ? "Assigning..." : "Assign"}
+                                </button>
+                                <button
+                                    className="btn-ghost placeholder-delete-btn"
+                                    onClick={() => setDeletePending(placeholder)}
+                                    disabled={assigning === placeholder.id}
+                                >
+                                    Delete
+                                </button>
+                            </div>
                             {msgs[placeholder.id] && (
-                                <span style={{ fontSize: "0.8rem", color: msgs[placeholder.id].startsWith("Failed") ? "#ef4444" : "#10b981" }}>
+                                <span className="placeholder-msg" style={{ color: msgs[placeholder.id].startsWith("Failed") ? "#ef4444" : "#10b981" }}>
                                     {msgs[placeholder.id]}
                                 </span>
                             )}

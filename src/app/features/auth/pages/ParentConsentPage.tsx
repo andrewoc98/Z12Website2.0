@@ -72,7 +72,6 @@ export default function ParentConsentPage() {
     const token = searchParams.get("token");
 
     const [pendingUser, setPendingUser] = useState<PendingUser | null>(null);
-    const [clubName, setClubName]       = useState<string | null>(null);
     const [step, setStep]               = useState<Step>("consent");
     const [loading, setLoading]         = useState(true);
     const [error, setError]             = useState<string | null>(null);
@@ -107,10 +106,6 @@ export default function ParentConsentPage() {
                 const data = snap.data() as PendingUser;
                 setPendingUser(data);
                 setGuardianEmail(data.parentEmail ?? "");
-                if (data.clubId) {
-                    const clubSnap = await getDoc(doc(db, "clubs", data.clubId));
-                    if (clubSnap.exists()) setClubName((clubSnap.data() as any).name);
-                }
             } catch (e: any) {
                 setError(e.message);
             } finally {
@@ -326,8 +321,8 @@ export default function ParentConsentPage() {
                             <div className="consent-child-summary">
                                 <span className="consent-child-name">{pendingUser.fullName}</span>
                                 <span className="consent-child-meta">{pendingUser.email}</span>
-                                {clubName && (
-                                    <span className="consent-child-meta">{clubName}</span>
+                                {pendingUser.clubName && (
+                                    <span className="consent-child-meta">{pendingUser.clubName}</span>
                                 )}
                             </div>
 

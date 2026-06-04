@@ -58,24 +58,83 @@ export async function startBoatTiming(eventId: string, boatId: string) {
     }
 }
 
-// Stop timing a boat
-export async function stopBoatTiming(eventId: string, boatId: string) {
+// Stop timing a boat. If reviewThresholdMs is provided and the elapsed time is
+// below that threshold, the boat is flagged "under_review" instead of "finished".
+export async function stopBoatTiming(
+    eventId: string,
+    boatId: string,
+    startedAt?: number | null,
+    reviewThresholdMs?: number
+) {
     const ref = doc(db, "events", eventId, "boats", boatId);
     const now = Date.now();
+    const elapsed = startedAt != null ? now - startedAt : Infinity;
+    const flagged = reviewThresholdMs != null && elapsed < reviewThresholdMs;
+    const status  = flagged ? "under_review" : "finished";
+    const patch   = flagged
+        ? { status, finishedAt: now, reviewReason: "auto", updatedAt: serverTimestamp() }
+        : { status, finishedAt: now, updatedAt: serverTimestamp() };
     try {
-        await updateDoc(ref, {
-            status: "finished",
-            finishedAt: now,
-            updatedAt: serverTimestamp()
-        });
+        await updateDoc(ref, patch);
     } catch (error) {
-        // Queue for later sync
         addToPendingQueue({
             type: "stop",
             eventId,
             boatId,
             timestamp: now,
-            data: { status: "finished", finishedAt: now }
+            data: flagged ? { status, finishedAt: now, reviewReason: "auto" } : { status, finishedAt: now }
+        });
+        throw error;
+    }
+}
+
+// Flag a finished boat for manual review by an admin.
+export async function flagBoatForReview(eventId: string, boatId: string) {
+    const ref = doc(db, "events", eventId, "boats", boatId);
+    try {
+        await updateDoc(ref, { status: "under_review", reviewReason: "manual", updatedAt: serverTimestamp() });
+    } catch (error) {
+        addToPendingQueue({
+            type: "flag_review",
+            eventId,
+            boatId,
+            timestamp: Date.now(),
+            data: { status: "under_review", reviewReason: "manual" }
+        });
+        throw error;
+    }
+}
+
+// Confirm an under_review time — publishes the boat as finished.
+export async function confirmBoatTime(eventId: string, boatId: string) {
+    const ref = doc(db, "events", eventId, "boats", boatId);
+    try {
+        await updateDoc(ref, { status: "finished", updatedAt: serverTimestamp() });
+    } catch (error) {
+        addToPendingQueue({
+            type: "confirm_review",
+            eventId,
+            boatId,
+            timestamp: Date.now(),
+            data: { status: "finished" }
+        });
+        throw error;
+    }
+}
+
+// Discard an under_review time — sends the boat back to in_progress so it can
+// be stopped again when it actually crosses the line.
+export async function discardBoatTime(eventId: string, boatId: string) {
+    const ref = doc(db, "events", eventId, "boats", boatId);
+    try {
+        await updateDoc(ref, { status: "in_progress", finishedAt: null, updatedAt: serverTimestamp() });
+    } catch (error) {
+        addToPendingQueue({
+            type: "discard_review",
+            eventId,
+            boatId,
+            timestamp: Date.now(),
+            data: { status: "in_progress", finishedAt: null }
         });
         throw error;
     }
@@ -97,6 +156,23 @@ export async function addPlaceholderFinish(eventId: string, finishedAt: number, 
             eventId,
             timestamp: finishedAt,
             data: { finishedAt, ...(bowNumber !== undefined && { bowNumber }) }
+        });
+        throw error;
+    }
+}
+
+// Delete a placeholder that was recorded in error.
+export async function deletePlaceholder(eventId: string, placeholderId: string) {
+    const ref = doc(db, "events", eventId, "placeholders", placeholderId);
+    try {
+        await deleteDoc(ref);
+    } catch (error) {
+        addToPendingQueue({
+            type: "delete_placeholder",
+            eventId,
+            placeholderId,
+            timestamp: Date.now(),
+            data: {}
         });
         throw error;
     }
@@ -182,3 +258,25 @@ export const markBoatDNF = async (eventId: string, boatId: string) => {
         throw error;
     }
 };
+
+// Return an under_review boat to the start list (registered), clearing all timing data.
+export async function returnBoatToStartList(eventId: string, boatId: string) {
+    const ref = doc(db, "events", eventId, "boats", boatId);
+    try {
+        await updateDoc(ref, {
+            status: "registered",
+            startedAt: null,
+            finishedAt: null,
+            updatedAt: serverTimestamp(),
+        });
+    } catch (error) {
+        addToPendingQueue({
+            type: "return_to_start",
+            eventId,
+            boatId,
+            timestamp: Date.now(),
+            data: { status: "registered", startedAt: null, finishedAt: null },
+        });
+        throw error;
+    }
+}

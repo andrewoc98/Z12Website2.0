@@ -9,6 +9,8 @@ import Footer from "../../../shared/components/Footer/Footer.tsx";
 import { formatDate } from "../../events/lib/categories.ts";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useRoles } from "../../../providers/RoleProvider";
+import { useTourMock } from "../../../providers/TourMockContext";
+import { TOUR_ROWER_EVENTS } from "../../home/components/tourMockData";
 
 type Mode = "upcoming" | "past";
 
@@ -68,6 +70,8 @@ function getEventAction(event: EventDoc) {
 /* ---------------- page ---------------- */
 
 export default function RowerEventListPage() {
+    const { isTourActive } = useTourMock();
+
     const [events, setEvents] = useState<(EventDoc & { id: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
@@ -77,6 +81,12 @@ export default function RowerEventListPage() {
 
     /* -------- fetch events -------- */
     useEffect(() => {
+        if (isTourActive) {
+            setEvents(TOUR_ROWER_EVENTS);
+            setLoading(false);
+            return;
+        }
+
         (async () => {
             setLoading(true);
             setErr(null);
@@ -90,7 +100,7 @@ export default function RowerEventListPage() {
                 setLoading(false);
             }
         })();
-    }, []);
+    }, [isTourActive]);
 
     useEffect(() => setPage(1), [mode]);
 
@@ -122,10 +132,9 @@ export default function RowerEventListPage() {
 
     /* ---------------- render ---------------- */
     return (
-        <div className="page-container">
+        <>
             <Navbar />
-            <div className="page-content">
-                <main className="events-page" data-tour="events-list">
+            <div className="events-page page" data-tour="events-list">
                     {/* header */}
                     <div className="events-header">
                         <div className="events-title">
@@ -255,9 +264,8 @@ export default function RowerEventListPage() {
                             </div>
                         </>
                     )}
-                </main>
             </div>
             <Footer />
-        </div>
+        </>
     );
 }

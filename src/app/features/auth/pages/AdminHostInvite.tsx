@@ -56,7 +56,7 @@ export default function HostAdminInvite() {
     const emailValid = isValidEmail(email.trim());
 
     return (
-        <section className="panel">
+        <section className="panel" data-tour="host-admin-invite">
             <h3>Invite Admin</h3>
 
             <label>

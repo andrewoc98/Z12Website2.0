@@ -54,6 +54,24 @@ const ROWER_STEPS: TourStep[] = [
         },
     },
     {
+        route: "/rower/events/tour-event-1/signup",
+        element: '[data-tour="signup-form"]',
+        popover: {
+            title: "Choose Your Category",
+            description: "Select the category that matches your gender and age group. For multi-seat boats you'll get an invite link to share with your crew.",
+            side: "top",
+        },
+    },
+    {
+        route: "/rower/events/tour-event-1/signup",
+        element: '[data-tour="signup-start-list"]',
+        popover: {
+            title: "Start List",
+            description: "Once you've registered, your entry appears here. You can see every other crew entered before race day.",
+            side: "top",
+        },
+    },
+    {
         route: "/events",
         popover: {
             title: "You're all set!",
@@ -149,6 +167,69 @@ const HOST_STEPS: TourStep[] = [
         },
     },
     {
+        route: "/host/events/tour-host-event-1",
+        element: '[data-tour="host-manage-tabs"]',
+        popover: {
+            title: "Event Dashboard",
+            description: "Everything you need to run your event is spread across five tabs in this sidebar. Let's walk through each one.",
+            side: "right",
+        },
+    },
+    {
+        route: "/host/events/tour-host-event-1",
+        element: '[data-tour="tab-overview"]',
+        popover: {
+            title: "Overview",
+            description: "The home base for your event. Edit the event name, dates, and location, assign bow numbers, and see a live breakdown of registrations by category.",
+            side: "right",
+        },
+    },
+    {
+        route: "/host/events/tour-host-event-1",
+        element: '[data-tour="tab-categories"]',
+        popover: {
+            title: "Categories",
+            description: "Add or remove race categories. Each category controls who can enter and how boats are grouped in the start list and results.",
+            side: "right",
+        },
+    },
+    {
+        route: "/host/events/tour-host-event-1",
+        element: '[data-tour="tab-registrations"]',
+        popover: {
+            title: "Registrations",
+            description: "See every crew that has entered, filter by category, and check entry details before race day.",
+            side: "right",
+        },
+    },
+    {
+        route: "/host/events/tour-host-event-1",
+        element: '[data-tour="tab-race"]',
+        popover: {
+            title: "Race",
+            description: "Control how results are published — live as each boat finishes, only once an entire category is done, or when the full event wraps up.",
+            side: "right",
+        },
+    },
+    {
+        route: "/host/events/tour-host-event-1",
+        element: '[data-tour="tab-contacts"]',
+        popover: {
+            title: "Contacts",
+            description: "See all timing admins attached to your account. Anyone listed here has access to the timing tools for your events on race day.",
+            side: "right",
+        },
+    },
+    {
+        route: "/host/events/tour-host-event-1",
+        element: '[data-tour="host-admin-invite"]',
+        popover: {
+            title: "Invite an Admin",
+            description: "Enter an email address and hit Send Invite to give someone timing access. They'll receive a signup link and once registered will appear in your Contacts tab.",
+            side: "top",
+        },
+    },
+    {
         route: "/host/events",
         popover: {
             title: "You're all set!",
@@ -164,7 +245,7 @@ const ADMIN_STEPS: TourStep[] = [
         route: "/",
         popover: {
             title: "Welcome to Z12",
-            description: "You have timing access for your assigned events. Let's take a quick look.",
+            description: "You have timing access for your assigned events. Let's take a quick look at the timing tools.",
         },
     },
     {
@@ -184,6 +265,42 @@ const ADMIN_STEPS: TourStep[] = [
             title: "Select an Event",
             description: "Your events appear here. Active events are highlighted — click one to open the timing tools.",
             side: "bottom",
+        },
+    },
+    {
+        route: "/timing/tour-timing-event-1",
+        element: '[data-tour="timing-tabs"]',
+        popover: {
+            title: "Start · In Progress · Finish",
+            description: "Each tab shows boats at that stage. Tap a boat in Start to begin timing it, then tap again in In Progress to stop the clock when it crosses the line.",
+            side: "bottom",
+        },
+    },
+    {
+        route: "/timing/tour-timing-event-1",
+        element: '[data-tour="timing-tab-start"]',
+        popover: {
+            title: "DNS — Did Not Start",
+            description: "The Start tab lists all boats yet to race. If a crew scratches before leaving the dock, long-press their card and choose Mark DNS. DNS entries won't appear in the results.",
+            side: "bottom",
+        },
+    },
+    {
+        route: "/timing/tour-timing-event-1",
+        element: '[data-tour="timing-tab-in-progress"]',
+        popover: {
+            title: "DNF — Did Not Finish",
+            description: "The In Progress tab shows boats currently on the water. If a crew withdraws mid-race, long-press their card and choose Mark DNF. DNF entries appear at the bottom of results.",
+            side: "bottom",
+        },
+    },
+    {
+        route: "/timing/tour-timing-event-1",
+        element: '[data-tour="timing-dnf-demo"]',
+        popover: {
+            title: "The Action Menu",
+            description: "Long-pressing any boat card opens this menu. Stop Boat records the finish time. Mark DNF removes them from the active race. The menu is also where you'll find DNS on the Start tab.",
+            side: "top",
         },
     },
     {

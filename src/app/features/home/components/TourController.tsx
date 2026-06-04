@@ -4,6 +4,7 @@ import { driver } from "driver.js";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import { useAuth } from "../../../providers/AuthProvider";
+import { useTourMock } from "../../../providers/TourMockContext";
 import { getStepsForProfile, type TourStep } from "./tourSteps";
 import "driver.js/dist/driver.css";
 import "../styles/tour.css";
@@ -29,6 +30,7 @@ function waitForElement(selector: string, timeout = 2000): Promise<void> {
 
 export default function TourController() {
     const { user, profile } = useAuth();
+    const { setTourActive } = useTourMock();
     const navigate = useNavigate();
     const { pathname } = useLocation();
 
@@ -85,7 +87,13 @@ export default function TourController() {
         d = driver({
             animate: true,
             overlayOpacity: 0.65,
-            smoothScroll: true,
+            // Scroll the highlighted element to the vertical centre of the viewport
+            // so sticky headers/footers don't obscure it. Using "instant" behaviour
+            // so driver.js measures the final element position AFTER the scroll —
+            // smooth scroll returns before the animation ends, causing the overlay
+            // to be positioned at the pre-scroll coordinates and the element drifts
+            // out of the highlight box as the page animates.
+            scrollIntoViewOptions: { block: "center", behavior: "instant" },
             allowClose: true,
             showProgress: true,
             progressText: "{{current}} of {{total}}",
@@ -118,6 +126,7 @@ export default function TourController() {
 
             // Fires when the tour ends for any reason (Done, X, ESC, backdrop click)
             onDestroyed: () => {
+                setTourActive(false);
                 markSeen();
             },
         });
@@ -125,11 +134,15 @@ export default function TourController() {
         driverRef.current = d;
 
         // Short delay so the page has rendered before the first highlight
-        const t = setTimeout(() => d.drive(), 300);
+        const t = setTimeout(() => {
+            setTourActive(true);
+            d.drive();
+        }, 300);
 
         return () => {
             clearTimeout(t);
             if (driverRef.current?.isActive()) driverRef.current.destroy();
+            setTourActive(false);
         };
     }, [user?.uid, profile?.hasSeenTour]);
 

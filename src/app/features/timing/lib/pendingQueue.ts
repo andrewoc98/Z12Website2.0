@@ -4,7 +4,7 @@ import {db} from "../../../shared/lib/firebase";
 // Persistent queue for timing actions that haven't synced yet
 export type PendingAction = {
     id: string;
-    type: "start" | "stop" | "placeholder" | "assign_placeholder" | "dnf" | "dns";
+    type: "start" | "stop" | "placeholder" | "assign_placeholder" | "dnf" | "dns" | "confirm_review" | "discard_review" | "return_to_start";
     eventId: string;
     boatId?: string;
     placeholderId?: string;
@@ -99,6 +99,18 @@ async function replayAction(action: PendingAction): Promise<void> {
                 updatedAt: serverTimestamp(),
             });
             await deleteDoc(placeholderRef);
+            break;
+        }
+        case "confirm_review":
+        case "discard_review":
+        case "return_to_start":
+        case "dnf":
+        case "dns": {
+            const ref = doc(db, "events", action.eventId, "boats", action.boatId!);
+            await updateDoc(ref, {
+                ...action.data,
+                updatedAt: serverTimestamp(),
+            });
             break;
         }
         default:

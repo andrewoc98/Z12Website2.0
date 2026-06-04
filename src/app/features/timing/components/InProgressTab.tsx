@@ -9,9 +9,10 @@ import {StopBoatItem} from "./StopBoatItem.tsx";
 interface InProgressTabProps {
     eventId: string;
     boats: BoatTimingDoc[];
+    reviewThresholdMs?: number;
 }
 
-export default function InProgressTab({ eventId, boats }: InProgressTabProps) {
+export default function InProgressTab({ eventId, boats, reviewThresholdMs }: InProgressTabProps) {
     const [, setTick] = useState(0);
     const [placeholderLoading, setPlaceholderLoading] = useState(false);
     const [placeholderMsg, setPlaceholderMsg] = useState<string | null>(null);
@@ -38,8 +39,9 @@ export default function InProgressTab({ eventId, boats }: InProgressTabProps) {
     const { profiles } = useUserProfiles(allUids);
 
     const handleStop = async (boatId: string) => {
+        const boat = inProgressBoats.find(b => b.id === boatId);
         try {
-            await stopBoatTiming(eventId, boatId);
+            await stopBoatTiming(eventId, boatId, boat?.startedAt, reviewThresholdMs);
         } catch (error) {
             console.error("Failed to stop timing:", error);
         }
@@ -64,13 +66,18 @@ export default function InProgressTab({ eventId, boats }: InProgressTabProps) {
     const sheetActions: { key: BoatAction; label: string; onClick: () => void }[] = sheetBoat
         ? [
             {
-                key: "stop" as BoatAction, // Cast to the specific union type
+                key: "stop" as BoatAction,
                 label: "Stop Boat",
                 onClick: async () => {
                     const boatId = sheetBoat.id;
+                    const startedAt = sheetBoat.startedAt;
                     setSheetBoat(null);
                     triggerFeedback("start");
-                    await handleStop(boatId);
+                    try {
+                        await stopBoatTiming(eventId, boatId, startedAt, reviewThresholdMs);
+                    } catch (error) {
+                        console.error("Failed to stop timing:", error);
+                    }
                 }
             },
             {

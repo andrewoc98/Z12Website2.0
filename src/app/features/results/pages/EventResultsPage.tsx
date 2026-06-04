@@ -71,6 +71,9 @@ export default function EventResultsPage() {
                 const finishMs = toTimestamp(b.finishedAt);
                 const status = b.status?.toLowerCase();
 
+                // under_review boats are hidden until an admin confirms them
+                if (status === "under_review") return null;
+
                 // A boat is "Resolved" if it has a finish time OR a DNF/DNS status
                 const isResolved = (startMs != null && finishMs != null) || status === "dnf" || status === "dns";
 

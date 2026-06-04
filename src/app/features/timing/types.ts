@@ -1,4 +1,4 @@
-export type BoatStatus = "registered" | "in_progress" | "finished" | "dns" | "dnf";;
+export type BoatStatus = "registered" | "in_progress" | "finished" | "dns" | "dnf" | "under_review";;
 
 export type BoatTimingDoc = {
     id: string;
@@ -11,6 +11,7 @@ export type BoatTimingDoc = {
     clubName: string;
     rowerUids: string[];
     status: BoatStatus;
+    reviewReason?: "auto" | "manual";
     activeRunId: string | null;
     startedAt: number | null; // Unix ms timestamp
     finishedAt: number | null; // Unix ms timestamp

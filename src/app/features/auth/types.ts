@@ -204,6 +204,7 @@ export type PendingUser = {
      * Resolved to a ClubRef once the account is fully created.
      */
     clubId?: string;
+    clubName?: string;
     dateOfBirth: string;
     parentEmail?: string;
     consent?: {
