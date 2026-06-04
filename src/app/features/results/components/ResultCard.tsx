@@ -21,9 +21,11 @@ interface ResultCardProps {
     rank?: number;
     inProgress?: boolean;
     profiles: Record<string, any>;
+    currentUserUid?: string;
 }
 
-export default function ResultCard({ boat, rank, inProgress, profiles }: ResultCardProps) {
+export default function ResultCard({ boat, rank, inProgress, profiles, currentUserUid }: ResultCardProps) {
+    const isMe = !!(currentUserUid && (boat.rowerUids ?? []).includes(currentUserUid));
     const [open, setOpen] = useState(false);
     const status = boat.status?.toUpperCase();
     const isSpecialStatus = status === "DNF" || status === "DNS";
@@ -44,7 +46,7 @@ export default function ResultCard({ boat, rank, inProgress, profiles }: ResultC
     const displayStarted = new Date(boat.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     return (
-        <li className={`result-card ${inProgress ? "result-card--in-progress" : ""} ${isSpecialStatus ? "result-card--status" : ""}`} onClick={() => setOpen(!open)}>
+        <li className={`result-card ${inProgress ? "result-card--in-progress" : ""} ${isSpecialStatus ? "result-card--status" : ""} ${isMe ? "result-card--mine" : ""}`} onClick={() => setOpen(!open)}>
             <div className="result-card-main">
                 <div className="result-card-left">
                     {/* Hide rank for DNF/DNS or show it differently */}
@@ -58,7 +60,10 @@ export default function ResultCard({ boat, rank, inProgress, profiles }: ResultC
                         <span className="result-on-course-dot" title="On course" />
                     )}
                     <div className="result-card-info">
-                        <span className="result-card-name">{boat.clubName}</span>
+                        <span className="result-card-name">
+                            {boat.clubName}
+                            {isMe && <span className="result-you-chip">YOU</span>}
+                        </span>
                         <span className="result-card-sub">{rowerNames}</span>
                         <span className="result-card-sub">
                             Bow {boat.bowNumber ?? "—"} • {boat.categoryName ?? boat.category ?? "—"}

@@ -7,9 +7,11 @@ import OverallResults from "../components/OverallResults";
 import CategoryResults from "../components/CategoryResults";
 import "../style/EventResultsPage.css";
 import type {Boat} from "../components/ResultCard.tsx";
-import { useUserProfiles } from "../../timing/useUserProfiles.ts"
+import { useUserProfiles } from "../../timing/useUserProfiles.ts";
+import { useAuth } from "../../../providers/AuthProvider";
 
 export default function EventResultsPage() {
+    const { user } = useAuth();
     const { eventId } = useParams<{ eventId: string }>();
     const [event, setEvent] = useState<any>(null);
     const [boats, setBoats] = useState<any[]>([]);
@@ -200,9 +202,9 @@ export default function EventResultsPage() {
                 ) : finishedBoats.length === 0 ? (
                     <p>No finished results yet.</p>
                 ) : tab === "overall" ? (
-                    <OverallResults boats={paginatedBoats} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE}/>
+                    <OverallResults boats={paginatedBoats} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} currentUserUid={user?.uid} />
                 ) : (
-                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} />
+                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} currentUserUid={user?.uid} />
                 )}
                 {((finishedBoats.length > PAGE_SIZE) && tab === "overall") && (
                     <div className="pagination">

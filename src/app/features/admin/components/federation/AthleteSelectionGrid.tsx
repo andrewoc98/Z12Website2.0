@@ -1,9 +1,12 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { getAthleteSelectionProfiles } from "../../services/clubAdminService";
 import AthleteSelectionProfileModal from "./AthleteSelectionProfile";
+import Pagination from "../../../../shared/components/Pagination/Pagination";
 import type { AthleteSelectionProfile } from "../../types/admin.types";
 import "../../styles/platformAdmin.css";
 import "../../styles/federationAdmin.css";
+
+const ATHLETES_PER_PAGE = 20;
 
 type Props = {
     clubIds: string[];
@@ -70,6 +73,7 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
     const [searchQuery,     setSearchQuery]     = useState<string>("");
     const [sortMode,        setSortMode]        = useState<SortMode>("2000m");
     const [showShortlisted, setShowShortlisted] = useState(false);
+    const [page, setPage] = useState(1);
 
     // ── Shortlist (localStorage, keyed by federation) ─────────────────────────
     const [shortlisted, setShortlisted] = useState<Set<string>>(() => {
@@ -142,6 +146,13 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
         return list;
     }, [athletes, showShortlisted, shortlisted, genderFilter, ageGroupFilter, clubFilter, searchQuery, sortMode]);
 
+    // ── Pagination ────────────────────────────────────────────────────────────
+    const totalPages  = Math.ceil(displayed.length / ATHLETES_PER_PAGE);
+    const pagedAthletes = useMemo(
+        () => displayed.slice((page - 1) * ATHLETES_PER_PAGE, page * ATHLETES_PER_PAGE),
+        [displayed, page]
+    );
+
     // ── Counts ────────────────────────────────────────────────────────────────
     const maleCount      = athletes.filter(a => a.gender === "male").length;
     const femaleCount    = athletes.filter(a => a.gender === "female").length;
@@ -153,6 +164,11 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
         setClubFilter("all");
         setSearchQuery("");
         setShowShortlisted(false);
+        setPage(1);
+    }
+
+    function changeFilter<T>(setter: (v: T) => void) {
+        return (v: T) => { setter(v); setPage(1); };
     }
 
     const activeDistOpt = sortMode !== "name"
@@ -185,7 +201,7 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                             <button
                                 key={g}
                                 className={`fa-filter-tab${genderFilter === g ? " fa-filter-tab--active" : ""}`}
-                                onClick={() => setGenderFilter(g)}
+                                onClick={() => changeFilter(setGenderFilter)(g)}
                             >
                                 {g === "all" ? "All" : g.charAt(0).toUpperCase() + g.slice(1)}
                             </button>
@@ -196,7 +212,7 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                     <select
                         className="fa-selection-select"
                         value={ageGroupFilter}
-                        onChange={e => setAgeGroupFilter(e.target.value as AgeGroupFilter)}
+                        onChange={e => changeFilter(setAgeGroupFilter)(e.target.value as AgeGroupFilter)}
                     >
                         <option value="all">All ages</option>
                         <option value="junior">Junior</option>
@@ -209,7 +225,7 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                         <select
                             className="fa-selection-select"
                             value={clubFilter}
-                            onChange={e => setClubFilter(e.target.value)}
+                            onChange={e => changeFilter(setClubFilter)(e.target.value)}
                         >
                             <option value="all">All clubs</option>
                             {clubOptions.map(c => (
@@ -222,7 +238,7 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                     <select
                         className="fa-selection-select"
                         value={sortMode}
-                        onChange={e => setSortMode(e.target.value as SortMode)}
+                        onChange={e => changeFilter(setSortMode)(e.target.value as SortMode)}
                     >
                         {availableDistances.map(d => (
                             <option key={d.label} value={d.label}>Best {d.label}</option>
@@ -237,11 +253,11 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                         className="fa-selection-search"
                         placeholder="Search athletes…"
                         value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
+                        onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
                     />
                     <button
                         className={`fa-filter-tab${showShortlisted ? " fa-filter-tab--active" : ""}`}
-                        onClick={() => setShowShortlisted(s => !s)}
+                        onClick={() => { setShowShortlisted(s => !s); setPage(1); }}
                     >
                         ★{shortlistCount > 0 ? ` (${shortlistCount})` : " Shortlisted"}
                     </button>
@@ -270,8 +286,9 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                     </button>
                 </div>
             ) : (
+                <>
                 <div className="fa-athlete-grid">
-                    {displayed.map(athlete => (
+                    {pagedAthletes.map(athlete => (
                         <div
                             key={athlete.uid}
                             role="button"
@@ -313,6 +330,8 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                         </div>
                     ))}
                 </div>
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+                </>
             )}
 
             {selected && (

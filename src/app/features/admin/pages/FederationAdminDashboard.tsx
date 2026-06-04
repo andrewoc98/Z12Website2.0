@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import AdminGuard from "../components/AdminGuard";
 import ClubOverviewCard from "../components/federation/ClubOverviewCard";
 import ClubRequestsPanel from "../components/federation/ClubRequestsPanel";
 import AthleteSelectionGrid from "../components/federation/AthleteSelectionGrid";
+import Pagination from "../../../shared/components/Pagination/Pagination";
 import { useFederationAdminData } from "../hooks/useFederationAdminData";
 import { useAdminClaims } from "../hooks/useAdminClaims";
 import { updateFederationSettings } from "../services/federationService";
@@ -40,6 +41,8 @@ function FederationAdminContent() {
         useFederationAdminData(federationId);
     const { toast, notify } = useToast();
     const [savingToggle, setSavingToggle] = useState(false);
+    const [clubPage, setClubPage] = useState(1);
+    const CLUBS_PER_PAGE = 9;
 
     async function handleAutoApproveToggle(enabled: boolean) {
         setSavingToggle(true);
@@ -54,6 +57,11 @@ function FederationAdminContent() {
     }
 
     const clubIds = clubs.map(c => c.id);
+    const clubTotalPages = Math.ceil(clubs.length / CLUBS_PER_PAGE);
+    const pagedClubs = useMemo(
+        () => clubs.slice((clubPage - 1) * CLUBS_PER_PAGE, clubPage * CLUBS_PER_PAGE),
+        [clubs, clubPage]
+    );
 
     return (
         <>
@@ -100,11 +108,18 @@ function FederationAdminContent() {
                                 </p>
                             </div>
                         ) : (
-                            <div className="fa-club-grid">
-                                {clubs.map(club => (
-                                    <ClubOverviewCard key={club.id} club={club} />
-                                ))}
-                            </div>
+                            <>
+                                <div className="fa-club-grid">
+                                    {pagedClubs.map(club => (
+                                        <ClubOverviewCard key={club.id} club={club} />
+                                    ))}
+                                </div>
+                                <Pagination
+                                    page={clubPage}
+                                    totalPages={clubTotalPages}
+                                    onPageChange={p => { setClubPage(p); }}
+                                />
+                            </>
                         )}
                     </section>
 

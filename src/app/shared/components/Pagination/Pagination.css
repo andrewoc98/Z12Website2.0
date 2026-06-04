@@ -1,0 +1,48 @@
+.pg-root {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: var(--space-md, 16px);
+}
+
+.pg-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 6px;
+    border-radius: var(--radius-sm, 6px);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-family: "Inter", system-ui, sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pg-btn:hover:not(:disabled) {
+    background: var(--surface);
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.pg-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pg-btn--active {
+    background: var(--brand-warm, #f5a940);
+    color: var(--brand-ink, #1a1a1a);
+    border-color: transparent;
+    font-weight: 600;
+}
+
+.pg-btn--active:hover:not(:disabled) {
+    background: var(--brand-warm, #f5a940);
+    color: var(--brand-ink, #1a1a1a);
+}

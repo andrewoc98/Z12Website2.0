@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ClubCreationRequest } from "../../types/admin.types";
 import {
     approveClubCreationRequest,
     rejectClubCreationRequest,
 } from "../../services/clubAdminService";
+import Pagination from "../../../../shared/components/Pagination/Pagination";
 import "../../styles/platformAdmin.css";
 import "../../styles/federationAdmin.css";
+
+const REQUESTS_PER_PAGE = 5;
 
 type Props = {
     requests: ClubCreationRequest[];
@@ -23,6 +26,12 @@ export default function ClubRequestsPanel({ requests, onAction, onReload }: Prop
     const [busyId,       setBusyId]       = useState<string | null>(null);
     const [rejectingId,  setRejectingId]  = useState<string | null>(null);
     const [rejectReason, setRejectReason] = useState("");
+    const [page, setPage] = useState(1);
+    const totalPages = Math.ceil(requests.length / REQUESTS_PER_PAGE);
+    const pagedRequests = useMemo(
+        () => requests.slice((page - 1) * REQUESTS_PER_PAGE, page * REQUESTS_PER_PAGE),
+        [requests, page]
+    );
 
     async function handleApprove(requestId: string) {
         setBusyId(requestId);
@@ -64,7 +73,7 @@ export default function ClubRequestsPanel({ requests, onAction, onReload }: Prop
 
     return (
         <div className="stack">
-            {requests.map(req => {
+            {pagedRequests.map(req => {
                 const isRejecting = rejectingId === req.id;
                 const isBusy      = busyId === req.id;
 
@@ -151,6 +160,7 @@ export default function ClubRequestsPanel({ requests, onAction, onReload }: Prop
                     </div>
                 );
             })}
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
     );
 }

@@ -1,68 +1,104 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, collectionGroup, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
-import type {EventDoc} from "../../events/types.ts";
+import type { EventDoc } from "../../events/types.ts";
 
+export interface UserRaceResult {
+    id: string;
+    eventId: string;
+    eventName: string;
+    eventLengthMeters: number;
+    categoryId: string;
+    categoryName: string;
+    rowerUid: string;
+    clubName: string;
+    startedAt: number;
+    finishedAt: number;
+    time: number;
+    place: number;
+    totalInCategory: number;
+}
+
+// Requires a Firestore collection group index on boats.rowerUids (array-contains).
 export function useUserResults(uid: string) {
-    const [results, setResults] = useState<any[]>([]);
+    const [results, setResults] = useState<UserRaceResult[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!uid) { setLoading(false); return; }
+
         async function load() {
             setLoading(true);
-
             try {
-                // 1️⃣ Get all events
-                const eventsSnapshot = await getDocs(collection(db, "events"));
-                const events: EventDoc[] = eventsSnapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...(doc.data() as Omit<EventDoc, "id">),
-                }));
+                // Single query across all events — no full events scan needed.
+                const userBoatsSnap = await getDocs(
+                    query(collectionGroup(db, "boats"), where("rowerUids", "array-contains", uid))
+                );
 
-                const allBoats: any[] = [];
-
-                // 2️⃣ Collect all boats for this user across all events
-                for (const event of events) {
-                    const boatsRef = collection(db, "events", event.id, "boats");
-                    const q = query(boatsRef, where("rowerUids", "array-contains", uid));
-                    const boatsSnapshot = await getDocs(q);
-
-                    boatsSnapshot.docs.forEach((doc) => {
-                        const d = doc.data();
-                        if (!d.finishedAt || !d.startedAt) return;
-
-                        allBoats.push({
-                            id: doc.id,
-                            eventId: event.id,
-                            eventName: event.name ?? event.id,
-                            categoryId: d.categoryId,
-                            categoryName: d.categoryName ?? d.category,
-                            rowerUid: uid,
-                            rowerName: d.rowerName ?? "Unknown",
-                            clubName: d.clubName ?? "—",
-                            startedAt: d.startedAt,
-                            finishedAt: d.finishedAt,
-                            time: d.finishedAt - d.startedAt,
-                        });
+                const userBoats = userBoatsSnap.docs
+                    .filter(d => d.data().finishedAt && d.data().startedAt)
+                    .map(d => {
+                        const data = d.data();
+                        return {
+                            id: d.id,
+                            eventId: data.eventId as string,
+                            categoryId: data.categoryId as string,
+                            categoryName: (data.categoryName ?? data.category ?? "—") as string,
+                            clubName: (data.clubName ?? "—") as string,
+                            startedAt: data.startedAt as number,
+                            finishedAt: data.finishedAt as number,
+                            time: (data.finishedAt as number) - (data.startedAt as number),
+                        };
                     });
+
+                if (!userBoats.length) {
+                    setResults([]);
+                    return;
                 }
 
-                // 3️⃣ Compute placing for each boat (per event & category)
-                const resultsWithPlace = allBoats.map((boat) => {
-                    const sameGroup = allBoats.filter(
-                        (b) =>
-                            b.eventId === boat.eventId && b.categoryId === boat.categoryId
-                    );
+                const eventIds = [...new Set(userBoats.map(b => b.eventId))];
 
-                    const sorted = [...sameGroup].sort((a, b) => a.time - b.time);
-                    const place = sorted.findIndex((b) => b.id === boat.id) + 1;
+                // Fetch event metadata and full boat lists for placing — all in parallel.
+                const [eventSnaps, boatSnaps] = await Promise.all([
+                    Promise.all(eventIds.map(id => getDoc(doc(db, "events", id)))),
+                    Promise.all(eventIds.map(id => getDocs(collection(db, "events", id, "boats")))),
+                ]);
 
-                    return { ...boat, place };
+                const eventMap: Record<string, EventDoc> = {};
+                eventSnaps.forEach(snap => {
+                    if (snap.exists()) eventMap[snap.id] = { id: snap.id, ...(snap.data() as Omit<EventDoc, "id">) };
                 });
 
-                // 4️⃣ Sort most recent first
-                resultsWithPlace.sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
+                const allBoatsByEvent: Record<string, Array<{ id: string; categoryId: string; time: number }>> = {};
+                boatSnaps.forEach((snap, i) => {
+                    allBoatsByEvent[eventIds[i]] = snap.docs
+                        .filter(d => d.data().finishedAt && d.data().startedAt)
+                        .map(d => ({
+                            id: d.id,
+                            categoryId: d.data().categoryId,
+                            time: d.data().finishedAt - d.data().startedAt,
+                        }));
+                });
 
+                const resultsWithPlace: UserRaceResult[] = userBoats.map(boat => {
+                    const event = eventMap[boat.eventId];
+                    const sameCategory = (allBoatsByEvent[boat.eventId] ?? []).filter(
+                        b => b.categoryId === boat.categoryId
+                    );
+                    const sorted = [...sameCategory].sort((a, b) => a.time - b.time);
+                    const idx = sorted.findIndex(b => b.id === boat.id);
+
+                    return {
+                        ...boat,
+                        rowerUid: uid,
+                        eventName: event?.name ?? boat.eventId,
+                        eventLengthMeters: event?.lengthMeters ?? 2000,
+                        place: idx >= 0 ? idx + 1 : 1,
+                        totalInCategory: sameCategory.length,
+                    };
+                });
+
+                resultsWithPlace.sort((a, b) => b.finishedAt - a.finishedAt);
                 setResults(resultsWithPlace);
             } catch (err) {
                 console.error("Failed to load results:", err);

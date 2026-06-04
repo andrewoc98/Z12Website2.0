@@ -14,6 +14,7 @@ import { MyCoachesSection } from "../../coaches/components/MyCoachesSection.tsx"
 import { MyAthletesSection } from "../../coaches/components/MyAthletesSection.tsx";
 import { ClubInvitesSection } from "../components/ClubInvitesSection.tsx";
 import { ConsentSettings } from "../components/ConsentSettings.tsx";
+import { RaceHistory } from "../components/RaceHistory.tsx";
 
 export default function ProfilePageElite() {
     const { user, profile: authProfile, loading } = useAuth();
@@ -50,6 +51,7 @@ export default function ProfilePageElite() {
                     <>
                         <AthleteStats unit={unit} />
                         <PerformanceStats />
+                        <RaceHistory />
                         <MyCoachesSection profile={profile} />
                     </>
                 )}

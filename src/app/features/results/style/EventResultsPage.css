@@ -119,6 +119,41 @@
     background: rgba(59, 130, 246, 0.05);
 }
 
+.result-card--mine {
+    border-color: var(--brand, #ffd400);
+    background: rgba(255, 212, 0, 0.03);
+    animation: mine-glow 3s ease-in-out infinite;
+}
+
+@keyframes mine-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 1px rgba(255, 212, 0, 0.2), 0 0 16px rgba(255, 212, 0, 0.07);
+    }
+    50% {
+        box-shadow: 0 0 0 1px rgba(255, 212, 0, 0.5), 0 0 32px rgba(255, 212, 0, 0.2);
+    }
+}
+
+.result-card--mine:hover {
+    border-color: var(--brand, #ffd400);
+}
+
+.result-you-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(255, 212, 0, 0.15);
+    border: 1px solid rgba(255, 212, 0, 0.35);
+    color: var(--brand, #ffd400);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    vertical-align: middle;
+    margin-left: 7px;
+    font-family: "Inter", system-ui, sans-serif;
+}
+
 .result-card-main {
     display: flex;
     justify-content: space-between;
