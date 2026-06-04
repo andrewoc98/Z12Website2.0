@@ -9,6 +9,7 @@ import {
 import {
     auth, checkPendingUserExists,
     createPendingUser,
+    getUserProfile,
     sendParentConsentEmail, sendVerificationEmail,
 } from "../../../shared/lib/firebase";
 import { fetchAdminInvite, fetchClubInvite, type ClubInvitePreview, upsertUserProfile } from "../api/users";

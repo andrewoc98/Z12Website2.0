@@ -4,7 +4,7 @@ import {db} from "../../../shared/lib/firebase";
 // Persistent queue for timing actions that haven't synced yet
 export type PendingAction = {
     id: string;
-    type: "start" | "stop" | "placeholder" | "assign_placeholder" | "dnf" | "dns" | "confirm_review" | "discard_review" | "return_to_start";
+    type: "start" | "stop" | "placeholder" | "assign_placeholder" | "dnf" | "dns" | "confirm_review" | "discard_review" | "return_to_start" | "flag_review" | "delete_placeholder";
     eventId: string;
     boatId?: string;
     placeholderId?: string;

@@ -93,6 +93,7 @@ export default function TourController() {
             // smooth scroll returns before the animation ends, causing the overlay
             // to be positioned at the pre-scroll coordinates and the element drifts
             // out of the highlight box as the page animates.
+            // @ts-expect-error driver.js supports this option at runtime but hasn't typed it
             scrollIntoViewOptions: { block: "center", behavior: "instant" },
             allowClose: true,
             showProgress: true,
