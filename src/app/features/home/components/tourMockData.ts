@@ -163,6 +163,9 @@ export const TOUR_COACH_SESSIONS: Session[] = [
     {
         id: "tour-session-1",
         coachId: "tour-coach",
+        sessionType: "race",
+        timingAssistantEmail: null,
+        timingAssistantName: null,
         name: "Morning Ergo Block",
         date: fakeTs(Date.now() - DAY),
         status: "completed",
@@ -204,6 +207,9 @@ export const TOUR_COACH_SESSIONS: Session[] = [
     {
         id: "tour-session-2",
         coachId: "tour-coach",
+        sessionType: "race",
+        timingAssistantEmail: null,
+        timingAssistantName: null,
         name: "Pairs Speed Work",
         date: fakeTs(Date.now()),
         status: "active",
@@ -233,6 +239,9 @@ export const TOUR_COACH_SESSIONS: Session[] = [
     {
         id: "tour-session-3",
         coachId: "tour-coach",
+        sessionType: "time_trial",
+        timingAssistantEmail: "assistant@example.com",
+        timingAssistantName: "Timing Assistant",
         name: "Technique Work — Singles",
         date: fakeTs(Date.now() + DAY),
         status: "draft",

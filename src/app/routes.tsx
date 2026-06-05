@@ -169,6 +169,16 @@ export const router = createBrowserRouter([
                 ),
             },
             {
+                // Timing-assistant entry point — requires auth but not the coach role.
+                // SessionRunPage enforces its own access check (coach or invited assistant only).
+                path: "/session/:sessionId/run",
+                element: (
+                    <RequireAuth>
+                        <SessionRunPage />
+                    </RequireAuth>
+                ),
+            },
+            {
                 path: "/coach/sessions/:sessionId/results",
                 element: (
                     <RequireRole role="coach">

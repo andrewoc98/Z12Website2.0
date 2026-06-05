@@ -157,6 +157,24 @@ const COACH_STEPS: TourStep[] = [
         },
     },
     {
+        route: "/coach/sessions/new",
+        element: '[data-tour="session-type-toggle"]',
+        popover: {
+            title: "Race or Time Trial?",
+            description: "Race mode starts all boats at once — tap each one as it finishes. Time Trial mode times boats one at a time, ideal for single-sculls testing on the water.",
+            side: "bottom",
+        },
+    },
+    {
+        route: "/coach/sessions/new",
+        element: '[data-tour="session-assistant"]',
+        popover: {
+            title: "Invite a Timing Assistant",
+            description: "Enter a colleague's email to share timing duties. They get full access to start and stop boats — perfect when one person is at the start line and the other at the finish.",
+            side: "bottom",
+        },
+    },
+    {
         route: "/coach/sessions",
         popover: {
             title: "You're all set!",

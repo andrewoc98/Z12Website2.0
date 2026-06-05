@@ -1,5 +1,7 @@
 import type { Timestamp } from 'firebase/firestore';
 
+export type SessionType = 'race' | 'time_trial';
+
 export type BoatClass = '1x' | '2x' | '4-' | '4x' | '4+' | '8+';
 
 export const BOAT_CLASS_SEATS: Record<BoatClass, number> = {
@@ -40,6 +42,9 @@ export interface PieceDefinition {
 export interface Session {
     id: string;
     coachId: string;
+    sessionType?: SessionType;
+    timingAssistantEmail?: string | null;
+    timingAssistantName?: string | null;
     name: string;
     date: Timestamp;
     status: 'draft' | 'active' | 'completed';

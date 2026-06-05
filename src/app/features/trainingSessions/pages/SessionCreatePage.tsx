@@ -6,7 +6,7 @@ import { useAthleteRoster } from '../../coaches/hooks/useAthleteRoster';
 import { createSession } from '../services/sessionService';
 import {
     BOAT_CLASSES, BOAT_CLASS_LABELS, BOAT_CLASS_SEATS,
-    type BoatClass, type BoatEntry,
+    type BoatClass, type BoatEntry, type SessionType,
 } from '../types/session';
 import '../trainingSessions.css';
 
@@ -43,11 +43,13 @@ export default function SessionCreatePage() {
     const { roster } = useAthleteRoster(profile?.uid ?? null);
     const activeRoster = roster.filter(r => r.status === 'active');
 
-    const [name, setName]       = useState('');
-    const [date, setDate]       = useState(new Date().toISOString().slice(0, 10));
-    const [pieces, setPieces]   = useState<PieceForm[]>([emptyPiece()]);
-    const [saving, setSaving]   = useState(false);
-    const [error, setError]     = useState<string | null>(null);
+    const [name, setName]               = useState('');
+    const [date, setDate]               = useState(new Date().toISOString().slice(0, 10));
+    const [sessionType, setSessionType] = useState<SessionType>('race');
+    const [assistantEmail, setAssistantEmail] = useState('');
+    const [pieces, setPieces]           = useState<PieceForm[]>([emptyPiece()]);
+    const [saving, setSaving]           = useState(false);
+    const [error, setError]             = useState<string | null>(null);
 
     // collect all rowerIds already used in a piece (for disabling duplicates)
     function usedInPiece(pieceIdx: number, excludeBoatIdx: number, excludeSlotIdx: number): Set<string> {
@@ -156,10 +158,14 @@ export default function SessionCreatePage() {
                     return { boatId: b.boatId, boatClass: b.boatClass, rowerIds, rowerNames };
                 });
 
+            const trimmedEmail = assistantEmail.trim() || null;
             const sessionId = await createSession(
                 profile.uid,
                 name.trim(),
                 new Date(date),
+                sessionType,
+                trimmedEmail,
+                null,
                 pieces.map(p => ({ distanceMeters: Number(p.distanceMeters), boats: boatEntries(p) })),
             );
             navigate(`/coach/sessions/${sessionId}/run`);
@@ -204,6 +210,48 @@ export default function SessionCreatePage() {
                             onChange={e => setDate(e.target.value)}
                             required
                         />
+                    </div>
+
+                    <div className="ts-field" data-tour="session-type-toggle">
+                        <span className="ts-label">Session Type</span>
+                        <div className="ts-type-toggle">
+                            <button
+                                type="button"
+                                className={`ts-type-toggle__btn${sessionType === 'race' ? ' ts-type-toggle__btn--active' : ''}`}
+                                onClick={() => setSessionType('race')}
+                            >
+                                Race
+                            </button>
+                            <button
+                                type="button"
+                                className={`ts-type-toggle__btn${sessionType === 'time_trial' ? ' ts-type-toggle__btn--active' : ''}`}
+                                onClick={() => setSessionType('time_trial')}
+                            >
+                                Time Trial
+                            </button>
+                        </div>
+                        {sessionType === 'time_trial' && (
+                            <p className="ts-field-hint">
+                                Boats are timed one at a time. Start and stop each boat individually.
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="ts-field" data-tour="session-assistant">
+                        <label className="ts-label" htmlFor="assistant-email">
+                            Timing Assistant Email <span className="ts-label-optional">(optional)</span>
+                        </label>
+                        <input
+                            id="assistant-email"
+                            className="ts-input"
+                            type="email"
+                            placeholder="assistant@example.com"
+                            value={assistantEmail}
+                            onChange={e => setAssistantEmail(e.target.value)}
+                        />
+                        <p className="ts-field-hint">
+                            Share the session link with them — they'll be able to start and stop boats alongside you.
+                        </p>
                     </div>
 
                     {pieces.map((piece, pi) => (

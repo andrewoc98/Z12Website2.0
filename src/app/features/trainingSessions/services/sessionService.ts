@@ -2,7 +2,7 @@ import {
     collection, doc, addDoc, updateDoc, writeBatch, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../../shared/lib/firebase';
-import type { Session, PieceDefinition, BoatEntry } from '../types/session';
+import type { Session, PieceDefinition, BoatEntry, SessionType } from '../types/session';
 import { boatDisplayLabel } from '../types/session';
 
 const SESSIONS = 'sessions';
@@ -12,6 +12,9 @@ export async function createSession(
     coachId: string,
     name: string,
     date: Date,
+    sessionType: SessionType,
+    timingAssistantEmail: string | null,
+    timingAssistantName: string | null,
     pieces: Array<{ distanceMeters: number; boats: BoatEntry[] }>,
 ): Promise<string> {
     const now = Timestamp.now();
@@ -25,6 +28,9 @@ export async function createSession(
 
     const ref = await addDoc(collection(db, SESSIONS), {
         coachId,
+        sessionType,
+        timingAssistantEmail,
+        timingAssistantName,
         name,
         date: Timestamp.fromDate(date),
         status: 'draft',
@@ -33,6 +39,53 @@ export async function createSession(
         updatedAt: now,
     });
     return ref.id;
+}
+
+export async function startBoatTimeTrial(
+    sessionId: string,
+    session: Session,
+    pieceIdx: number,
+    boatIdx: number,
+): Promise<{ resultId: string; startMs: number }> {
+    const startTs = Timestamp.now();
+    const piece = session.pieces[pieceIdx];
+    const boat = piece.boats[boatIdx];
+    const isFirstBoat = piece.startTimestamp === null;
+    const batch = writeBatch(db);
+
+    if (isFirstBoat) {
+        const updatedPieces = session.pieces.map((p, i) =>
+            i === pieceIdx ? { ...p, status: 'active' as const, startTimestamp: startTs } : p,
+        );
+        batch.update(doc(db, SESSIONS, sessionId), {
+            status: 'active',
+            pieces: updatedPieces,
+            updatedAt: startTs,
+        });
+    }
+
+    const resultRef = doc(collection(db, PIECE_RESULTS));
+    batch.set(resultRef, {
+        sessionId,
+        sessionName: session.name,
+        coachId: session.coachId,
+        pieceNumber: piece.pieceNumber,
+        distanceMeters: piece.distanceMeters,
+        boatId: boat.boatId,
+        boatClass: boat.boatClass,
+        rowerIds: boat.rowerIds,
+        rowerNames: boat.rowerNames,
+        displayName: boatDisplayLabel(boat.rowerNames, boat.boatClass),
+        startTimestamp: startTs,
+        endTimestamp: null,
+        elapsedMs: null,
+        split500mMs: null,
+        status: 'running',
+        createdAt: startTs,
+    });
+
+    await batch.commit();
+    return { resultId: resultRef.id, startMs: startTs.toMillis() };
 }
 
 export async function startPiece(

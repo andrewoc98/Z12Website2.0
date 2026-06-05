@@ -93,6 +93,7 @@ export default function Navbar() {
                 </Link>
 
                 <button
+                    data-nav-burger
                     className="nav__burger"
                     onClick={() => setOpen(o => !o)}
                     aria-label="Menu"
@@ -122,6 +123,7 @@ export default function Navbar() {
                                 className={`nav__group${isOpen ? " is-open" : ""}`}
                             >
                                 <button
+                                    data-nav-group={entry.label}
                                     className="nav__group-trigger"
                                     onClick={() => toggleGroup(entry.label)}
                                     aria-expanded={isOpen}

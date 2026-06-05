@@ -360,6 +360,65 @@
     font-size: 0.8rem;
 }
 
+/* ── Session type toggle ───────────────────────────────────────────────────── */
+
+.ts-type-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    width: fit-content;
+}
+
+.ts-type-toggle__btn {
+    padding: 9px 20px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: "Inter", system-ui, sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-transform: none;
+    letter-spacing: 0;
+    min-height: unset;
+    box-shadow: none;
+}
+
+.ts-type-toggle__btn + .ts-type-toggle__btn {
+    border-left: 1px solid var(--border);
+}
+
+.ts-type-toggle__btn--active {
+    background: rgba(255, 212, 0, 0.12);
+    color: var(--brand-warm);
+}
+
+.ts-type-toggle__btn:hover:not(.ts-type-toggle__btn--active) {
+    background: var(--surface-2);
+    color: var(--text);
+    box-shadow: none;
+}
+
+/* ── Form helper text ──────────────────────────────────────────────────────── */
+
+.ts-field-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 2px 0 0;
+    line-height: 1.4;
+}
+
+.ts-label-optional {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+}
+
 /* ── Form actions ──────────────────────────────────────────────────────────── */
 
 .ts-create-form__actions {
@@ -411,6 +470,20 @@
     letter-spacing: 0.04em;
 }
 
+.ts-run-header__role {
+    color: rgba(255, 212, 0, 0.6);
+    font-weight: 500;
+}
+
+.ts-run-header__boat {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--brand-warm);
+    letter-spacing: 0.04em;
+    font-family: "DIN Condensed", sans-serif;
+    margin-top: 2px;
+}
+
 /* ── Piece ready state ─────────────────────────────────────────────────────── */
 
 .ts-run-ready {
@@ -450,6 +523,26 @@
     border-radius: var(--radius-sm);
     font-size: 0.9375rem;
     color: var(--text);
+}
+
+.ts-run-ready__boat--done {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    opacity: 0.65;
+}
+
+.ts-run-ready__done-time {
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-family: "DIN Condensed", sans-serif;
+    color: #4ade80;
+    letter-spacing: 0.04em;
+}
+
+.ts-run-ready__done-time--dnf {
+    color: var(--danger);
 }
 
 .ts-btn-start {
@@ -610,6 +703,63 @@
 
 .ts-boat-btn__dnf-btn:hover {
     background: rgba(248, 113, 113, 0.18);
+}
+
+.ts-boat-btn--pending {
+    border-color: var(--border);
+    opacity: 0.7;
+}
+
+.ts-boat-btn__start-btn {
+    padding: 0 18px;
+    background: rgba(255, 212, 0, 0.08);
+    border: none;
+    border-left: 1px solid rgba(255, 212, 0, 0.25);
+    color: var(--brand);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: "DIN Condensed", sans-serif;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+
+.ts-boat-btn__start-btn:hover {
+    background: rgba(255, 212, 0, 0.18);
+}
+
+.ts-run-ready__boat--tt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.ts-btn-start-sm {
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    font-family: "DIN Condensed", sans-serif;
+    background: var(--brand);
+    color: var(--brand-ink);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    transition: transform 0.1s ease, box-shadow 0.15s;
+}
+
+.ts-btn-start-sm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(255, 212, 0, 0.4);
+}
+
+.ts-btn-start-sm:active {
+    transform: translateY(1px);
 }
 
 /* ── Piece results state ───────────────────────────────────────────────────── */
