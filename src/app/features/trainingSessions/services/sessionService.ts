@@ -1,5 +1,5 @@
 import {
-    collection, doc, addDoc, updateDoc, writeBatch, Timestamp,
+    collection, doc, addDoc, updateDoc, writeBatch, deleteDoc, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../../shared/lib/firebase';
 import type { Session, PieceDefinition, BoatEntry, SessionType } from '../types/session';
@@ -169,6 +169,39 @@ export async function completePiece(
     await updateDoc(doc(db, SESSIONS, sessionId), {
         pieces: updatedPieces,
         updatedAt: Timestamp.now(),
+    });
+}
+
+export async function deletePieceResult(resultId: string): Promise<void> {
+    await deleteDoc(doc(db, PIECE_RESULTS, resultId));
+}
+
+export async function undoPieceStart(
+    sessionId: string,
+    session: Session,
+    pieceIdx: number,
+    resultIds: string[],
+): Promise<void> {
+    const batch = writeBatch(db);
+    for (const id of resultIds) {
+        batch.delete(doc(db, PIECE_RESULTS, id));
+    }
+    const updatedPieces = session.pieces.map((p, i) =>
+        i === pieceIdx ? { ...p, status: 'pending' as const, startTimestamp: null } : p,
+    );
+    batch.update(doc(db, SESSIONS, sessionId), {
+        pieces: updatedPieces,
+        updatedAt: Timestamp.now(),
+    });
+    await batch.commit();
+}
+
+export async function undoBoatResult(resultId: string): Promise<void> {
+    await updateDoc(doc(db, PIECE_RESULTS, resultId), {
+        endTimestamp: null,
+        elapsedMs: null,
+        split500mMs: null,
+        status: 'running',
     });
 }
 

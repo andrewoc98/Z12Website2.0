@@ -6,7 +6,7 @@ import Navbar from '../../../shared/components/Navbar/Navbar';
 import { useAuth } from '../../../providers/AuthProvider';
 import {
     startPiece, stopBoat, markBoatDNF, completePiece, finishSession,
-    startBoatTimeTrial,
+    startBoatTimeTrial, undoBoatResult, deletePieceResult, undoPieceStart,
 } from '../services/sessionService';
 import { formatTime, boatDisplayLabel } from '../types/session';
 import type { Session, PieceResult } from '../types/session';
@@ -37,7 +37,8 @@ export default function SessionRunPage() {
 
     // Time trial: per-boat start times (boatId → epoch ms) and display elapsed
     const [perBoatElapsed, setPerBoatElapsed] = useState<Record<string, number>>({});
-    const ttBoatStartTimes = useRef<Record<string, number>>({});
+    const ttBoatStartTimes         = useRef<Record<string, number>>({});
+    const ttBoatOriginalStartTimes = useRef<Record<string, number>>({});
 
     const intervalRef    = useRef<ReturnType<typeof setInterval> | null>(null);
     const startTimeRef   = useRef<number | null>(null);
@@ -149,6 +150,7 @@ export default function SessionRunPage() {
                     const runDoc = snap.docs.find(d => d.id === rr.resultId);
                     const startMs = (runDoc!.data() as PieceResult).startTimestamp.toMillis();
                     ttBoatStartTimes.current[rr.boatId] = startMs;
+                    ttBoatOriginalStartTimes.current[rr.boatId] = startMs;
                 }
                 if (runningResults.length > 0) {
                     startTTTimers();
@@ -249,6 +251,7 @@ export default function SessionRunPage() {
 
         const boat = session.pieces[pieceIdx].boats[boatIdx];
         ttBoatStartTimes.current[boat.boatId] = startMs;
+        ttBoatOriginalStartTimes.current[boat.boatId] = startMs;
 
         setLiveResults(prev => [...prev, {
             resultId,
@@ -304,6 +307,68 @@ export default function SessionRunPage() {
             }
             return updated;
         });
+    }
+
+    // ── Undo handlers ─────────────────────────────────────────────────────────
+
+    async function handleUndoStartPiece() {
+        if (!session || !sessionId) return;
+        const resultIds = Object.values(boatResultIds.current);
+        await undoPieceStart(sessionId, session, pieceIdx, resultIds);
+        const snap = await getDoc(doc(db, 'sessions', sessionId));
+        setSession({ id: snap.id, ...snap.data() } as Session);
+        stopTimer();
+        startTimeRef.current = null;
+        setLiveResults([]);
+        setDisplayMs(0);
+        boatResultIds.current = {};
+        setPhase('ready');
+    }
+
+    async function handleUndoStartBoatTT(r: LiveResult) {
+        if (!session || !sessionId) return;
+        const isOnlyBoat = liveResults.length === 1;
+        if (isOnlyBoat) {
+            await undoPieceStart(sessionId, session, pieceIdx, [r.resultId]);
+            const snap = await getDoc(doc(db, 'sessions', sessionId));
+            setSession({ id: snap.id, ...snap.data() } as Session);
+        } else {
+            await deletePieceResult(r.resultId);
+        }
+        delete ttBoatStartTimes.current[r.boatId];
+        delete ttBoatOriginalStartTimes.current[r.boatId];
+        const remaining = liveResults.filter(x => x.boatId !== r.boatId);
+        setLiveResults(remaining);
+        if (remaining.length === 0) {
+            stopTimer();
+            setPerBoatElapsed({});
+            setPhase('ready');
+        }
+    }
+
+    function handleUndoBoat(r: LiveResult) {
+        undoBoatResult(r.resultId);
+        setLiveResults(prev => prev.map(x =>
+            x.boatId === r.boatId
+                ? { ...x, status: 'running' as const, elapsedMs: null, split500mMs: null }
+                : x,
+        ));
+        if (!intervalRef.current && startTimeRef.current != null) {
+            startTimer(startTimeRef.current);
+        }
+        setPhase('running');
+    }
+
+    function handleUndoBoatTT(r: LiveResult) {
+        undoBoatResult(r.resultId);
+        ttBoatStartTimes.current[r.boatId] = ttBoatOriginalStartTimes.current[r.boatId];
+        setLiveResults(prev => prev.map(x =>
+            x.boatId === r.boatId
+                ? { ...x, status: 'running' as const, elapsedMs: null, split500mMs: null }
+                : x,
+        ));
+        startTTTimers();
+        setPhase('running');
     }
 
     // ── Shared piece navigation ────────────────────────────────────────────────
@@ -449,6 +514,13 @@ export default function SessionRunPage() {
                                     >
                                         DNF
                                     </button>
+                                    <button
+                                        className="ts-boat-btn__undo-btn"
+                                        onClick={() => handleUndoStartBoatTT(r)}
+                                        aria-label="Undo start"
+                                    >
+                                        UNDO
+                                    </button>
                                 </div>
                             ))}
                             {/* Finished / DNF boats */}
@@ -463,6 +535,13 @@ export default function SessionRunPage() {
                                             <span className="ts-boat-btn__dnf">DNF</span>
                                         )}
                                     </div>
+                                    <button
+                                        className="ts-boat-btn__undo-btn"
+                                        onClick={() => handleUndoBoatTT(r)}
+                                        aria-label="Undo"
+                                    >
+                                        UNDO
+                                    </button>
                                 </div>
                             ))}
                             {/* Not-yet-started boats */}
@@ -524,6 +603,13 @@ export default function SessionRunPage() {
                                                 <span className="ts-result-row__time ts-result-row__time--dnf">DNF</span>
                                             )}
                                         </div>
+                                        <button
+                                            className="ts-btn-undo-sm"
+                                            onClick={() => handleUndoBoatTT(r)}
+                                            aria-label="Undo"
+                                        >
+                                            UNDO
+                                        </button>
                                     </div>
                                 ))}
                         </div>
@@ -598,9 +684,21 @@ export default function SessionRunPage() {
                                             DNF
                                         </button>
                                     )}
+                                    {(r.status === 'finished' || r.status === 'dnf') && (
+                                        <button
+                                            className="ts-boat-btn__undo-btn"
+                                            onClick={() => handleUndoBoat(r)}
+                                            aria-label="Undo"
+                                        >
+                                            UNDO
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
+                        <button className="ts-btn-undo-piece" onClick={handleUndoStartPiece}>
+                            UNDO START
+                        </button>
                     </div>
                 )}
 
@@ -638,6 +736,13 @@ export default function SessionRunPage() {
                                                 <span className="ts-result-row__time ts-result-row__time--dnf">DNF</span>
                                             )}
                                         </div>
+                                        <button
+                                            className="ts-btn-undo-sm"
+                                            onClick={() => handleUndoBoat(r)}
+                                            aria-label="Undo"
+                                        >
+                                            UNDO
+                                        </button>
                                     </div>
                                 ))}
                         </div>
