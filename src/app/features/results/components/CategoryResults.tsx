@@ -9,9 +9,10 @@ interface CategoryResultsProps {
     pageSize: number;
     page: number;
     currentUserUid?: string;
+    linkedAthleteUids?: Set<string>;
 }
 
-export default function CategoryResults({ byCategory, selectedCategory, inProgressBoats, profiles, pageSize, currentUserUid }: CategoryResultsProps) {
+export default function CategoryResults({ byCategory, selectedCategory, inProgressBoats, profiles, pageSize, currentUserUid, linkedAthleteUids }: CategoryResultsProps) {
     const [page, setPage] = useState(1);
 
     const boats = useMemo(() => {
@@ -40,7 +41,7 @@ export default function CategoryResults({ byCategory, selectedCategory, inProgre
                 <>
                     <ul className="results-list">
                         {paginatedBoats.map((boat, idx) => (
-                            <ResultCard key={boat.id+((page-1)*pageSize)} boat={boat} rank={(page - 1) * pageSize + idx + 1} profiles={profiles} currentUserUid={currentUserUid} />
+                            <ResultCard key={boat.id+((page-1)*pageSize)} boat={boat} rank={(page - 1) * pageSize + idx + 1} profiles={profiles} currentUserUid={currentUserUid} linkedAthleteUids={linkedAthleteUids} />
                         ))}
                     </ul>
                     {totalPages > 1 && (
@@ -58,7 +59,7 @@ export default function CategoryResults({ byCategory, selectedCategory, inProgre
                     <h3 className="results-section-heading">On Course</h3>
                     <ul className="results-list">
                         {inProgressBoats.map(boat => (
-                            <ResultCard key={boat.id} boat={boat} inProgress profiles={profiles} currentUserUid={currentUserUid} />
+                            <ResultCard key={boat.id} boat={boat} inProgress profiles={profiles} currentUserUid={currentUserUid} linkedAthleteUids={linkedAthleteUids} />
                         ))}
                     </ul>
                 </div>

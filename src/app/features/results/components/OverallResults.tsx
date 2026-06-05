@@ -7,9 +7,10 @@ interface OverallResultsProps {
     page: number;
     pageSize: number;
     currentUserUid?: string;
+    linkedAthleteUids?: Set<string>;
 }
 
-export default function OverallResults({ boats, inProgressBoats, profiles, page, pageSize, currentUserUid }: OverallResultsProps) {
+export default function OverallResults({ boats, inProgressBoats, profiles, page, pageSize, currentUserUid, linkedAthleteUids }: OverallResultsProps) {
     return (
         <section className="overall-results">
             <div className="results-section">
@@ -18,7 +19,7 @@ export default function OverallResults({ boats, inProgressBoats, profiles, page,
                     ? <p className="results-empty">No finished results yet.</p>
                     : <ul className="results-list">
                         {boats.map((boat, idx) => (
-                            <ResultCard key={boat.id} boat={boat} rank={(idx + 1)+((page-1)*pageSize)} profiles={profiles} currentUserUid={currentUserUid} />
+                            <ResultCard key={boat.id} boat={boat} rank={(idx + 1)+((page-1)*pageSize)} profiles={profiles} currentUserUid={currentUserUid} linkedAthleteUids={linkedAthleteUids} />
                         ))}
                     </ul>
                 }
@@ -27,7 +28,7 @@ export default function OverallResults({ boats, inProgressBoats, profiles, page,
                     <h3 className="results-section-heading">On Course</h3>
                     <ul className="results-list">
                         {inProgressBoats.map(boat => (
-                            <ResultCard key={boat.id} boat={boat} inProgress profiles={profiles} currentUserUid={currentUserUid} />
+                            <ResultCard key={boat.id} boat={boat} inProgress profiles={profiles} currentUserUid={currentUserUid} linkedAthleteUids={linkedAthleteUids} />
                         ))}
                     </ul>
                 </div>

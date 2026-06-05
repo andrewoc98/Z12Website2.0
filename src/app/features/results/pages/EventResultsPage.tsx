@@ -9,9 +9,10 @@ import "../style/EventResultsPage.css";
 import type {Boat} from "../components/ResultCard.tsx";
 import { useUserProfiles } from "../../timing/useUserProfiles.ts";
 import { useAuth } from "../../../providers/AuthProvider";
+import { useAthleteRoster } from "../../coaches/hooks/useAthleteRoster";
 
 export default function EventResultsPage() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const { eventId } = useParams<{ eventId: string }>();
     const [event, setEvent] = useState<any>(null);
     const [boats, setBoats] = useState<any[]>([]);
@@ -33,6 +34,13 @@ export default function EventResultsPage() {
     }, [boats]);
 
     const { profiles } = useUserProfiles(allUids);
+
+    const isCoach = !!profile?.roles?.coach;
+    const { roster } = useAthleteRoster(isCoach ? (user?.uid ?? null) : null);
+    const linkedAthleteUids = useMemo(() => {
+        if (!isCoach) return undefined;
+        return new Set(roster.filter(r => r.status === "active").map(r => r.rowerId));
+    }, [isCoach, roster]);
     
     const toTimestamp = (value: number | Date | string | null | undefined): number | null => {
         if (!value) return null;
@@ -202,9 +210,9 @@ export default function EventResultsPage() {
                 ) : finishedBoats.length === 0 ? (
                     <p>No finished results yet.</p>
                 ) : tab === "overall" ? (
-                    <OverallResults boats={paginatedBoats} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} currentUserUid={user?.uid} />
+                    <OverallResults boats={paginatedBoats} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} currentUserUid={user?.uid} linkedAthleteUids={linkedAthleteUids} />
                 ) : (
-                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} currentUserUid={user?.uid} />
+                    <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} currentUserUid={user?.uid} linkedAthleteUids={linkedAthleteUids} />
                 )}
                 {((finishedBoats.length > PAGE_SIZE) && tab === "overall") && (
                     <div className="pagination">

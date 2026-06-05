@@ -22,10 +22,12 @@ interface ResultCardProps {
     inProgress?: boolean;
     profiles: Record<string, any>;
     currentUserUid?: string;
+    linkedAthleteUids?: Set<string>;
 }
 
-export default function ResultCard({ boat, rank, inProgress, profiles, currentUserUid }: ResultCardProps) {
+export default function ResultCard({ boat, rank, inProgress, profiles, currentUserUid, linkedAthleteUids }: ResultCardProps) {
     const isMe = !!(currentUserUid && (boat.rowerUids ?? []).includes(currentUserUid));
+    const isMyAthlete = !isMe && !!(linkedAthleteUids?.size && (boat.rowerUids ?? []).some(uid => linkedAthleteUids.has(uid)));
     const [open, setOpen] = useState(false);
     const status = boat.status?.toUpperCase();
     const isSpecialStatus = status === "DNF" || status === "DNS";
@@ -46,7 +48,7 @@ export default function ResultCard({ boat, rank, inProgress, profiles, currentUs
     const displayStarted = new Date(boat.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     return (
-        <li className={`result-card ${inProgress ? "result-card--in-progress" : ""} ${isSpecialStatus ? "result-card--status" : ""} ${isMe ? "result-card--mine" : ""}`} onClick={() => setOpen(!open)}>
+        <li className={`result-card ${inProgress ? "result-card--in-progress" : ""} ${isSpecialStatus ? "result-card--status" : ""} ${isMe ? "result-card--mine" : ""} ${isMyAthlete ? "result-card--my-athlete" : ""}`} onClick={() => setOpen(!open)}>
             <div className="result-card-main">
                 <div className="result-card-left">
                     {/* Hide rank for DNF/DNS or show it differently */}
@@ -63,6 +65,7 @@ export default function ResultCard({ boat, rank, inProgress, profiles, currentUs
                         <span className="result-card-name">
                             {boat.clubName}
                             {isMe && <span className="result-you-chip">YOU</span>}
+                            {isMyAthlete && <span className="result-athlete-chip">ATHLETE</span>}
                         </span>
                         <span className="result-card-sub">{rowerNames}</span>
                         <span className="result-card-sub">
