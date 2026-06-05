@@ -65,7 +65,7 @@ export default function SessionListPage() {
                         </button>
                     </div>
                 ) : (
-                    <div className="ts-list">
+                    <div className="ts-list" data-tour="coach-sessions-list">
                         {sessions.map(s => (
                             <SessionCard key={s.id} session={s} onClick={() => handleClick(s)} />
                         ))}

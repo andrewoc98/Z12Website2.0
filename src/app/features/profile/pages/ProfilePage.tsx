@@ -40,7 +40,7 @@ export default function ProfilePageElite() {
     const toggleUnit = () => setUnit(u => u === "metric" ? "imperial" : "metric");
 
     return (
-        <>
+        <div className="page-container">
             <Navbar />
             <main className="profile-page-elite">
                 <ProfileHero profile={profile} unit={unit} toggleUnit={toggleUnit} />
@@ -81,6 +81,6 @@ export default function ProfilePageElite() {
                 <DangerZone user={user}/>
             </main>
             <Footer />
-        </>
+        </div>
     );
 }

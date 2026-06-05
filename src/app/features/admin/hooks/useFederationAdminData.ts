@@ -6,6 +6,12 @@ import {
 } from "../services/clubAdminService";
 import type { Federation, Club } from "../../auth/club";
 import type { ClubCreationRequest } from "../types/admin.types";
+import { useTourMock } from "../../../providers/TourMockContext";
+import {
+    TOUR_FEDERATION,
+    TOUR_FEDERATION_CLUBS,
+    TOUR_FEDERATION_PENDING,
+} from "../../home/components/tourMockData";
 
 type State = {
     federation:      Federation | null;
@@ -24,10 +30,22 @@ export function useFederationAdminData(federationId: string | null) {
         error:           null,
     });
     const [tick, setTick] = useState(0);
+    const { isTourActive } = useTourMock();
 
     const reload = useCallback(() => setTick(t => t + 1), []);
 
     useEffect(() => {
+        if (isTourActive) {
+            setState({
+                federation:      TOUR_FEDERATION,
+                clubs:           TOUR_FEDERATION_CLUBS,
+                pendingRequests: TOUR_FEDERATION_PENDING,
+                loading:         false,
+                error:           null,
+            });
+            return;
+        }
+
         if (!federationId) {
             setState({ federation: null, clubs: [], pendingRequests: [], loading: false, error: null });
             return;
@@ -52,7 +70,7 @@ export function useFederationAdminData(federationId: string | null) {
 
         load();
         return () => { cancelled = true; };
-    }, [federationId, tick]);
+    }, [federationId, tick, isTourActive]);
 
     return { ...state, reload };
 }

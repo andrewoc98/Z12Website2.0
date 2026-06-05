@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../providers/AuthProvider";
+import { useTourMock } from "../../../providers/TourMockContext";
 import {
     getPendingClubInvites,
     respondToClubInvite,
@@ -9,18 +10,20 @@ import "../style/profile.css";
 
 export function ClubInvitesSection() {
     const { user } = useAuth() as { user: { uid: string; email: string | null } | null };
+    const { isTourActive } = useTourMock();
     const [invites,  setInvites]  = useState<ClubInvite[]>([]);
     const [loading,  setLoading]  = useState(true);
     const [busy,     setBusy]     = useState<string | null>(null);
     const [toast,    setToast]    = useState<{ msg: string; ok: boolean } | null>(null);
 
     useEffect(() => {
+        if (isTourActive) { setInvites([]); setLoading(false); return; }
         if (!user) return;
         getPendingClubInvites(user.uid, user.email ?? "")
             .then(setInvites)
             .catch(() => {/* silently ignore — section just stays hidden */})
             .finally(() => setLoading(false));
-    }, [user]);
+    }, [user, isTourActive]);
 
     function notify(msg: string, ok: boolean) {
         setToast({ msg, ok });

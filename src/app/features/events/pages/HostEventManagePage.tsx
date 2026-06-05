@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useTourMock } from "../../../providers/TourMockContext";
-import { TOUR_HOST_EVENTS } from "../../home/components/tourMockData";
+import { TOUR_HOST_EVENTS, TOUR_HOST_BOATS } from "../../home/components/tourMockData";
 import {categoriesFromIds, getEvent, subscribeToEventBoats, updateEventCategories} from "../api/events";
 import "../styles/HostEventManagePage.css";
 import CategoriesTab from "../components/tabs/categories/CategoriesTab.tsx";
@@ -50,7 +50,7 @@ export default function HostEventManagePage() {
         if (isTourActive) {
             const mock = TOUR_HOST_EVENTS.find(e => e.id === eventId) ?? TOUR_HOST_EVENTS[0];
             setEvent(mock);
-            setBoats([]);
+            setBoats(TOUR_HOST_BOATS);
             return;
         }
 

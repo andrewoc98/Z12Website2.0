@@ -73,6 +73,25 @@ const ROWER_STEPS: TourStep[] = [
     },
     {
         route: "/events",
+        element: 'a[href="/rower/my-sessions"]',
+        popover: {
+            title: "Training Sessions",
+            description: "Your coach can build structured sessions and time you live on the water. All the sessions you're part of show up here.",
+            side: "bottom",
+            align: "center",
+        },
+    },
+    {
+        route: "/rower/my-sessions",
+        element: '[data-tour="rower-sessions-list"]',
+        popover: {
+            title: "Your Session History",
+            description: "Each card shows the session name, date, and number of pieces. Tap in to see your split times and how you stacked up against your squad.",
+            side: "bottom",
+        },
+    },
+    {
+        route: "/rower/my-sessions",
         popover: {
             title: "You're all set!",
             description: "That's the tour. Head back to your profile anytime to update your details or connect with a coach.",
@@ -120,9 +139,28 @@ const COACH_STEPS: TourStep[] = [
     },
     {
         route: "/events",
+        element: 'a[href="/coach/sessions"]',
+        popover: {
+            title: "Training Sessions",
+            description: "Plan and time training sessions for your squad. Build multi-piece sessions, assign boats, and record splits live on the water.",
+            side: "bottom",
+            align: "center",
+        },
+    },
+    {
+        route: "/coach/sessions",
+        element: '[data-tour="coach-sessions-list"]',
+        popover: {
+            title: "Your Sessions",
+            description: "Every session you've created lives here — draft, active, and completed. Click into a completed session to review piece-by-piece results for each boat.",
+            side: "bottom",
+        },
+    },
+    {
+        route: "/coach/sessions",
         popover: {
             title: "You're all set!",
-            description: "That's the tour. Head to your profile to open up athlete assignment requests.",
+            description: "That's the tour. Head to your profile to open up athlete assignment requests, then build your first session when you're ready.",
         },
     },
 ];

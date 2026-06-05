@@ -2,13 +2,22 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import type { RosterEntry } from "../types/coachAssignment";
+import { useTourMock } from "../../../providers/TourMockContext";
+import { TOUR_ATHLETE_ROSTER } from "../../home/components/tourMockData";
 
 export function useAthleteRoster(coachId: string | null) {
     const [roster, setRoster]   = useState<RosterEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError]     = useState<string | null>(null);
+    const { isTourActive } = useTourMock();
 
     useEffect(() => {
+        if (isTourActive) {
+            setRoster(TOUR_ATHLETE_ROSTER);
+            setLoading(false);
+            return;
+        }
+
         if (!coachId) {
             setRoster([]);
             setLoading(false);
@@ -35,7 +44,7 @@ export function useAthleteRoster(coachId: string | null) {
         );
 
         return unsub;
-    }, [coachId]);
+    }, [coachId, isTourActive]);
 
     return { roster, loading, error };
 }

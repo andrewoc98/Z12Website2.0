@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../shared/lib/firebase';
 import type { PieceResult } from '../types/session';
+import { useTourMock } from '../../../providers/TourMockContext';
+import { TOUR_ROWER_SESSIONS } from '../../home/components/tourMockData';
 
 export interface RowerSessionSummary {
     sessionId: string;
@@ -14,8 +16,15 @@ export function useRowerSessions(rowerId: string | null) {
     const [sessions, setSessions] = useState<RowerSessionSummary[]>([]);
     const [loading, setLoading]   = useState(true);
     const [error, setError]       = useState<string | null>(null);
+    const { isTourActive } = useTourMock();
 
     useEffect(() => {
+        if (isTourActive) {
+            setSessions(TOUR_ROWER_SESSIONS);
+            setLoading(false);
+            return;
+        }
+
         if (!rowerId) {
             setSessions([]);
             setLoading(false);
@@ -59,7 +68,7 @@ export function useRowerSessions(rowerId: string | null) {
         );
 
         return unsub;
-    }, [rowerId]);
+    }, [rowerId, isTourActive]);
 
     return { sessions, loading, error };
 }

@@ -25,7 +25,7 @@ export default function RowerSessionListPage() {
                         <p className="ts-empty__text">No training sessions yet.</p>
                     </div>
                 ) : (
-                    <div className="ts-list">
+                    <div className="ts-list" data-tour="rower-sessions-list">
                         {sessions.map(s => {
                             const date = new Date(s.latestStartMs).toLocaleDateString('en-GB', {
                                 day: 'numeric', month: 'short', year: 'numeric',

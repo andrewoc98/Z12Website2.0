@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { UserProfile, ClubRef } from "../../auth/types";
 import { AthleteRosterList } from "./AthleteRosterList";
 import { OpenAssignmentToggle } from "./OpenAssignmentToggle";
+import { useTourMock } from "../../../providers/TourMockContext";
 import "../coaches.css";
 
 interface Props {
@@ -25,17 +26,24 @@ function useToast() {
     return { toast, notify };
 }
 
+const TOUR_CLUB: ClubRef = {
+    clubId: "tour-club", clubName: "Z12 Demo Club", clubShortName: "Demo",
+    role: "coach", membershipStatus: "active", joinedAt: new Date().toISOString(),
+};
+
 export function MyAthletesSection({ profile }: Props) {
     const { toast, notify } = useToast();
+    const { isTourActive } = useTourMock();
 
     const clubs: ClubRef[] = (profile.roles?.coach?.clubMemberships ?? [])
         .filter(m => m.membershipStatus === "active");
 
-    const [selectedClubId, setSelectedClubId] = useState<string>(clubs[0]?.clubId ?? "");
+    const effectiveClubs = isTourActive && clubs.length === 0 ? [TOUR_CLUB] : clubs;
+    const [selectedClubId, setSelectedClubId] = useState<string>(effectiveClubs[0]?.clubId ?? "");
 
-    if (clubs.length === 0) return null;
+    if (effectiveClubs.length === 0) return null;
 
-    const activeClub = clubs.find(c => c.clubId === selectedClubId) ?? clubs[0];
+    const activeClub = effectiveClubs.find(c => c.clubId === selectedClubId) ?? effectiveClubs[0];
     if (!activeClub) return null;
 
     const openAssignment = profile.roles?.coach?.openAssignment ?? true;
@@ -48,9 +56,9 @@ export function MyAthletesSection({ profile }: Props) {
 
             <OpenAssignmentToggle initial={openAssignment} />
 
-            {clubs.length > 1 && (
+            {effectiveClubs.length > 1 && (
                 <div className="ca-club-tabs">
-                    {clubs.map(c => (
+                    {effectiveClubs.map(c => (
                         <button
                             key={c.clubId}
                             className={`ca-club-tab${c.clubId === activeClub.clubId ? " ca-club-tab--active" : ""}`}

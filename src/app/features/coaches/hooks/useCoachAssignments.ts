@@ -2,13 +2,17 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import type { CoachAssignment } from "../types/coachAssignment";
+import { useTourMock } from "../../../providers/TourMockContext";
 
 export function useCoachAssignments(rowerId: string | null) {
     const [assignments, setAssignments] = useState<CoachAssignment[]>([]);
     const [loading, setLoading]         = useState(true);
     const [error, setError]             = useState<string | null>(null);
+    const { isTourActive } = useTourMock();
 
     useEffect(() => {
+        if (isTourActive) { setAssignments([]); setLoading(false); return; }
+
         if (!rowerId) {
             setAssignments([]);
             setLoading(false);
@@ -35,7 +39,7 @@ export function useCoachAssignments(rowerId: string | null) {
         );
 
         return unsub;
-    }, [rowerId]);
+    }, [rowerId, isTourActive]);
 
     return { assignments, loading, error };
 }

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { collection, collectionGroup, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import type { EventDoc } from "../../events/types.ts";
+import { useTourMock } from "../../../providers/TourMockContext";
+import { TOUR_RACE_RESULTS } from "../../home/components/tourMockData";
 
 export interface UserRaceResult {
     id: string;
@@ -23,8 +25,10 @@ export interface UserRaceResult {
 export function useUserResults(uid: string) {
     const [results, setResults] = useState<UserRaceResult[]>([]);
     const [loading, setLoading] = useState(true);
+    const { isTourActive } = useTourMock();
 
     useEffect(() => {
+        if (isTourActive) { setResults(TOUR_RACE_RESULTS); setLoading(false); return; }
         if (!uid) { setLoading(false); return; }
 
         async function load() {
@@ -108,7 +112,7 @@ export function useUserResults(uid: string) {
         }
 
         load();
-    }, [uid]);
+    }, [uid, isTourActive]);
 
     return { results, loading };
 }

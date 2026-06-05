@@ -9,7 +9,7 @@ import { collection, doc, getDoc, getDocs, query, where, documentId } from "fire
 import { db } from "../../../shared/lib/firebase";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useTourMock } from "../../../providers/TourMockContext";
-import { TOUR_ROWER_EVENTS } from "../../home/components/tourMockData";
+import { TOUR_ROWER_EVENTS, TOUR_TIMING_BOATS, TOUR_USER_PROFILES } from "../../home/components/tourMockData";
 import { mapEvent } from "../../events/lib/mapper.tsx";
 import "../styles/eventSignUp.css";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
@@ -212,7 +212,7 @@ export default function EventPageSignUp() {
     const reloadBoats = async () => {
         if (!eventId) return;
         if (isTourActive) {
-            setBoats([]);
+            setBoats(TOUR_TIMING_BOATS as any[]);
             setLoadingBoats(false);
             return;
         }
@@ -223,12 +223,16 @@ export default function EventPageSignUp() {
     useEffect(() => { void reloadBoats(); }, [eventId, isTourActive]);
 
     useEffect(() => {
+        if (isTourActive) {
+            setUserByUid(new Map(Object.entries(TOUR_USER_PROFILES) as [string, UserDoc][]));
+            return;
+        }
         (async () => {
             const allUids = boats.flatMap((b) => b.rowerUids ?? []);
             if (!allUids.length) return;
             setUserByUid(await fetchUsersByUid(allUids));
         })();
-    }, [boats]);
+    }, [boats, isTourActive]);
 
     const eligibleCategories = useMemo(() => {
         if (!selectedEvent || !p) return [];

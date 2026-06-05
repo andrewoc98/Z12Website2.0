@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../shared/lib/firebase";
+import { useTourMock } from "../../providers/TourMockContext";
+import { TOUR_USER_PROFILES } from "../home/components/tourMockData";
 
 export function useUserProfiles(uids: string[]) {
     const [profiles, setProfiles] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(false);
+    const { isTourActive } = useTourMock();
 
     useEffect(() => {
+        if (isTourActive) {
+            const mock: Record<string, any> = {};
+            uids.forEach(uid => { if (TOUR_USER_PROFILES[uid]) mock[uid] = TOUR_USER_PROFILES[uid]; });
+            setProfiles(mock);
+            return;
+        }
+
         if (uids.length === 0) {
             setProfiles({});
             return;
@@ -29,7 +39,7 @@ export function useUserProfiles(uids: string[]) {
         };
 
         fetchProfiles();
-    }, [uids]);
+    }, [uids, isTourActive]);
 
     return { profiles, loading };
 }
