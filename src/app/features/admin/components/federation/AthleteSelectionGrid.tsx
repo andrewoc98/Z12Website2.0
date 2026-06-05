@@ -13,9 +13,6 @@ type Props = {
     federationId: string;
 };
 
-type SortMode = "name" | "100m" | "500m" | "2000m" | "6000m" | "10000m";
-type AgeGroupFilter = "all" | "junior" | "u23" | "senior";
-
 const CURRENT_YEAR = new Date().getFullYear();
 
 function ageThisYear(dob: string): number | null {
@@ -31,13 +28,15 @@ function computedAgeGroup(dob: string): string {
     return "Senior";
 }
 
-const DIST_OPTS: { label: SortMode; perfKey: keyof AthleteSelectionProfile["performances"] }[] = [
-    { label: "100m",   perfKey: "best100m"   },
-    { label: "500m",   perfKey: "best500m"   },
-    { label: "2000m",  perfKey: "best2000m"  },
-    { label: "6000m",  perfKey: "best6000m"  },
-    { label: "10000m", perfKey: "best10000m" },
-];
+const DIST_OPTS = [
+    { label: "100m",   perfKey: "best100m"   as const },
+    { label: "500m",   perfKey: "best500m"   as const },
+    { label: "2000m",  perfKey: "best2000m"  as const },
+    { label: "6000m",  perfKey: "best6000m"  as const },
+    { label: "10000m", perfKey: "best10000m" as const },
+] as const;
+
+type DistOpt = typeof DIST_OPTS[number];
 
 function initials(name: string): string {
     return name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
@@ -49,6 +48,21 @@ function fmtTime(seconds?: number): string {
     const m = Math.floor(seconds / 60);
     const s = (seconds % 60).toFixed(1).padStart(4, "0");
     return `${m}:${s}`;
+}
+
+// Accepts "M:SS", "M:SS.s", or plain seconds ("390")
+function parseTimeInput(val: string): number | null {
+    const t = val.trim();
+    if (!t) return null;
+    if (t.includes(":")) {
+        const [mStr, sStr] = t.split(":");
+        const m = parseInt(mStr, 10);
+        const s = parseFloat(sStr);
+        if (isNaN(m) || isNaN(s)) return null;
+        return m * 60 + s;
+    }
+    const n = parseFloat(t);
+    return isNaN(n) ? null : n;
 }
 
 function SkeletonGrid() {
@@ -66,13 +80,16 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
     const [loading,  setLoading]  = useState(true);
     const [selected, setSelected] = useState<AthleteSelectionProfile | null>(null);
 
-    // ── Filters & sort ────────────────────────────────────────────────────────
+    // ── Filters ───────────────────────────────────────────────────────────────
     const [genderFilter,    setGenderFilter]    = useState<"all" | "male" | "female">("all");
-    const [ageGroupFilter,  setAgeGroupFilter]  = useState<AgeGroupFilter>("all");
-    const [clubFilter,      setClubFilter]      = useState<string>("all");
-    const [searchQuery,     setSearchQuery]     = useState<string>("");
-    const [sortMode,        setSortMode]        = useState<SortMode>("2000m");
+    const [clubFilter,      setClubFilter]      = useState("all");
+    const [searchQuery,     setSearchQuery]     = useState("");
     const [showShortlisted, setShowShortlisted] = useState(false);
+    const [selectedDist,    setSelectedDist]    = useState<DistOpt>(DIST_OPTS[2]); // default 2000m
+    const [minAge,          setMinAge]          = useState("");
+    const [maxAge,          setMaxAge]          = useState("");
+    const [minTime,         setMinTime]         = useState("");
+    const [maxTime,         setMaxTime]         = useState("");
     const [page, setPage] = useState(1);
 
     // ── Shortlist (localStorage, keyed by federation) ─────────────────────────
@@ -108,46 +125,49 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
 
     useEffect(() => { load(); }, [load]);
 
-    // ── Derived filter options (built from live data) ─────────────────────────
+    // ── Derived options ───────────────────────────────────────────────────────
     const clubOptions = useMemo(() =>
         [...new Set(athletes.map(a => a.clubName))].sort(),
-    [athletes]);
-
-    const availableDistances = useMemo(() =>
-        DIST_OPTS.filter(d => athletes.some(a => a.performances[d.perfKey] != null)),
     [athletes]);
 
     // ── Filtered + sorted list ────────────────────────────────────────────────
     const displayed = useMemo(() => {
         let list = athletes.slice();
-        if (showShortlisted)          list = list.filter(a => shortlisted.has(a.uid));
-        if (genderFilter !== "all")   list = list.filter(a => a.gender === genderFilter);
-        if (ageGroupFilter === "junior") {
-            list = list.filter(a => { const age = ageThisYear(a.dateOfBirth); return age != null && age <= 18; });
-        } else if (ageGroupFilter === "u23") {
-            list = list.filter(a => { const age = ageThisYear(a.dateOfBirth); return age != null && age >= 19 && age <= 23; });
-        } else if (ageGroupFilter === "senior") {
-            list = list.filter(a => { const age = ageThisYear(a.dateOfBirth); return age != null && age >= 24; });
-        }
-        if (clubFilter !== "all")     list = list.filter(a => a.clubName === clubFilter);
+
+        if (showShortlisted)        list = list.filter(a => shortlisted.has(a.uid));
+        if (genderFilter !== "all") list = list.filter(a => a.gender === genderFilter);
+        if (clubFilter   !== "all") list = list.filter(a => a.clubName === clubFilter);
+
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             list = list.filter(a => a.displayName.toLowerCase().includes(q));
         }
-        if (sortMode !== "name") {
-            const distOpt = DIST_OPTS.find(d => d.label === sortMode)!;
-            list.sort((a, b) =>
-                (a.performances[distOpt.perfKey] ?? Infinity) -
-                (b.performances[distOpt.perfKey] ?? Infinity)
-            );
-        } else {
-            list.sort((a, b) => a.displayName.localeCompare(b.displayName));
-        }
+
+        // Age range
+        const minAgeN = parseInt(minAge, 10);
+        const maxAgeN = parseInt(maxAge, 10);
+        if (!isNaN(minAgeN)) list = list.filter(a => { const age = ageThisYear(a.dateOfBirth); return age != null && age >= minAgeN; });
+        if (!isNaN(maxAgeN)) list = list.filter(a => { const age = ageThisYear(a.dateOfBirth); return age != null && age <= maxAgeN; });
+
+        // Erg time range for the selected distance
+        const perfKey = selectedDist.perfKey;
+        const minSec  = parseTimeInput(minTime);
+        const maxSec  = parseTimeInput(maxTime);
+        if (minSec != null) list = list.filter(a => { const t = a.performances[perfKey]; return t != null && t >= minSec; });
+        if (maxSec != null) list = list.filter(a => { const t = a.performances[perfKey]; return t != null && t <= maxSec; });
+
+        // Sort by selected distance fastest-first; athletes with no time go last
+        list.sort((a, b) =>
+            (a.performances[perfKey] ?? Infinity) -
+            (b.performances[perfKey] ?? Infinity)
+        );
+
         return list;
-    }, [athletes, showShortlisted, shortlisted, genderFilter, ageGroupFilter, clubFilter, searchQuery, sortMode]);
+    }, [athletes, showShortlisted, shortlisted, genderFilter, clubFilter, searchQuery,
+        minAge, maxAge, selectedDist, minTime, maxTime]);
 
     // ── Pagination ────────────────────────────────────────────────────────────
-    const totalPages  = Math.ceil(displayed.length / ATHLETES_PER_PAGE);
+    const totalPages    = Math.ceil(displayed.length / ATHLETES_PER_PAGE);
     const pagedAthletes = useMemo(
         () => displayed.slice((page - 1) * ATHLETES_PER_PAGE, page * ATHLETES_PER_PAGE),
         [displayed, page]
@@ -158,22 +178,23 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
     const femaleCount    = athletes.filter(a => a.gender === "female").length;
     const shortlistCount = athletes.filter(a => shortlisted.has(a.uid)).length;
 
+    const hasActiveFilters =
+        genderFilter !== "all" || clubFilter !== "all" || searchQuery.trim() !== "" ||
+        showShortlisted || minAge !== "" || maxAge !== "" || minTime !== "" || maxTime !== "";
+
     function clearFilters() {
         setGenderFilter("all");
-        setAgeGroupFilter("all");
         setClubFilter("all");
         setSearchQuery("");
         setShowShortlisted(false);
+        setMinAge(""); setMaxAge("");
+        setMinTime(""); setMaxTime("");
         setPage(1);
     }
 
-    function changeFilter<T>(setter: (v: T) => void) {
+    function resetPage<T>(setter: (v: T) => void) {
         return (v: T) => { setter(v); setPage(1); };
     }
-
-    const activeDistOpt = sortMode !== "name"
-        ? DIST_OPTS.find(d => d.label === sortMode) ?? DIST_OPTS[2]
-        : (availableDistances[0] ?? DIST_OPTS[2]);
 
     if (loading) return <SkeletonGrid />;
 
@@ -191,41 +212,28 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
 
     return (
         <>
-            {/* ── Filter toolbar ────────────────────────────────────────────── */}
-            <div className="fa-selection-toolbar">
-                <div className="fa-selection-top-row">
+            {/* ── Filter panel ──────────────────────────────────────────────── */}
+            <div className="fa-filter-panel">
 
-                    {/* Gender tabs */}
+                {/* Row 1: gender + club */}
+                <div className="fa-filter-row">
                     <div className="fa-filter-tabs">
                         {(["all", "male", "female"] as const).map(g => (
                             <button
                                 key={g}
                                 className={`fa-filter-tab${genderFilter === g ? " fa-filter-tab--active" : ""}`}
-                                onClick={() => changeFilter(setGenderFilter)(g)}
+                                onClick={() => resetPage(setGenderFilter)(g)}
                             >
                                 {g === "all" ? "All" : g.charAt(0).toUpperCase() + g.slice(1)}
                             </button>
                         ))}
                     </div>
 
-                    {/* Age group */}
-                    <select
-                        className="fa-selection-select"
-                        value={ageGroupFilter}
-                        onChange={e => changeFilter(setAgeGroupFilter)(e.target.value as AgeGroupFilter)}
-                    >
-                        <option value="all">All ages</option>
-                        <option value="junior">Junior</option>
-                        <option value="u23">U23</option>
-                        <option value="senior">Senior</option>
-                    </select>
-
-                    {/* Club */}
                     {clubOptions.length > 1 && (
                         <select
                             className="fa-selection-select"
                             value={clubFilter}
-                            onChange={e => changeFilter(setClubFilter)(e.target.value)}
+                            onChange={e => resetPage(setClubFilter)(e.target.value)}
                         >
                             <option value="all">All clubs</option>
                             {clubOptions.map(c => (
@@ -233,21 +241,70 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                             ))}
                         </select>
                     )}
-
-                    {/* Sort */}
-                    <select
-                        className="fa-selection-select"
-                        value={sortMode}
-                        onChange={e => changeFilter(setSortMode)(e.target.value as SortMode)}
-                    >
-                        {availableDistances.map(d => (
-                            <option key={d.label} value={d.label}>Best {d.label}</option>
-                        ))}
-                        <option value="name">Name A–Z</option>
-                    </select>
                 </div>
 
-                <div className="fa-selection-search-row">
+                {/* Row 2: distance + age range + erg time range */}
+                <div className="fa-filter-row">
+                    <select
+                        className="fa-selection-select"
+                        value={selectedDist.label}
+                        onChange={e => {
+                            const d = DIST_OPTS.find(d => d.label === e.target.value) ?? DIST_OPTS[2];
+                            setSelectedDist(d);
+                            setMinTime("");
+                            setMaxTime("");
+                            setPage(1);
+                        }}
+                    >
+                        {DIST_OPTS.map(d => (
+                            <option key={d.label} value={d.label}>{d.label}</option>
+                        ))}
+                    </select>
+
+                    <div className="fa-range-group">
+                        <span className="fa-range-group__label">Age</span>
+                        <input
+                            type="number"
+                            className="fa-range-input"
+                            placeholder="Min"
+                            min={10} max={99}
+                            value={minAge}
+                            onChange={e => { setMinAge(e.target.value); setPage(1); }}
+                        />
+                        <span className="fa-range-sep">–</span>
+                        <input
+                            type="number"
+                            className="fa-range-input"
+                            placeholder="Max"
+                            min={10} max={99}
+                            value={maxAge}
+                            onChange={e => { setMaxAge(e.target.value); setPage(1); }}
+                        />
+                        <span className="fa-range-group__unit">yrs</span>
+                    </div>
+
+                    <div className="fa-range-group">
+                        <span className="fa-range-group__label">Erg</span>
+                        <input
+                            type="text"
+                            className="fa-range-input fa-range-input--wide"
+                            placeholder="e.g. 6:30"
+                            value={minTime}
+                            onChange={e => { setMinTime(e.target.value); setPage(1); }}
+                        />
+                        <span className="fa-range-sep">–</span>
+                        <input
+                            type="text"
+                            className="fa-range-input fa-range-input--wide"
+                            placeholder="e.g. 8:00"
+                            value={maxTime}
+                            onChange={e => { setMaxTime(e.target.value); setPage(1); }}
+                        />
+                    </div>
+                </div>
+
+                {/* Row 3: name search + shortlist + clear */}
+                <div className="fa-filter-row">
                     <input
                         type="search"
                         className="fa-selection-search"
@@ -261,8 +318,14 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                     >
                         ★{shortlistCount > 0 ? ` (${shortlistCount})` : " Shortlisted"}
                     </button>
+                    {hasActiveFilters && (
+                        <button className="pa-btn pa-btn--ghost" onClick={clearFilters}>
+                            Clear
+                        </button>
+                    )}
                 </div>
 
+                {/* Stats summary */}
                 <div className="fa-selection-count">
                     {athletes.length} athletes
                     {" · "}{maleCount} male
@@ -272,65 +335,57 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                 </div>
             </div>
 
-            {/* ── Filtered-empty state ──────────────────────────────────────── */}
+            {/* ── Results ───────────────────────────────────────────────────── */}
             {displayed.length === 0 ? (
                 <div className="pa-empty">
                     <div className="pa-empty__icon">🔍</div>
                     <p className="pa-empty__text">No athletes match the current filters.</p>
-                    <button
-                        className="pa-btn pa-btn--ghost"
-                        style={{ marginTop: 8 }}
-                        onClick={clearFilters}
-                    >
+                    <button className="pa-btn pa-btn--ghost" style={{ marginTop: 8 }} onClick={clearFilters}>
                         Clear filters
                     </button>
                 </div>
             ) : (
                 <>
-                <div className="fa-athlete-grid">
-                    {pagedAthletes.map(athlete => (
-                        <div
-                            key={athlete.uid}
-                            role="button"
-                            tabIndex={0}
-                            className={`fa-athlete-card${shortlisted.has(athlete.uid) ? " fa-athlete-card--shortlisted" : ""}`}
-                            style={{ cursor: "pointer", position: "relative" }}
-                            onClick={() => setSelected(athlete)}
-                            onKeyDown={e => {
-                                if (e.key === "Enter" || e.key === " ") setSelected(athlete);
-                            }}
-                        >
-                            {/* Shortlist star */}
-                            <button
-                                className={`fa-shortlist-btn${shortlisted.has(athlete.uid) ? " fa-shortlist-btn--active" : ""}`}
-                                onClick={e => { e.stopPropagation(); toggleShortlist(athlete.uid); }}
-                                aria-label={shortlisted.has(athlete.uid) ? "Remove from shortlist" : "Add to shortlist"}
+                    <div className="fa-athlete-grid">
+                        {pagedAthletes.map(athlete => (
+                            <div
+                                key={athlete.uid}
+                                role="button"
+                                tabIndex={0}
+                                className={`fa-athlete-card${shortlisted.has(athlete.uid) ? " fa-athlete-card--shortlisted" : ""}`}
+                                style={{ cursor: "pointer", position: "relative" }}
+                                onClick={() => setSelected(athlete)}
+                                onKeyDown={e => {
+                                    if (e.key === "Enter" || e.key === " ") setSelected(athlete);
+                                }}
                             >
-                                ★
-                            </button>
+                                <button
+                                    className={`fa-shortlist-btn${shortlisted.has(athlete.uid) ? " fa-shortlist-btn--active" : ""}`}
+                                    onClick={e => { e.stopPropagation(); toggleShortlist(athlete.uid); }}
+                                    aria-label={shortlisted.has(athlete.uid) ? "Remove from shortlist" : "Add to shortlist"}
+                                >
+                                    ★
+                                </button>
 
-                            <div className="fa-athlete-card__avatar">
-                                {initials(athlete.displayName)}
-                            </div>
-                            <div className="fa-athlete-card__name">{athlete.displayName}</div>
-                            <div className="fa-athlete-card__meta">
-                                {athlete.clubName}
-                                {(athlete.dateOfBirth || athlete.gender) && (
-                                    <><br />{[computedAgeGroup(athlete.dateOfBirth), athlete.gender].filter(Boolean).join(" · ")}</>
-                                )}
-                            </div>
+                                <div className="fa-athlete-card__avatar">{initials(athlete.displayName)}</div>
+                                <div className="fa-athlete-card__name">{athlete.displayName}</div>
+                                <div className="fa-athlete-card__meta">
+                                    {athlete.clubName}
+                                    {(athlete.dateOfBirth || athlete.gender) && (
+                                        <><br />{[computedAgeGroup(athlete.dateOfBirth), athlete.gender].filter(Boolean).join(" · ")}</>
+                                    )}
+                                </div>
 
-                            {/* Active sort metric */}
-                            <div className="fa-athlete-card__2k">
-                                <span className={`fa-athlete-card__2k-time${athlete.performances[activeDistOpt.perfKey] == null ? " fa-athlete-card__2k-time--empty" : ""}`}>
-                                    {fmtTime(athlete.performances[activeDistOpt.perfKey])}
-                                </span>
-                                <span className="fa-athlete-card__2k-label">{activeDistOpt.label}</span>
+                                <div className="fa-athlete-card__2k">
+                                    <span className={`fa-athlete-card__2k-time${athlete.performances[selectedDist.perfKey] == null ? " fa-athlete-card__2k-time--empty" : ""}`}>
+                                        {fmtTime(athlete.performances[selectedDist.perfKey])}
+                                    </span>
+                                    <span className="fa-athlete-card__2k-label">{selectedDist.label}</span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+                        ))}
+                    </div>
+                    <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
                 </>
             )}
 
@@ -340,7 +395,7 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                     onClose={() => setSelected(null)}
                     isShortlisted={shortlisted.has(selected.uid)}
                     onToggleShortlist={() => toggleShortlist(selected.uid)}
-                    highlightDist={activeDistOpt}
+                    highlightDist={selectedDist}
                 />
             )}
         </>

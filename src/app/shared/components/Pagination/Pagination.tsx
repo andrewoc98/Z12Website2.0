@@ -19,18 +19,7 @@ export default function Pagination({ page, totalPages, onPageChange }: Props) {
             >
                 ‹
             </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                <button
-                    key={p}
-                    className={`pg-btn${p === page ? " pg-btn--active" : ""}`}
-                    onClick={() => onPageChange(p)}
-                    aria-current={p === page ? "page" : undefined}
-                >
-                    {p}
-                </button>
-            ))}
-
+            <span className="pg-label">{page} / {totalPages}</span>
             <button
                 className="pg-btn"
                 onClick={() => onPageChange(page + 1)}

@@ -46,3 +46,12 @@
     background: var(--brand-warm, #f5a940);
     color: var(--brand-ink, #1a1a1a);
 }
+
+.pg-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+    min-width: 52px;
+    text-align: center;
+    letter-spacing: 0.02em;
+}

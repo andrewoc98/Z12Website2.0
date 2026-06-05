@@ -12,6 +12,7 @@ import "../styles/platformAdmin.css";
 import "../styles/federationAdmin.css";
 
 type ToastState = { msg: string; type: "success" | "error" } | null;
+type ClubStatusFilter = "all" | "active" | "suspended" | "pending_approval";
 
 function Toast({ toast }: { toast: ToastState }) {
     if (!toast) return null;
@@ -41,9 +42,38 @@ function FederationAdminContent() {
         useFederationAdminData(federationId);
     const { toast, notify } = useToast();
     const [savingToggle, setSavingToggle] = useState(false);
-    const [clubPage, setClubPage] = useState(1);
+
+    // ── Club search + filter ──────────────────────────────────────────────────
+    const [clubPage,   setClubPage]   = useState(1);
+    const [clubSearch, setClubSearch] = useState("");
+    const [clubStatus, setClubStatus] = useState<ClubStatusFilter>("all");
     const CLUBS_PER_PAGE = 9;
 
+    const filteredClubs = useMemo(() => {
+        let list = clubs;
+        if (clubStatus !== "all") list = list.filter(c => c.status === clubStatus);
+        if (clubSearch.trim()) {
+            const q = clubSearch.toLowerCase();
+            list = list.filter(c =>
+                c.name.toLowerCase().includes(q) ||
+                c.location?.city?.toLowerCase().includes(q)
+            );
+        }
+        return list;
+    }, [clubs, clubSearch, clubStatus]);
+
+    const clubTotalPages = Math.ceil(filteredClubs.length / CLUBS_PER_PAGE);
+    const pagedClubs = useMemo(
+        () => filteredClubs.slice((clubPage - 1) * CLUBS_PER_PAGE, clubPage * CLUBS_PER_PAGE),
+        [filteredClubs, clubPage]
+    );
+
+    function onClubSearch(q: string) { setClubSearch(q); setClubPage(1); }
+    function onClubStatus(s: ClubStatusFilter) { setClubStatus(s); setClubPage(1); }
+    function clearClubFilters() { setClubSearch(""); setClubStatus("all"); setClubPage(1); }
+    const hasClubFilters = clubSearch.trim() !== "" || clubStatus !== "all";
+
+    // ── Settings ──────────────────────────────────────────────────────────────
     async function handleAutoApproveToggle(enabled: boolean) {
         setSavingToggle(true);
         try {
@@ -57,11 +87,6 @@ function FederationAdminContent() {
     }
 
     const clubIds = clubs.map(c => c.id);
-    const clubTotalPages = Math.ceil(clubs.length / CLUBS_PER_PAGE);
-    const pagedClubs = useMemo(
-        () => clubs.slice((clubPage - 1) * CLUBS_PER_PAGE, clubPage * CLUBS_PER_PAGE),
-        [clubs, clubPage]
-    );
 
     return (
         <>
@@ -83,16 +108,46 @@ function FederationAdminContent() {
 
                     {error && <div className="pa-error">{error}</div>}
 
-                    {/* Clubs overview */}
+                    {/* ── Clubs overview ──────────────────────────────────────── */}
                     <section className="card pa-section">
                         <div className="pa-section__header">
                             <h3 className="pa-section__title">
                                 Clubs
                                 {!loading && (
-                                    <span className="pa-section__count">{clubs.length}</span>
+                                    <span className="pa-section__count">
+                                        {hasClubFilters
+                                            ? `${filteredClubs.length} / ${clubs.length}`
+                                            : clubs.length}
+                                    </span>
                                 )}
                             </h3>
                         </div>
+
+                        {/* Search + status filter toolbar */}
+                        {!loading && clubs.length > 0 && (
+                            <div className="fa-club-toolbar">
+                                <input
+                                    type="search"
+                                    className="fa-selection-search fa-club-search"
+                                    placeholder="Search clubs…"
+                                    value={clubSearch}
+                                    onChange={e => onClubSearch(e.target.value)}
+                                />
+                                <div className="fa-filter-tabs">
+                                    {(["all", "active", "suspended", "pending_approval"] as const).map(s => (
+                                        <button
+                                            key={s}
+                                            className={`fa-filter-tab${clubStatus === s ? " fa-filter-tab--active" : ""}`}
+                                            onClick={() => onClubStatus(s)}
+                                        >
+                                            {s === "all"              ? "All"
+                                             : s === "pending_approval" ? "Pending"
+                                             : s.charAt(0).toUpperCase() + s.slice(1)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {loading ? (
                             <div className="fa-club-grid">
@@ -107,6 +162,18 @@ function FederationAdminContent() {
                                     No clubs in your federation yet. Approve a club creation request to get started.
                                 </p>
                             </div>
+                        ) : filteredClubs.length === 0 ? (
+                            <div className="pa-empty">
+                                <div className="pa-empty__icon">🔍</div>
+                                <p className="pa-empty__text">No clubs match your search.</p>
+                                <button
+                                    className="pa-btn pa-btn--ghost"
+                                    style={{ marginTop: 8 }}
+                                    onClick={clearClubFilters}
+                                >
+                                    Clear filters
+                                </button>
+                            </div>
                         ) : (
                             <>
                                 <div className="fa-club-grid">
@@ -117,13 +184,13 @@ function FederationAdminContent() {
                                 <Pagination
                                     page={clubPage}
                                     totalPages={clubTotalPages}
-                                    onPageChange={p => { setClubPage(p); }}
+                                    onPageChange={p => setClubPage(p)}
                                 />
                             </>
                         )}
                     </section>
 
-                    {/* Pending club creation requests */}
+                    {/* ── Pending club creation requests ──────────────────────── */}
                     <section className="card pa-section">
                         <div className="pa-section__header">
                             <h3 className="pa-section__title">
@@ -166,7 +233,7 @@ function FederationAdminContent() {
                         )}
                     </section>
 
-                    {/* National selection */}
+                    {/* ── National selection ──────────────────────────────────── */}
                     <section className="card pa-section">
                         <div className="pa-section__header">
                             <h3 className="pa-section__title">National Selection</h3>

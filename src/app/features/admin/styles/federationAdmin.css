@@ -77,6 +77,21 @@
     font-family: "Inter", system-ui, sans-serif;
 }
 
+/* ── Club search toolbar ──────────────────────────────────────────────────────── */
+
+.fa-club-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-md);
+}
+
+.fa-club-search {
+    flex: 1;
+    min-width: 160px;
+}
+
 /* ── Club grid ────────────────────────────────────────────────────────────────── */
 
 .fa-club-grid {
@@ -218,6 +233,88 @@
     line-height: 1.4;
 }
 
+/* ── Mini race list (inside athlete profile modal) ───────────────────────────── */
+
+.fa-race-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fa-race-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.fa-race-place {
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: "DIN Condensed", sans-serif;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 52px;
+}
+
+.fa-race-of-total {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 400;
+    font-family: "Inter", system-ui, sans-serif;
+}
+
+.fa-race-event {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.fa-race-event-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fa-race-meta {
+    font-size: 0.73rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fa-race-times {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.fa-race-time {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: "DIN Condensed", sans-serif;
+    letter-spacing: 0.03em;
+}
+
+.fa-race-split {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+}
+
 /* ── Athlete profile modal ────────────────────────────────────────────────────── */
 
 .fa-profile-stat-grid {
@@ -261,7 +358,89 @@
     margin: 0;
 }
 
-/* ── National selection toolbar ──────────────────────────────────────────────── */
+/* ── Athlete filter panel ─────────────────────────────────────────────────────── */
+
+.fa-filter-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: var(--space-md);
+}
+
+.fa-filter-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+/* ── Age / erg range groups ───────────────────────────────────────────────────── */
+
+.fa-range-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px;
+    transition: border-color 0.15s;
+}
+
+.fa-range-group:focus-within {
+    border-color: rgba(255, 212, 0, 0.4);
+}
+
+.fa-range-group__label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.fa-range-group__unit {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+    flex-shrink: 0;
+}
+
+.fa-range-input {
+    width: 44px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 0.82rem;
+    font-family: "Inter", system-ui, sans-serif;
+    padding: 2px 0;
+    text-align: center;
+    min-height: unset;
+    box-shadow: none;
+    -moz-appearance: textfield;
+}
+
+.fa-range-input::-webkit-outer-spin-button,
+.fa-range-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.fa-range-input--wide {
+    width: 58px;
+}
+
+.fa-range-sep {
+    color: var(--muted);
+    font-size: 0.8rem;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+/* ── National selection toolbar (legacy — kept for search row reuse) ──────────── */
 
 .fa-selection-toolbar {
     display: flex;
@@ -499,6 +678,33 @@
 
 .fa-profile-stat--highlight .fa-profile-stat__val {
     color: var(--brand);
+}
+
+/* ── Mobile overrides ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+    /* Club request rows: stack Approve/Reject below the club info */
+    .fa-req-row__main { flex-wrap: wrap; }
+    .fa-req-row__actions {
+        width: 100%;
+        flex-direction: row;
+        justify-content: flex-end;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+        margin-top: 4px;
+    }
+
+    /* Athlete filter: selects fill available space */
+    .fa-selection-select { flex: 1; min-width: 0; }
+
+    /* Search input takes full row width on mobile */
+    .fa-filter-row .fa-selection-search { flex: 1 1 100%; }
+
+    /* Range groups wrap and stretch on narrow screens */
+    .fa-range-group { flex: 1 1 auto; justify-content: center; }
+
+    /* Athlete grid: 2 columns */
+    .fa-athlete-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ── Auto-approve toggle ──────────────────────────────────────────────────────── */

@@ -104,6 +104,8 @@
         box-shadow: var(--shadow);
         display: none;
         min-width: 200px;
+        max-height: calc(100dvh - 90px);
+        overflow-y: auto;
     }
 
     .nav__links.is-open {
@@ -132,4 +134,118 @@
 
 .nav__profile-link:hover {
     color: var(--brand-warm);
+}
+
+/* --- Group dropdown --- */
+.nav__group {
+    position: relative;
+}
+
+.nav__group-trigger {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+    min-height: unset;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.15s ease;
+}
+
+.nav__group-trigger:hover,
+.nav__group.is-open .nav__group-trigger {
+    color: var(--brand-warm);
+    background: none;
+    box-shadow: none;
+}
+
+.nav__caret {
+    font-size: 10px;
+    display: inline-block;
+    line-height: 1;
+    transition: transform 0.2s ease;
+}
+
+.nav__group.is-open .nav__caret {
+    transform: rotate(180deg);
+}
+
+.nav__group-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 160px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+    padding: 6px;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 200;
+}
+
+.nav__group.is-open .nav__group-panel {
+    display: flex;
+}
+
+.nav__group-panel a {
+    padding: 9px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.nav__group-panel a:hover {
+    color: var(--brand-warm);
+    background: var(--surface);
+}
+
+@media (max-width: 768px) {
+    .nav__group {
+        width: 100%;
+    }
+
+    .nav__group-trigger {
+        padding: 8px 0;
+        min-height: 44px;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .nav__group-panel {
+        position: static;
+        transform: none;
+        background: transparent;
+        border: none;
+        border-left: 2px solid var(--border);
+        border-radius: 0;
+        box-shadow: none;
+        padding: 4px 0 4px 12px;
+        min-width: unset;
+        width: 100%;
+        margin-top: 4px;
+        margin-bottom: 4px;
+    }
+
+    .nav__group-panel a {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        border-radius: 6px;
+    }
 }

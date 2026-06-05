@@ -1,4 +1,5 @@
 import type { AthleteSelectionProfile } from "../../types/admin.types";
+import { useUserResults, type UserRaceResult } from "../../../results/hooks/useUserResults";
 import "../../styles/platformAdmin.css";
 import "../../styles/federationAdmin.css";
 
@@ -34,11 +35,78 @@ function fmtStat(val?: number, unit?: string): string {
 
 function fmtAge(dob: string): string {
     if (!dob) return "—";
-    const age = new Date().getFullYear() - new Date(dob).getFullYear();
-    return String(age);
+    return String(new Date().getFullYear() - new Date(dob).getFullYear());
 }
 
-export default function AthleteSelectionProfile({
+function fmtMs(ms: number): string {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    const tenths = Math.floor((ms % 1000) / 100);
+    return `${m}:${String(s).padStart(2, "0")}.${tenths}`;
+}
+
+function splitPer500(ms: number, distanceM: number): string {
+    return fmtMs((ms / distanceM) * 500);
+}
+
+function ordinal(n: number): string {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+}
+
+function fmtDate(ms: number): string {
+    return new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function placeColor(place: number): string {
+    if (place === 1) return "var(--brand)";
+    if (place === 2) return "#b0b0b0";
+    if (place === 3) return "#cd7f32";
+    return "var(--muted)";
+}
+
+function MiniRaceList({ uid }: { uid: string }) {
+    const { results, loading } = useUserResults(uid);
+
+    if (loading) {
+        return (
+            <div className="fa-race-list">
+                {[1, 2, 3].map(i => (
+                    <div key={i} className="pa-skeleton-row" style={{ height: 38, borderRadius: 8 }} />
+                ))}
+            </div>
+        );
+    }
+
+    if (!results.length) {
+        return <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: 0 }}>No race results on record.</p>;
+    }
+
+    return (
+        <div className="fa-race-list">
+            {results.slice(0, 5).map((r: UserRaceResult) => (
+                <div key={r.id} className="fa-race-row">
+                    <span className="fa-race-place" style={{ color: placeColor(r.place) }}>
+                        {ordinal(r.place)}
+                        <span className="fa-race-of-total"> /{r.totalInCategory}</span>
+                    </span>
+                    <div className="fa-race-event">
+                        <span className="fa-race-event-name">{r.eventName}</span>
+                        <span className="fa-race-meta">{r.categoryName} · {fmtDate(r.finishedAt)}</span>
+                    </div>
+                    <div className="fa-race-times">
+                        <span className="fa-race-time">{fmtMs(r.time)}</span>
+                        <span className="fa-race-split">{splitPer500(r.time, r.eventLengthMeters)}/500m</span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export default function AthleteSelectionProfileModal({
     athlete,
     onClose,
     isShortlisted,
@@ -92,7 +160,7 @@ export default function AthleteSelectionProfile({
                         </div>
                     </div>
 
-                    {/* Active sort metric hero */}
+                    {/* Highlighted distance hero */}
                     <div className="fa-profile-2k-hero" style={{ marginTop: 16 }}>
                         <div className="fa-profile-2k-hero__time">{fmtTime(p[highlightDist.perfKey])}</div>
                         <div className="fa-profile-2k-hero__label">Best {highlightDist.label}</div>
@@ -117,12 +185,10 @@ export default function AthleteSelectionProfile({
                         </div>
                     </div>
 
-                    {/* Performances — only distances with recorded times */}
+                    {/* Erg performances */}
                     <p className="fa-profile-section-title" style={{ marginTop: 4 }}>Performances</p>
                     {performanceRows.length === 0 ? (
-                        <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: 0 }}>
-                            No performances recorded.
-                        </p>
+                        <p style={{ fontSize: "0.82rem", color: "var(--muted)", margin: 0 }}>No performances recorded.</p>
                     ) : (
                         <div
                             className="fa-profile-stat-grid"
@@ -139,6 +205,12 @@ export default function AthleteSelectionProfile({
                             ))}
                         </div>
                     )}
+
+                    <hr />
+
+                    {/* Mini race history */}
+                    <p className="fa-profile-section-title">Recent Races</p>
+                    <MiniRaceList uid={athlete.uid} />
 
                 </div>
 
