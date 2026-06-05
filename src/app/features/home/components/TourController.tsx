@@ -83,7 +83,7 @@ async function prepareNavForStep(step: TourStep | undefined): Promise<void> {
     ) as HTMLButtonElement | null;
     if (openGroupTrigger && openGroupTrigger.getAttribute("data-nav-group") !== group) {
         openGroupTrigger.click();
-        await new Promise<void>(r => requestAnimationFrame(r));
+        await new Promise<void>(r => requestAnimationFrame(() => r()));
     }
 
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
@@ -95,11 +95,11 @@ async function prepareNavForStep(step: TourStep | undefined): Promise<void> {
         if (!isNav && menuOpen) {
             // Close the mobile menu — this step doesn't need the nav open
             burger?.click();
-            await new Promise<void>(r => requestAnimationFrame(r));
+            await new Promise<void>(r => requestAnimationFrame(() => r()));
         } else if (isNav && !menuOpen) {
             // Open the mobile menu so the nav link is reachable
             burger?.click();
-            await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
         }
     }
 

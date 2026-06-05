@@ -279,7 +279,6 @@ export const TOUR_USER_PROFILES: Record<string, { displayName: string }> = {
 };
 
 // ── Host event registrations (all registered so the Registrations tab is populated)
-import type { BoatTimingDoc } from "../../timing/types";
 export const TOUR_HOST_BOATS: BoatTimingDoc[] = [
     {
         id: "tour-hb-1", eventId: "tour-host-event-1",

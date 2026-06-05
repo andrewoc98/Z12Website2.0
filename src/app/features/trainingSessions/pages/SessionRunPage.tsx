@@ -468,7 +468,7 @@ export default function SessionRunPage() {
                             {/* Not-yet-started boats */}
                             {piece.boats
                                 .filter(b => !liveResults.find(r => r.boatId === b.boatId))
-                                .map((b, i) => {
+                                .map((b) => {
                                     const boatIdx = piece.boats.findIndex(x => x.boatId === b.boatId);
                                     return (
                                         <div key={b.boatId} className="ts-boat-btn ts-boat-btn--pending">
