@@ -21,9 +21,11 @@ export function CoachBrowseModal({ rowerId, clubId, clubName, existing, onClose,
     const selectedCardRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (selectedUid && selectedCardRef.current) {
-            selectedCardRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
+        if (!selectedUid) return;
+        const id = setTimeout(() => {
+            selectedCardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 200);
+        return () => clearTimeout(id);
     }, [selectedUid]);
     const [roles, setRoles]             = useState<CoachRole[]>([]);
     const [assigning, setAssigning]     = useState(false);
@@ -113,7 +115,6 @@ export function CoachBrowseModal({ rowerId, clubId, clubName, existing, onClose,
                         return (
                             <div
                                 key={coach.uid}
-                                ref={isSelected ? selectedCardRef : null}
                                 className={[
                                     "ca-browse-card",
                                     isSelected  ? "ca-browse-card--selected"  : "",
@@ -151,7 +152,7 @@ export function CoachBrowseModal({ rowerId, clubId, clubName, existing, onClose,
                                                 {assignErr}
                                             </p>
                                         )}
-                                        <div className="ca-browse-card__assign-row">
+                                        <div ref={selectedCardRef} className="ca-browse-card__assign-row">
                                             <button
                                                 className="ca-btn ca-btn--primary"
                                                 disabled={roles.length === 0 || assigning}
