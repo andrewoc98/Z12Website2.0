@@ -60,6 +60,73 @@
     box-shadow: 0 10px 25px rgba(0,0,0,0.4);
 }
 
+/* ── World-record tooltip on stat cards ──────────────────────────────────── */
+
+.stat-card--wr {
+    position: relative;
+}
+
+.wr-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface-2, #1e1e1e);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--brand, #ffd400);
+    border-radius: 10px;
+    padding: 10px 14px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    animation: fadeUp 0.15s ease;
+    text-align: center;
+    min-width: 120px;
+}
+
+.wr-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--border);
+}
+
+.wr-tooltip__pct {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--brand, #ffd400);
+    font-variant-numeric: tabular-nums;
+}
+
+.wr-tooltip__label {
+    font-size: 0.78rem;
+    color: var(--muted, rgba(255,255,255,0.45));
+}
+
+.wr-tooltip__wr {
+    font-size: 0.78rem;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+}
+
+.wr-tooltip__cat {
+    font-size: 0.68rem;
+    color: var(--muted, rgba(255,255,255,0.45));
+    margin-top: 6px;
+    border-top: 1px solid var(--border);
+    padding-top: 5px;
+    letter-spacing: 0.03em;
+}
+
+.wr-category-label {
+    font-size: 0.78rem;
+    margin-bottom: 4px;
+}
+
 .stat-value {
     font-size: 20px;
     font-weight: 600;
