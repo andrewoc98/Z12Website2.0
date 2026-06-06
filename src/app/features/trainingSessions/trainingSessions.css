@@ -905,7 +905,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: var(--space-lg) var(--space-md);
+    padding: var(--space-lg) var(--space-md) 100px;
     gap: var(--space-lg);
     max-width: 540px;
     margin: 0 auto;
@@ -966,6 +966,8 @@
     text-align: left;
     font-family: inherit;
     transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
 }
 
 .ts-boat-btn--running .ts-boat-btn__tap:hover {
@@ -1109,6 +1111,71 @@
     transform: translateY(1px);
 }
 
+/* ── Long-press hold animation ─────────────────────────────────────────────── */
+
+.ts-boat-btn__tap--holding {
+    background: rgba(248, 113, 113, 0.08) !important;
+}
+
+.ts-boat-btn__tap--holding::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 5px;
+    width: 100%;
+    background: var(--danger);
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: ts-hold-fill 0.8s linear forwards;
+}
+
+@keyframes ts-hold-fill {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+}
+
+/* ── Floating undo button ──────────────────────────────────────────────────── */
+
+.ts-undo-float {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    padding: 14px 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    color: var(--muted);
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.ts-undo-float--active {
+    border-color: rgba(255, 212, 0, 0.4);
+    color: var(--brand-warm);
+    box-shadow: 0 4px 20px rgba(255, 212, 0, 0.2);
+}
+
+.ts-undo-float:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.ts-undo-float--active:hover:not(:disabled) {
+    border-color: rgba(255, 212, 0, 0.7);
+    box-shadow: 0 6px 24px rgba(255, 212, 0, 0.35);
+}
+
 /* ── Piece results state ───────────────────────────────────────────────────── */
 
 .ts-run-results {
@@ -1116,7 +1183,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
-    padding: var(--space-lg) var(--space-md);
+    padding: var(--space-lg) var(--space-md) 100px;
     max-width: 540px;
     margin: 0 auto;
     width: 100%;
