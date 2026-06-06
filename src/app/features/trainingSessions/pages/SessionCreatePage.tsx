@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../shared/components/Navbar/Navbar';
 import { useAuth } from '../../../providers/AuthProvider';
-import { useAthleteRoster } from '../../coaches/hooks/useAthleteRoster';
+import { useClubRowers } from '../../coaches/hooks/useClubRowers';
 import { createSession } from '../services/sessionService';
 import {
     BOAT_CLASSES, BOAT_CLASS_LABELS, BOAT_CLASS_SEATS,
@@ -40,8 +40,8 @@ export default function SessionCreatePage() {
     const { profile } = useAuth();
     const navigate    = useNavigate();
 
-    const { roster } = useAthleteRoster(profile?.uid ?? null);
-    const activeRoster = roster.filter(r => r.status === 'active');
+    const coachClubs = profile?.roles?.coach?.clubMemberships?.filter(m => m.membershipStatus === 'active') ?? [];
+    const { rowers } = useClubRowers(coachClubs);
 
     const [name, setName]               = useState('');
     const [date, setDate]               = useState(new Date().toISOString().slice(0, 10));
@@ -152,8 +152,8 @@ export default function SessionCreatePage() {
                 pf.boats.map(b => {
                     const rowerIds   = b.rowerSlots;
                     const rowerNames = rowerIds.map(id => {
-                        const entry = activeRoster.find(r => r.rowerId === id);
-                        return entry?.rowerDisplayName ?? id;
+                        const rower = rowers.find(r => r.uid === id);
+                        return rower?.displayName ?? id;
                     });
                     return { boatId: b.boatId, boatClass: b.boatClass, rowerIds, rowerNames };
                 });
@@ -326,13 +326,13 @@ export default function SessionCreatePage() {
                                                                 <option value="">
                                                                     {seatCount === 1 ? '— Select rower —' : `Seat ${si + 1}`}
                                                                 </option>
-                                                                {activeRoster.map(r => (
+                                                                {rowers.map(r => (
                                                                     <option
-                                                                        key={r.rowerId}
-                                                                        value={r.rowerId}
-                                                                        disabled={used.has(r.rowerId)}
+                                                                        key={r.uid}
+                                                                        value={r.uid}
+                                                                        disabled={used.has(r.uid)}
                                                                     >
-                                                                        {r.rowerDisplayName}
+                                                                        {r.displayName}
                                                                     </option>
                                                                 ))}
                                                             </select>
