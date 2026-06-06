@@ -46,8 +46,9 @@ export async function startBoatTimeTrial(
     session: Session,
     pieceIdx: number,
     boatIdx: number,
+    startTs?: Timestamp,
 ): Promise<{ resultId: string; startMs: number }> {
-    const startTs = Timestamp.now();
+    startTs = startTs ?? Timestamp.now();
     const piece = session.pieces[pieceIdx];
     const boat = piece.boats[boatIdx];
     const isFirstBoat = piece.startTimestamp === null;
@@ -92,8 +93,9 @@ export async function startPiece(
     sessionId: string,
     session: Session,
     pieceIdx: number,
+    startTs?: Timestamp,
 ): Promise<Record<string, string>> {
-    const startTs = Timestamp.now();
+    startTs = startTs ?? Timestamp.now();
     const piece = session.pieces[pieceIdx];
     const batch = writeBatch(db);
 
@@ -202,6 +204,13 @@ export async function undoBoatResult(resultId: string): Promise<void> {
         elapsedMs: null,
         split500mMs: null,
         status: 'running',
+    });
+}
+
+export async function activateSession(sessionId: string): Promise<void> {
+    await updateDoc(doc(db, SESSIONS, sessionId), {
+        status: 'active',
+        updatedAt: Timestamp.now(),
     });
 }
 

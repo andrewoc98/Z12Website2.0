@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../shared/lib/firebase';
 import type { Session } from '../types/session';
 import { useTourMock } from '../../../providers/TourMockContext';
@@ -27,13 +27,15 @@ export function useCoachSessions(coachId: string | null) {
         const q = query(
             collection(db, 'sessions'),
             where('coachId', '==', coachId),
-            orderBy('createdAt', 'desc'),
         );
 
         const unsub = onSnapshot(
             q,
             (snap) => {
-                setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as Session)));
+                const sorted = snap.docs
+                    .map(d => ({ id: d.id, ...d.data() } as Session))
+                    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+                setSessions(sorted);
                 setLoading(false);
             },
             () => {

@@ -40,6 +40,8 @@ const SessionResultsPage         = lazy(() => import("./features/trainingSession
 const RowerSessionListPage       = lazy(() => import("./features/trainingSessions/pages/RowerSessionListPage"));
 const RowerSessionDetailPage     = lazy(() => import("./features/trainingSessions/pages/RowerSessionDetailPage"));
 import {useAuth} from "./providers/AuthProvider";
+import ActiveSessionBanner from "./features/trainingSessions/components/ActiveSessionBanner";
+import ErrorPage from "./features/error/pages/ErrorPage";
 
 const EXCLUDED_PATHS = [
     "/auth",
@@ -73,6 +75,7 @@ function RootLayout() {
             <TourMockProvider>
                 {showModal && <ProfileCompletionModal missingFields={missingFields} />}
                 <TourController />
+                <ActiveSessionBanner />
                 <Outlet />
             </TourMockProvider>
         </RequireMaintenance>
@@ -82,6 +85,7 @@ function RootLayout() {
 export const router = createBrowserRouter([
     {
         element: <RootLayout />,
+        errorElement: <ErrorPage />,
         children: [
             {
                 path: "/host/events/new",
