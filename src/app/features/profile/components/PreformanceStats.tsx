@@ -18,27 +18,20 @@ function resolveCategory(profile: UserProfile): string {
     const gender = profile.gender === "female" ? "female" : "male";
     const weightKg = profile.roles?.rower?.stats?.weightKg;
 
-    // Determine age group: prefer stored ageGroup, fall back to dateOfBirth
-    let ageCat: string = profile.ageGroup ?? "senior";
-    if (!profile.ageGroup && profile.dateOfBirth) {
-        const age = calculateAge(profile.dateOfBirth);
-        if (age < 19) ageCat = "junior";
-        else if (age < 21) ageCat = "u21";
-        else if (age < 23) ageCat = "u23";
-        else if (age >= 27) ageCat = "masters";
-        else ageCat = "senior";
-    }
-    // "u19" is an alias for junior in the type
-    if (ageCat === "u19") ageCat = "junior";
+    // Junior check: stored ageGroup takes priority, otherwise derive from dateOfBirth
+    const isJunior =
+        profile.ageGroup === "junior" ||
+        profile.ageGroup === "u19" ||
+        (!profile.ageGroup && !!profile.dateOfBirth && calculateAge(profile.dateOfBirth) < 19);
 
-    // Apply lightweight only for senior / u23 categories where it applies
-    const isLightweightEligible = ageCat === "senior" || ageCat === "u23";
-    if (isLightweightEligible && weightKg != null) {
-        const threshold = LIGHTWEIGHT_THRESHOLD_KG[gender];
-        if (weightKg < threshold) return `${gender}_lightweight`;
+    if (isJunior) return `${gender}_junior`;
+
+    // Lightweight applies to all non-junior athletes
+    if (weightKg != null && weightKg < LIGHTWEIGHT_THRESHOLD_KG[gender]) {
+        return `${gender}_lightweight`;
     }
 
-    return `${gender}_${ageCat}`;
+    return `${gender}_senior`;
 }
 
 function getWrPercentage(userSeconds: number, wrSeconds: number): string {
