@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useClubCoaches } from "../hooks/useClubCoaches";
 import { assignCoach } from "../services/coachAssignmentService";
 import { CoachRolePicker } from "./CoachRolePicker";
@@ -18,6 +18,13 @@ interface Props {
 export function CoachBrowseModal({ rowerId, clubId, clubName, existing, onClose, onAssigned }: Props) {
     const { coaches, loading, error } = useClubCoaches(clubId);
     const [selectedUid, setSelectedUid] = useState<string | null>(null);
+    const selectedCardRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (selectedUid && selectedCardRef.current) {
+            selectedCardRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }, [selectedUid]);
     const [roles, setRoles]             = useState<CoachRole[]>([]);
     const [assigning, setAssigning]     = useState(false);
     const [assignErr, setAssignErr]     = useState<string | null>(null);
@@ -106,6 +113,7 @@ export function CoachBrowseModal({ rowerId, clubId, clubName, existing, onClose,
                         return (
                             <div
                                 key={coach.uid}
+                                ref={isSelected ? selectedCardRef : null}
                                 className={[
                                     "ca-browse-card",
                                     isSelected  ? "ca-browse-card--selected"  : "",
