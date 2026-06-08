@@ -44,6 +44,26 @@ export const suspendClub = call<
     { success: true }
 >("suspendClub");
 
+export const reactivateClub = call<
+    { clubId: string },
+    { success: true }
+>("reactivateClub");
+
+export const inviteClubAdmin = call<
+    { clubId: string; targetEmail: string },
+    { success: true; isExistingUser: boolean }
+>("inviteClubAdmin");
+
+export const claimClubAdminInvite = call<
+    { inviteId: string },
+    { success: true }
+>("claimClubAdminInvite");
+
+export const autoClaimClubAdminInvites = call<
+    Record<string, never>,
+    { claimed: boolean; clubId: string | null }
+>("autoClaimClubAdminInvites");
+
 export const inviteClubMember = call<
     { targetEmail: string; memberRole: "rower" | "coach" },
     { inviteId: string; isExistingUser: boolean }

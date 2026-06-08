@@ -680,6 +680,170 @@
     color: var(--brand);
 }
 
+/* ── Clickable club card ──────────────────────────────────────────────────────── */
+
+.fa-club-card--clickable {
+    cursor: pointer;
+}
+
+.fa-club-card--clickable:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+
+/* ── Club detail modal ────────────────────────────────────────────────────────── */
+
+.fa-club-modal {
+    max-width: 520px;
+    width: 100%;
+}
+
+.fa-club-modal__title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.fa-club-modal__subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+}
+
+.fa-club-modal__header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+}
+
+.fa-club-modal__tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 20px 0;
+}
+
+.fa-club-modal__tab {
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    font-family: "Inter", system-ui, sans-serif;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+    min-height: unset;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.fa-club-modal__tab:hover {
+    color: var(--text);
+}
+
+.fa-club-modal__tab--active {
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: 1px solid var(--surface);
+    margin-bottom: -1px;
+}
+
+.fa-club-modal__details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.fa-club-modal__stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-sm);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+}
+
+.fa-club-modal__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.fa-club-modal__info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fa-club-modal__info-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    font-size: 0.85rem;
+}
+
+.fa-club-modal__info-label {
+    color: var(--muted);
+    font-family: "Inter", system-ui, sans-serif;
+    min-width: 110px;
+    flex-shrink: 0;
+}
+
+.fa-club-modal__info-value {
+    color: var(--text);
+    font-family: "Inter", system-ui, sans-serif;
+    word-break: break-word;
+}
+
+.fa-club-modal__link {
+    color: var(--brand);
+    text-decoration: none;
+}
+
+.fa-club-modal__link:hover {
+    text-decoration: underline;
+}
+
+.fa-club-modal__status-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-family: "Inter", system-ui, sans-serif;
+}
+
+.fa-club-modal__status-info strong {
+    color: var(--text);
+}
+
+.fa-club-modal__status-info span {
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.fa-club-modal__status-info--suspended {
+    border-color: rgba(255,77,109,0.3);
+    background: rgba(255,77,109,0.06);
+}
+
+.fa-club-modal__status-info--suspended strong {
+    color: var(--danger);
+}
+
 /* ── Mobile overrides ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 480px) {

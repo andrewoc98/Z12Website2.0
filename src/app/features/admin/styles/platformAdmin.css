@@ -95,6 +95,9 @@
 
 .pa-btn--ghost { background: transparent; }
 
+.pa-btn--danger { background: var(--danger); color: #fff; border-color: transparent; }
+.pa-btn--danger:hover { background: #e0334a; }
+
 /* ── Federation row card ──────────────────────────────────────────────────────── */
 
 .pa-fed-row {

@@ -14,6 +14,7 @@ import {
 } from "../../../shared/lib/firebase";
 import { fetchAdminInvite, fetchClubInvite, type ClubInvitePreview, upsertUserProfile } from "../api/users";
 import { isMinor, signInEmail } from "../api/auth";
+import { autoClaimClubAdminInvites } from "../../admin/services/clubAdminService";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../../shared/lib/firebase";
 import "../../../shared/styles/globals.css";
@@ -555,6 +556,181 @@ function AdminInviteFlow({
     );
 }
 
+// ─── Club Admin Registration Form ────────────────────────────────────────────
+// Only reachable via a ?clubAdminInvite= link. Not shown in normal signup flow.
+// Role assignment happens server-side via claimClubAdminInvite after sign-in.
+
+function ClubAdminRegistrationForm({
+    clubName,
+    onSuccess,
+    onSwitchToSignIn,
+}: {
+    clubName:         string | null;
+    onSuccess:        () => void;
+    onSwitchToSignIn: () => void;
+}) {
+    const [email,           setEmail]           = useState("");
+    const [password,        setPassword]        = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [fullName,        setFullName]        = useState("");
+    const [showPassword,    setShowPassword]    = useState(false);
+    const [acceptedTerms,   setAcceptedTerms]   = useState(false);
+    const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+    const [err,  setErr]  = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+
+    const canSubmit =
+        email.trim().length > 0 &&
+        password.length >= 6 &&
+        password === confirmPassword &&
+        normalizeFullName(fullName).length >= 2 &&
+        acceptedTerms &&
+        acceptedPrivacy;
+
+    async function onSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        if (!canSubmit || busy) return;
+        setErr(null); setBusy(true);
+        try {
+            const cleanEmail = email.trim().toLowerCase();
+            const name = normalizeFullName(fullName);
+
+            const checkEmailExists = httpsCallable(functions, "checkEmailExists");
+            const res = await checkEmailExists({ email: cleanEmail });
+            if ((res.data as { exists: boolean }).exists) {
+                throw new Error("An account with this email already exists. Try signing in instead.");
+            }
+
+            const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+            await updateProfile(cred.user, { displayName: name });
+            await sendVerificationEmail(cleanEmail);
+
+            const now = new Date().toISOString();
+            await upsertUserProfile(cred.user.uid, {
+                uid:         cred.user.uid,
+                email:       cred.user.email ?? cleanEmail,
+                fullName:    name,
+                displayName: name,
+                isMinor:     false,
+                consent: {
+                    termsAcceptedAt:   now,
+                    privacyAcceptedAt: now,
+                    givenBy:           "self",
+                    givenByUid:        cred.user.uid,
+                    updatedAt:         now,
+                },
+                permissions: {
+                    shareWithCoaches:      false,
+                    shareWithUniversities: false,
+                    shareWithFederations:  false,
+                },
+                status:    { isActive: true, isVerified: false },
+                hasSeenTour: false,
+                createdAt: now,
+            });
+
+            // No setupUserRoles call — autoClaimClubAdminInvites sets the role on sign-in.
+            await signOut(auth);
+            onSuccess();
+        } catch (e: any) {
+            setErr(friendlyError(e?.message ?? "Registration failed."));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <form className="form" onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {clubName && (
+                <div style={{
+                    background: "rgba(167,139,250,0.1)",
+                    border: "1px solid rgba(167,139,250,0.3)",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    fontSize: 13,
+                    color: "var(--text)",
+                    marginBottom: 4,
+                }}>
+                    <strong>Club admin invitation</strong>
+                    <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>
+                        Create an account to accept your admin role for <b style={{ color: "var(--text)" }}>{clubName}</b>.
+                        Your access will activate once you verify your email and sign in.
+                    </p>
+                </div>
+            )}
+
+            {err && <p className="error">{err}</p>}
+
+            <label>Email *
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+            </label>
+
+            <label>Full name *
+                <input value={fullName} onChange={e => setFullName(e.target.value)} required />
+            </label>
+
+            <label>Password *
+                <div className="password-wrapper">
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="At least 6 characters"
+                        required
+                    />
+                    <button type="button" className={`toggle-password ${showPassword ? "active" : ""}`} onClick={() => setShowPassword(v => !v)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FEB959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path className="eye" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle className="pupil" cx="12" cy="12" r="3" /><line className="slash" x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                    </button>
+                </div>
+            </label>
+
+            <label>Confirm password *
+                <div className="password-wrapper">
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        placeholder="Repeat your password"
+                        required
+                    />
+                </div>
+                {confirmPassword.length > 0 && password !== confirmPassword && (
+                    <p className="error" style={{ marginTop: 0 }}>Passwords do not match.</p>
+                )}
+            </label>
+
+            <div className="terms-checkbox" style={{ marginTop: 4 }}>
+                <label>
+                    <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} />
+                    I agree to the terms and conditions
+                    <span className="required-badge">Required</span>
+                </label>
+                <label>
+                    <input type="checkbox" checked={acceptedPrivacy} onChange={e => setAcceptedPrivacy(e.target.checked)} />
+                    I agree to the privacy policy
+                    <span className="required-badge">Required</span>
+                </label>
+            </div>
+
+            <div className="auth-actions" style={{ marginTop: "0.5rem" }}>
+                <div className="auth-row">
+                    <button className="auth-login-btn" type="submit" disabled={!canSubmit || busy}>
+                        {busy ? "CREATING…" : "CREATE ACCOUNT"}
+                    </button>
+                    <div className="auth-links">
+                        <div className="auth-register">
+                            <span>Already have an account?</span>
+                            <button type="button" className="btn-secondary" onClick={onSwitchToSignIn}>SIGN IN</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    );
+}
+
 // ─── Main AuthPage ────────────────────────────────────────────────────────────
 
 export default function AuthPage() {
@@ -565,6 +741,8 @@ export default function AuthPage() {
     const clubInviteClubId   = searchParams.get("clubId");
     const clubInviteClubName = searchParams.get("clubName");
     const clubInviteRole     = searchParams.get("role") as RoleChoice | null;
+    const clubAdminInviteId  = searchParams.get("clubAdminInvite");
+    const clubAdminInviteClubName = searchParams.get("clubName") ?? null;
 
     const goAfterAuth = () => {
         const raw = searchParams.get("returnTo");
@@ -588,6 +766,12 @@ export default function AuthPage() {
     const [successType,        setSuccessType]        = useState<"email" | "parent" | "admin-existing" | "admin-new" | null>(null);
     const [adminInvite,        setAdminInvite]        = useState<any | null>(null);
     const [clubInviteData,     setClubInviteData]     = useState<ClubInvitePreview | null>(null);
+    const [pendingAdminInviteId,   setPendingAdminInviteId]   = useState<string | null>(
+        () => clubAdminInviteId ?? localStorage.getItem("clubAdminInviteId")
+    );
+    const [pendingAdminClubName,   setPendingAdminClubName]   = useState<string | null>(
+        () => clubAdminInviteClubName ?? localStorage.getItem("clubAdminClubName")
+    );
     const [unverifiedEmail,    setUnverifiedEmail]    = useState<string | null>(null);
     const [resendCooldown,     setResendCooldown]     = useState(0);
     const [resendCount,        setResendCount]        = useState(0);
@@ -674,6 +858,20 @@ export default function AuthPage() {
         }).catch(() => {});
     }, [clubInviteId, clubInviteClubId, clubInviteClubName, clubInviteRole]);
 
+    // Persist club admin invite across the verify-email / re-sign-in gap.
+    // localStorage so it survives closing the tab and reopening in a new one.
+    useEffect(() => {
+        if (clubAdminInviteId) {
+            localStorage.setItem("clubAdminInviteId", clubAdminInviteId);
+            setPendingAdminInviteId(clubAdminInviteId);
+            setMode("register");
+        }
+        if (clubAdminInviteClubName) {
+            localStorage.setItem("clubAdminClubName", clubAdminInviteClubName);
+            setPendingAdminClubName(clubAdminInviteClubName);
+        }
+    }, [clubAdminInviteId, clubAdminInviteClubName]);
+
     const canSignIn = useMemo(
         () => email.trim().length > 0 && password.trim().length > 0,
         [email, password]
@@ -723,7 +921,32 @@ export default function AuthPage() {
                 setErr("Please verify your email before signing in.");
                 return;
             }
-            goAfterAuth();
+
+            // Always attempt to auto-claim any pending club admin invites for this
+            // email. This works even when the invite link was opened in a different
+            // tab or the localStorage entry was cleared.
+            let claimedAdminRole = false;
+            try {
+                const result = await autoClaimClubAdminInvites({});
+                if (result.claimed) {
+                    claimedAdminRole = true;
+                    // Force-refresh the local token so the new role claim is
+                    // visible to AdminGuard before we navigate.
+                    await cred.user.getIdToken(/* forceRefresh */ true);
+                }
+            } catch {
+                // Non-fatal — continue with normal navigation.
+            }
+
+            // Clean up any stored invite data regardless of outcome.
+            localStorage.removeItem("clubAdminInviteId");
+            localStorage.removeItem("clubAdminClubName");
+
+            if (claimedAdminRole) {
+                navigate("/admin/club");
+            } else {
+                goAfterAuth();
+            }
         } catch (e: any) {
             const msg = e?.message ?? "";
             if (msg.includes("auth/too-many-requests")) { setLockedOut(true); setErr(null); }
@@ -898,6 +1121,24 @@ export default function AuthPage() {
                             ) : mode === "signin" ? (
                                 <>
                                     <h3>LOGIN</h3>
+                                    {pendingAdminInviteId && (
+                                        <div style={{
+                                            background: "rgba(167,139,250,0.1)",
+                                            border: "1px solid rgba(167,139,250,0.3)",
+                                            borderRadius: 8,
+                                            padding: "10px 14px",
+                                            marginBottom: 12,
+                                            fontSize: 13,
+                                            color: "var(--text)",
+                                        }}>
+                                            <strong>Club admin invitation</strong>
+                                            {pendingAdminClubName && (
+                                                <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>
+                                                    Sign in to accept your admin role for <b style={{ color: "var(--text)" }}>{pendingAdminClubName}</b>.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                     {lockedOut && (
                                         <div className="alert alert-warning">
                                             <strong>Account temporarily locked.</strong>
@@ -955,6 +1196,16 @@ export default function AuthPage() {
                                     <h3>ADMIN INVITE</h3>
                                     <p className="muted" style={{ marginBottom: "0.5rem" }}>You've been invited to manage a host event.</p>
                                     <AdminInviteFlow invite={adminInvite} onSuccess={() => { setSuccessType("admin-existing"); setVerificationSent(true); }} />
+                                </>
+
+                            ) : pendingAdminInviteId ? (
+                                <>
+                                    <h3>CLUB ADMIN INVITE</h3>
+                                    <ClubAdminRegistrationForm
+                                        clubName={pendingAdminClubName}
+                                        onSuccess={() => { setSuccessType("email"); setVerificationSent(true); }}
+                                        onSwitchToSignIn={() => { setMode("signin"); setErr(null); }}
+                                    />
                                 </>
 
                             ) : (

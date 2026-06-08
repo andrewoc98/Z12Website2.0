@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import AdminGuard from "../components/AdminGuard";
 import ClubOverviewCard from "../components/federation/ClubOverviewCard";
+import ClubDetailModal from "../components/federation/ClubDetailModal";
 import ClubRequestsPanel from "../components/federation/ClubRequestsPanel";
 import AthleteSelectionGrid from "../components/federation/AthleteSelectionGrid";
 import Pagination from "../../../shared/components/Pagination/Pagination";
@@ -10,6 +11,8 @@ import { useAdminClaims } from "../hooks/useAdminClaims";
 import { updateFederationSettings } from "../services/federationService";
 import "../styles/platformAdmin.css";
 import "../styles/federationAdmin.css";
+
+import type { Club } from "../../auth/club";
 
 type ToastState = { msg: string; type: "success" | "error" } | null;
 type ClubStatusFilter = "all" | "active" | "suspended" | "pending_approval";
@@ -42,6 +45,7 @@ function FederationAdminContent() {
         useFederationAdminData(federationId);
     const { toast, notify } = useToast();
     const [savingToggle, setSavingToggle] = useState(false);
+    const [selectedClub, setSelectedClub] = useState<Club | null>(null);
 
     // ── Club search + filter ──────────────────────────────────────────────────
     const [clubPage,   setClubPage]   = useState(1);
@@ -178,7 +182,11 @@ function FederationAdminContent() {
                             <>
                                 <div className="fa-club-grid">
                                     {pagedClubs.map(club => (
-                                        <ClubOverviewCard key={club.id} club={club} />
+                                        <ClubOverviewCard
+                                            key={club.id}
+                                            club={club}
+                                            onClick={() => setSelectedClub(club)}
+                                        />
                                     ))}
                                 </div>
                                 <Pagination
@@ -263,6 +271,15 @@ function FederationAdminContent() {
 
                 </div>
             </main>
+
+            {selectedClub && (
+                <ClubDetailModal
+                    club={selectedClub}
+                    onClose={() => setSelectedClub(null)}
+                    onAction={notify}
+                    onReload={reload}
+                />
+            )}
 
             <Toast toast={toast} />
         </>

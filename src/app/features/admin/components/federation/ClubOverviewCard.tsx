@@ -3,12 +3,19 @@ import "../../styles/platformAdmin.css";
 import "../../styles/federationAdmin.css";
 
 type Props = {
-    club: Club;
+    club:    Club;
+    onClick?: () => void;
 };
 
-export default function ClubOverviewCard({ club }: Props) {
+export default function ClubOverviewCard({ club, onClick }: Props) {
     return (
-        <div className={`fa-club-card${club.status === "suspended" ? " fa-club-card--suspended" : ""}`}>
+        <div
+            className={`fa-club-card${club.status === "suspended" ? " fa-club-card--suspended" : ""}${onClick ? " fa-club-card--clickable" : ""}`}
+            onClick={onClick}
+            role={onClick ? "button" : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+        >
 
             <div className="fa-club-card__header">
                 <div>
