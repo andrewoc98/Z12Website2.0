@@ -1,0 +1,165 @@
+.page {
+    flex-shrink: 0;
+    width: 100%;
+    min-height: calc(100vh - 85px);
+    background: var(--surface);
+    color: var(--text);
+    padding: 2rem 1rem;
+    box-sizing: border-box;
+}
+
+.container {
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.title {
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 1.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.filters button {
+    text-transform: capitalize;
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
+
+.emptyState {
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.emptyState p {
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+}
+
+/* ── Order card ───────────────────────────────────────────── */
+
+.card {
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 0.75rem;
+}
+
+.eventName {
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.badge {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.badge[data-status="pending"] {
+    background: #ffd40022;
+    color: #ffd400;
+    border: 1px solid #ffd40044;
+}
+
+.badge[data-status="held"] {
+    background: #22c55e22;
+    color: #22c55e;
+    border: 1px solid #22c55e44;
+}
+
+.badge[data-status="confirmed"] {
+    background: #3b82f622;
+    color: #3b82f6;
+    border: 1px solid #3b82f644;
+}
+
+.badge[data-status="refunded"] {
+    background: #6b728022;
+    color: #6b7280;
+    border: 1px solid #6b728044;
+}
+
+.badge[data-status="released"] {
+    background: #22c55e22;
+    color: #22c55e;
+    border: 1px solid #22c55e44;
+}
+
+.meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 0 0 0.2rem;
+}
+
+.metaLocation {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 0 0 1rem;
+}
+
+/* ── Fee breakdown ────────────────────────────────────────── */
+
+.breakdown {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.breakdownRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.breakdownRow span:first-child {
+    color: var(--muted);
+}
+
+.totalRow {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* ── Card footer ──────────────────────────────────────────── */
+
+.cardFooter {
+    margin-top: 0.75rem;
+}
+
+.cardFooter a {
+    font-size: 0.85rem;
+    color: var(--brand);
+}
+
+/* ── Load more ────────────────────────────────────────────── */
+
+.loadMore {
+    text-align: center;
+    padding-top: 0.5rem;
+    padding-bottom: 1.5rem;
+}

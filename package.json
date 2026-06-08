@@ -13,6 +13,8 @@
     "seed": "ts-node --esm scripts/seedEmulator.ts"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^6.6.0",
+    "@stripe/stripe-js": "^9.7.0",
     "@tanstack/react-virtual": "^3.13.18",
     "dayjs": "^1.11.19",
     "driver.js": "^1.4.0",

@@ -1,5 +1,5 @@
 import {
-    collection, doc, addDoc, updateDoc, writeBatch, deleteDoc, Timestamp,
+    collection, doc, addDoc, updateDoc, writeBatch, deleteDoc, getDocs, query, where, arrayUnion, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../../shared/lib/firebase';
 import type { Session, PieceDefinition, BoatEntry, SessionType } from '../types/session';
@@ -218,5 +218,19 @@ export async function finishSession(sessionId: string): Promise<void> {
     await updateDoc(doc(db, SESSIONS, sessionId), {
         status: 'completed',
         updatedAt: Timestamp.now(),
+    });
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+    const snap = await getDocs(query(collection(db, PIECE_RESULTS), where('sessionId', '==', sessionId)));
+    const batch = writeBatch(db);
+    for (const d of snap.docs) batch.delete(d.ref);
+    batch.delete(doc(db, SESSIONS, sessionId));
+    await batch.commit();
+}
+
+export async function hideRowerSession(uid: string, sessionId: string): Promise<void> {
+    await updateDoc(doc(db, 'users', uid), {
+        hiddenSessionIds: arrayUnion(sessionId),
     });
 }

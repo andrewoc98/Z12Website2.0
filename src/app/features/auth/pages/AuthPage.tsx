@@ -852,7 +852,7 @@ export default function AuthPage() {
 
     return (
         <>
-            <div className="page-container">
+            <div className="page-container auth-page">
                 <Navbar />
                 <div className="page-content">
                     <main>

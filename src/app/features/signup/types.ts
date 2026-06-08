@@ -27,5 +27,8 @@ export type BoatDoc = {
 
     startedAt?: number;
     finishedAt?: number;
-    adjustmentMs:number;
+    adjustmentMs: number;
+
+    creatorUid?: string;
+    paymentIntentId?: string;
 };

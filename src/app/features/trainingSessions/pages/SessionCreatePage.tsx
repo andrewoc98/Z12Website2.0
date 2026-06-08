@@ -120,8 +120,19 @@ export default function SessionCreatePage() {
         setPieces(ps => ps.filter((_, i) => i !== idx));
     }
 
+    function generateName(): string {
+        const d = new Date(`${date}T12:00:00`);
+        const dayName = d.toLocaleDateString('en-GB', { weekday: 'long' });
+        const distances = pieces.map(p => Number(p.distanceMeters) || 0);
+        const unique = [...new Set(distances)];
+        const distSummary = unique.length === 1
+            ? (pieces.length > 1 ? `${pieces.length}×${unique[0]}m` : `${unique[0]}m`)
+            : distances.map(dm => `${dm}m`).join('/');
+        const typeLabel = sessionType === 'time_trial' ? 'Time Trial' : 'Race';
+        return `${dayName} ${distSummary} ${typeLabel}`;
+    }
+
     function validate(): string | null {
-        if (!name.trim()) return 'Session name is required.';
         if (!date) return 'Date is required.';
         for (let pi = 0; pi < pieces.length; pi++) {
             const p = pieces[pi];
@@ -161,7 +172,7 @@ export default function SessionCreatePage() {
             const trimmedEmail = assistantEmail.trim() || null;
             const sessionId = await createSession(
                 profile.uid,
-                name.trim(),
+                name.trim() || generateName(),
                 new Date(date),
                 sessionType,
                 trimmedEmail,
@@ -188,16 +199,20 @@ export default function SessionCreatePage() {
 
                 <form className="ts-create-form" onSubmit={handleSubmit}>
                     <div className="ts-field">
-                        <label className="ts-label" htmlFor="session-name">Session Name</label>
+                        <label className="ts-label" htmlFor="session-name">
+                            Session Name <span className="ts-label-optional">(optional)</span>
+                        </label>
                         <input
                             id="session-name"
                             className="ts-input"
                             type="text"
-                            placeholder="e.g. Tuesday 2k / 1k"
+                            placeholder={generateName()}
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            required
                         />
+                        {!name.trim() && (
+                            <p className="ts-field-hint">Will be saved as "{generateName()}"</p>
+                        )}
                     </div>
 
                     <div className="ts-field">

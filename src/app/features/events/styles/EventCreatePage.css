@@ -1,0 +1,91 @@
+.event-dates-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 10px;
+}
+
+@media (max-width: 480px) {
+    .event-dates-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Seat fees section ───────────────────────────────────────────────────── */
+
+.seat-fee-list {
+    display: grid;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.seat-fee-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 16px;
+    row-gap: 4px;
+    align-items: start;
+}
+
+.seat-fee-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    padding-top: 12px; /* aligns with input center roughly */
+}
+
+.seat-fee-input-wrap {
+    position: relative;
+    width: 120px;
+}
+
+.seat-fee-currency {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 1rem;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.seat-fee-input-wrap input {
+    padding-left: 26px;
+    width: 120px;
+    text-align: right;
+}
+
+.seat-fee-meta {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.seat-fee-meta--breakdown {
+    color: var(--muted);
+}
+
+.seat-fee-meta--breakdown b {
+    color: var(--text);
+}
+
+.seat-fee-meta--error {
+    color: #f87171;
+}
+
+@media (max-width: 480px) {
+    .seat-fee-row {
+        grid-template-columns: 1fr;
+    }
+
+    .seat-fee-input-wrap,
+    .seat-fee-input-wrap input {
+        width: 100%;
+    }
+
+    .seat-fee-label {
+        padding-top: 0;
+    }
+}

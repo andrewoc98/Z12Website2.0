@@ -328,6 +328,56 @@
     box-shadow: var(--shadow-soft);
 }
 
+.ts-session-card__delete {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+    min-height: unset;
+    box-shadow: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* On pointer devices: reveal on card hover/focus */
+@media (hover: hover) {
+    .ts-session-card:hover .ts-session-card__delete,
+    .ts-session-card:focus-within .ts-session-card__delete {
+        opacity: 1;
+    }
+
+    .ts-session-card__delete:hover {
+        background: rgba(248, 113, 113, 0.12);
+        color: var(--danger);
+        box-shadow: none;
+    }
+}
+
+/* On touch devices: always visible, larger tap target */
+@media (hover: none) {
+    .ts-session-card__delete {
+        opacity: 1;
+        width: 44px;
+        height: 44px;
+        color: rgba(148, 163, 184, 0.6);
+    }
+
+    .ts-session-card__delete:active {
+        background: rgba(248, 113, 113, 0.12);
+        color: var(--danger);
+        box-shadow: none;
+    }
+}
+
 .ts-session-card__body {
     display: flex;
     flex-direction: column;
@@ -1135,45 +1185,128 @@
     to   { transform: scaleX(1); }
 }
 
-/* ── Floating undo button ──────────────────────────────────────────────────── */
+/* ── Floating undo circle (bottom-left) ────────────────────────────────────── */
 
 .ts-undo-float {
     position: fixed;
     bottom: 60px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 20px;
     z-index: 200;
-    padding: 14px 32px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    font-family: "DIN Condensed", sans-serif;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    border: 2px solid var(--border);
+    font-size: 1.6rem;
+    line-height: 1;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     color: var(--muted);
-    white-space: nowrap;
     transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
 .ts-undo-float--active {
-    border-color: rgba(255, 212, 0, 0.4);
+    border-color: rgba(255, 212, 0, 0.5);
     color: var(--brand-warm);
     box-shadow: 0 4px 20px rgba(255, 212, 0, 0.2);
 }
 
 .ts-undo-float:disabled {
-    opacity: 0.3;
+    opacity: 0.25;
     cursor: not-allowed;
     box-shadow: none;
 }
 
 .ts-undo-float--active:hover:not(:disabled) {
-    border-color: rgba(255, 212, 0, 0.7);
+    border-color: rgba(255, 212, 0, 0.8);
     box-shadow: 0 6px 24px rgba(255, 212, 0, 0.35);
+}
+
+/* ── SPM tap button + popup (bottom-right) ──────────────────────────────────── */
+
+.ts-spm-wrap {
+    position: fixed;
+    bottom: 60px;
+    right: 20px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.ts-spm-float {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 2px solid rgba(255, 212, 0, 0.4);
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--brand-warm);
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: background 0.1s, transform 0.1s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.ts-spm-float:active {
+    transform: scale(0.92);
+    background: rgba(255, 212, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.ts-spm-popup {
+    background: var(--surface);
+    border: 1px solid rgba(255, 212, 0, 0.35);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    animation: ts-spm-fade-in 0.12s ease;
+}
+
+@keyframes ts-spm-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.ts-spm-popup__value {
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--brand-warm);
+    line-height: 1;
+    letter-spacing: 0.04em;
+}
+
+.ts-spm-popup__unit {
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.ts-spm-popup__hint {
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.04em;
 }
 
 /* ── Piece results state ───────────────────────────────────────────────────── */

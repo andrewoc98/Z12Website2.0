@@ -39,12 +39,12 @@ function getEventAction(event: EventDoc) {
 
     // Past event — everyone can view results
     if (now > end) {
-        return { type: "results", label: "View Results", link: `/rower/events/${event.id}/results` };
+        return { type: "results", label: "View Results", link: `/events/${event.id}?tab=results` };
     }
 
     // Event running — everyone sees results
     if (now >= start && now <= end) {
-        return { type: "results", label: "View Results", link: `/rower/events/${event.id}/results` };
+        return { type: "results", label: "View Results", link: `/events/${event.id}?tab=results` };
     }
 
     // Upcoming event
@@ -53,11 +53,11 @@ function getEventAction(event: EventDoc) {
             if (closing && now > closing) {
                 return { type: "disabled", label: "Reg Closed" };
             }
-            return { type: "signup", label: "Enter Race", link: `/rower/events/${event.id}/signup` };
+            return { type: "signup", label: "Enter Race", link: `/events/${event.id}?tab=registration` };
         }
 
         if (!isRower) {
-            return { type: "view", label: "View Start List", link: `/events/${event.id}/view` };
+            return { type: "view", label: "View Start List", link: `/events/${event.id}` };
         }
 
         // Logged out or no relevant role

@@ -67,12 +67,14 @@ function PlatformAdminContent() {
                             <h2 className="pa-page-title" style={{ margin: 0 }}>Platform Admin</h2>
                             <p className="pa-page-subtitle">Manage federations and their administrators</p>
                         </div>
-                        <button
-                            className="pa-btn pa-btn--primary"
-                            onClick={() => setShowCreate(true)}
-                        >
-                            + New federation
-                        </button>
+                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <button
+                                className="pa-btn pa-btn--primary"
+                                onClick={() => setShowCreate(true)}
+                            >
+                                + New federation
+                            </button>
+                        </div>
                     </div>
 
                     {error && (

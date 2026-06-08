@@ -990,3 +990,74 @@
         flex-wrap: wrap;
     }
 }
+/* =========================================
+   PRICING
+========================================= */
+
+.cat-fees-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.cat-fee-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--surface-2);
+}
+
+.cat-fee-row:last-child {
+    border-bottom: none;
+}
+
+.cat-fee-label {
+    font-size: 0.85rem;
+    color: var(--text);
+    flex: 1;
+}
+
+.cat-fee-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: var(--surface-2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+}
+
+.cat-fee-currency {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.cat-fee-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 0.9rem;
+    width: 80px;
+    text-align: right;
+}
+
+.cat-fee-input::-webkit-inner-spin-button,
+.cat-fee-input::-webkit-outer-spin-button {
+    opacity: 0.3;
+}
+
+.cat-fee-error {
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.cat-fee-success {
+    color: #4caf50;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}

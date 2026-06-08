@@ -11,6 +11,7 @@ type Props = {
     event: any;
     boats: any[];
     onSave?: (added: string[], removed: string[]) => Promise<void>;
+    onSaveFees?: (feesMap: Map<string, number>) => Promise<void>;
 };
 
 type GenderFilter = "All" | Gender;
@@ -70,7 +71,7 @@ function buildFullUniverse(): ParsedCat[] {
 
 /* ─── main component ──────────────────────────────────── */
 
-export default function CategoriesTab({ event, boats, onSave }: Props) {
+export default function CategoriesTab({ event, boats, onSave, onSaveFees }: Props) {
     const [genderFilter, setGenderFilter] = useState<GenderFilter>("All");
     const [isEditing, setIsEditing]       = useState(false);
     const [reviewData, setReviewData]     = useState<{
@@ -83,7 +84,46 @@ export default function CategoriesTab({ event, boats, onSave }: Props) {
     const [saveError, setSaveError]       = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess]   = useState(false);
 
+    // Fee state: categoryId -> fee in dollars string (for input)
+    const [feeInputs, setFeeInputs] = useState<Map<string, string>>(new Map());
+    const [isSavingFees, setIsSavingFees] = useState(false);
+    const [feeSaveError, setFeeSaveError] = useState<string | null>(null);
+    const [feeSaveSuccess, setFeeSaveSuccess] = useState(false);
+
     const categories: any[] = event.categories ?? [];
+
+    // Sync fee inputs when event categories change
+    useEffect(() => {
+        const m = new Map<string, string>();
+        for (const c of categories) {
+            if (c.feeCents != null && c.feeCents > 0) {
+                m.set(c.id, String(c.feeCents / 100));
+            }
+        }
+        setFeeInputs(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [event.categories]);
+
+    async function handleConfirmFees() {
+        setIsSavingFees(true);
+        setFeeSaveError(null);
+        try {
+            const feesMap = new Map<string, number>();
+            for (const [id, dollarStr] of feeInputs.entries()) {
+                const dollars = parseFloat(dollarStr);
+                if (!isNaN(dollars) && dollars >= 0) {
+                    feesMap.set(id, Math.round(dollars * 100));
+                }
+            }
+            await onSaveFees?.(feesMap);
+            setFeeSaveSuccess(true);
+            setTimeout(() => setFeeSaveSuccess(false), 1800);
+        } catch (err: any) {
+            setFeeSaveError(err?.message ?? "Failed to save fees.");
+        } finally {
+            setIsSavingFees(false);
+        }
+    }
 
     const boatCountMap = useMemo(() => {
         const map = new Map<string, number>();
@@ -238,6 +278,60 @@ export default function CategoriesTab({ event, boats, onSave }: Props) {
                     ))}
                 </div>
             </div>
+
+            {/* ── Pricing card ── */}
+            {categories.length > 0 && onSaveFees && (
+                <div className="card">
+                    <div className="card-header">
+                        <div>
+                            <h2 className="categories-title">Entry Fees</h2>
+                            <p className="categories-subtitle">Set the per-boat entry fee for each category (leave blank for free)</p>
+                        </div>
+                    </div>
+
+                    <div className="cat-fees-grid">
+                        {categories.map((c: any) => (
+                            <div key={c.id} className="cat-fee-row">
+                                <label className="cat-fee-label">{c.name}</label>
+                                <div className="cat-fee-input-wrap">
+                                    <span className="cat-fee-currency">$</span>
+                                    <input
+                                        type="number"
+                                        className="cat-fee-input"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={feeInputs.get(c.id) ?? ""}
+                                        onChange={(e) => {
+                                            setFeeInputs(prev => {
+                                                const next = new Map(prev);
+                                                if (e.target.value === "") {
+                                                    next.delete(c.id);
+                                                } else {
+                                                    next.set(c.id, e.target.value);
+                                                }
+                                                return next;
+                                            });
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {feeSaveError && <p className="cat-fee-error">{feeSaveError}</p>}
+                    {feeSaveSuccess && <p className="cat-fee-success">Fees saved!</p>}
+
+                    <button
+                        className="btn-primary"
+                        onClick={handleConfirmFees}
+                        disabled={isSavingFees}
+                        style={{ marginTop: "1rem" }}
+                    >
+                        {isSavingFees ? "Saving…" : "Save Fees"}
+                    </button>
+                </div>
+            )}
 
             {/* ── Edit panel ── */}
             {isEditing && (

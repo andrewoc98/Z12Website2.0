@@ -1,4 +1,4 @@
-import {doc, getDoc, serverTimestamp, setDoc} from "firebase/firestore";
+import {doc, getDoc, serverTimestamp, setDoc, updateDoc} from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import type {AdminInvite, UserProfile} from "../types";
 
@@ -82,6 +82,15 @@ export type ClubInvitePreview = {
     targetEmail: string;
     status:      string;
 };
+
+export async function saveHostDefaultSeatFees(
+    uid: string,
+    fees: Partial<Record<"1x" | "2x" | "2-" | "4x+", number>>
+): Promise<void> {
+    await updateDoc(doc(db, "users", uid), {
+        "roles.host.defaultSeatFees": fees,
+    });
+}
 
 export async function fetchClubInvite(inviteId: string): Promise<ClubInvitePreview | null> {
     const snap = await getDoc(doc(db, "clubInvites", inviteId));

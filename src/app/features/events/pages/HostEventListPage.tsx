@@ -23,7 +23,10 @@ function tsToDate(ts: any): Date | null {
 export default function HostEventListPage() {
     const mock = DEV_MODE ? useMockAuth() : null;
     const fb = !DEV_MODE ? useAuth() : null;
-    const hostUid = DEV_MODE ? mock?.user?.uid ?? null : fb?.user?.uid ?? null;
+    const hostUid = DEV_MODE ? mock?.user?.uid ?? null : (fb as any)?.user?.uid ?? null;
+    const stripeOnboarded = DEV_MODE
+        ? true
+        : (fb as any)?.profile?.roles?.host?.stripeOnboarded === true;
 
     const { isTourActive } = useTourMock();
 
@@ -72,11 +75,40 @@ export default function HostEventListPage() {
         <>
             <Navbar />
             <div className="events-page page" data-tour="host-events-list">
+                    {/* Stripe onboarding banner */}
+                    {!stripeOnboarded && (
+                        <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            background: "rgba(255, 212, 0, 0.08)",
+                            border: "1px solid rgba(255, 212, 0, 0.3)",
+                            borderRadius: 8,
+                            padding: "0.75rem 1rem",
+                            marginBottom: "1rem",
+                            fontSize: "0.875rem",
+                        }}>
+                            <span style={{ color: "var(--brand)", fontSize: "1rem" }}>⚠</span>
+                            <span style={{ color: "var(--text)", flex: 1 }}>
+                                Your payout account isn't set up yet. Complete Stripe onboarding to receive payments when funds are released.
+                            </span>
+                            <Link
+                                to="/host/payout"
+                                style={{ color: "var(--brand)", whiteSpace: "nowrap", fontWeight: 600 }}
+                            >
+                                Complete Setup →
+                            </Link>
+                        </div>
+                    )}
+
                     {/* header */}
                     <div className="events-header">
                         <div className="events-title">
                             <h1>MY EVENTS</h1>
                             <p>Manage registrations and boats for your events.</p>
+                            <Link to="/host/payout" style={{ fontSize: "0.82rem", color: "var(--brand)" }}>
+                                Set up payouts →
+                            </Link>
                         </div>
                         <div className="events-toggle">
                             <button

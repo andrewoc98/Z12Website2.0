@@ -1,12 +1,45 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useAuth } from "../../../providers/AuthProvider";
 import CategoryPicker from "../components/CategoryPicker";
-import { buildDefaultCategories } from "../lib/categories";
-import { categoriesFromIds, createEvent, dateInputToTimestampStartOfDay,dateInputToTimestampEndOfDay } from "../api/events";
-import type { EventStatus } from "../types";
+import { buildDefaultCategories, parseBoatClassFromCategory } from "../lib/categories";
+import type { BoatClass } from "../lib/categories";
+import { categoriesFromIds, createEvent, dateInputToTimestampStartOfDay, dateInputToTimestampEndOfDay } from "../api/events";
+import type { EventCategory, EventStatus } from "../types";
 import InfoTooltip from "../../../shared/components/Infotooltip/Infotooltip.tsx";
+import { saveHostDefaultSeatFees } from "../../auth/api/users";
+import "../styles/EventCreatePage.css";
+
+const PLATFORM_RATE = 0.10;
+const MIN_FEE_CENTS = 100;   // $1.00 — Stripe minimum
+const MAX_FEE_CENTS = 100000; // $1000.00
+
+const BOAT_CONFIGS: { key: BoatClass; label: string }[] = [
+    { key: "1x",  label: "Single (1x)"      },
+    { key: "2x",  label: "Double Scull (2x)" },
+    { key: "2-",  label: "Pair (2-)"         },
+    { key: "4x+", label: "Quad (4x+)"        },
+];
+
+type SeatFeeMap = Record<BoatClass, string>;
+const EMPTY_FEES: SeatFeeMap = { "1x": "", "2x": "", "2-": "", "4x+": "" };
+
+function parseFee(val: string): number | null {
+    if (!val.trim()) return 0;
+    const n = parseFloat(val);
+    if (isNaN(n) || n < 0) return null;
+    return Math.round(n * 100);
+}
+
+function feeError(val: string): string | null {
+    if (!val.trim()) return null;
+    const cents = parseFee(val);
+    if (cents === null) return "Enter a valid amount";
+    if (cents > 0 && cents < MIN_FEE_CENTS) return "Minimum is $1.00 (leave blank for free)";
+    if (cents > MAX_FEE_CENTS) return "Maximum fee is $1,000.00";
+    return null;
+}
 
 export default function EventCreatePage() {
     const { user, profile } = useAuth() as any;
@@ -21,9 +54,27 @@ export default function EventCreatePage() {
     const [lengthMeters, setLengthMeters] = useState<number>(3000);
 
     const [categories, setCategories] = useState<string[]>(() => buildDefaultCategories());
+    const [seatFees, setSeatFees] = useState<SeatFeeMap>(EMPTY_FEES);
 
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+
+    // Pre-populate from host's last-used fees
+    useEffect(() => {
+        const defaults = profile?.roles?.host?.defaultSeatFees;
+        if (!defaults) return;
+        setSeatFees({
+            "1x":  defaults["1x"]  ? (defaults["1x"]  / 100).toFixed(2) : "",
+            "2x":  defaults["2x"]  ? (defaults["2x"]  / 100).toFixed(2) : "",
+            "2-":  defaults["2-"]  ? (defaults["2-"]  / 100).toFixed(2) : "",
+            "4x+": defaults["4x+"] ? (defaults["4x+"] / 100).toFixed(2) : "",
+        });
+    }, [profile]);
+
+    const feesValid = useMemo(
+        () => BOAT_CONFIGS.every(({ key }) => !feeError(seatFees[key])),
+        [seatFees]
+    );
 
     const canSubmit = useMemo(() => {
         return (
@@ -34,9 +85,10 @@ export default function EventCreatePage() {
             endDate &&
             closingDate &&
             lengthMeters > 0 &&
-            categories.length > 0
+            categories.length > 0 &&
+            feesValid
         );
-    }, [user, name, location, startDate, endDate, closingDate, lengthMeters, categories]);
+    }, [user, name, location, startDate, endDate, closingDate, lengthMeters, categories, feesValid]);
 
     function calculateInitialStatus(
         startAtMillis: number,
@@ -64,6 +116,16 @@ export default function EventCreatePage() {
         }
 
         return "open";
+    }
+
+    function buildCategoriesWithFees(): EventCategory[] {
+        return categoriesFromIds(categories).map((cat) => {
+            const bc = parseBoatClassFromCategory(cat.id);
+            if (!bc) return cat;
+            const cents = parseFee(seatFees[bc]);
+            if (!cents) return cat;
+            return { ...cat, feeCents: cents };
+        });
     }
 
     async function onCreate() {
@@ -96,7 +158,7 @@ export default function EventCreatePage() {
             );
 
             const eventId = await createEvent({
-                bowsAssigned:false,
+                bowsAssigned: false,
                 name: name.trim(),
                 description: description.trim(),
                 location: location.trim(),
@@ -104,7 +166,7 @@ export default function EventCreatePage() {
                 endAt,
                 closeAt,
                 lengthMeters: Number(lengthMeters),
-                categories: categoriesFromIds(categories),
+                categories: buildCategoriesWithFees(),
                 status,
                 createdByUid: user.uid,
                 createdByName:
@@ -113,6 +175,14 @@ export default function EventCreatePage() {
                     user.email ||
                     "Host",
             });
+
+            // Persist defaults for next event (fire-and-forget)
+            const defaults: Partial<Record<BoatClass, number>> = {};
+            for (const { key } of BOAT_CONFIGS) {
+                const cents = parseFee(seatFees[key]);
+                if (cents && cents > 0) defaults[key] = cents;
+            }
+            saveHostDefaultSeatFees(user.uid, defaults).catch(() => {});
 
             navigate(`/host/events/${eventId}`);
 
@@ -154,7 +224,7 @@ export default function EventCreatePage() {
                         <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
                     </label>
 
-                    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 10 }}>
+                    <div className="event-dates-grid">
                         <label className="event-form">
                             <span>
                                 Start Date
@@ -185,6 +255,57 @@ export default function EventCreatePage() {
                             </span>
                             <input type="number" value={lengthMeters} onChange={(e) => setLengthMeters(Number(e.target.value))} />
                         </label>
+                    </div>
+                </div>
+
+                <div className="card" style={{ marginTop: 14 }}>
+                    <h3 style={{ margin: 0 }}>
+                        Entry Fees
+                        <span className="muted" style={{ fontWeight: 400, fontSize: 14, marginLeft: 8 }}>
+                            optional
+                        </span>
+                    </h3>
+                    <p className="muted" style={{ marginTop: 4, marginBottom: 0, fontSize: 13 }}>
+                        Set a per-boat entry fee for each class. Leave blank for free entry.
+                        The platform retains 10% of each fee collected.
+                    </p>
+
+                    <div className="seat-fee-list">
+                        {BOAT_CONFIGS.map(({ key, label }) => {
+                            const val = seatFees[key];
+                            const cents = parseFee(val);
+                            const feeErr = feeError(val);
+                            const athletePays = (cents ?? 0) / 100;
+                            const hostReceives = athletePays * (1 - PLATFORM_RATE);
+
+                            return (
+                                <div key={key} className="seat-fee-row">
+                                    <span className="seat-fee-label">{label}</span>
+                                    <div className="seat-fee-input-wrap">
+                                        <span className="seat-fee-currency">$</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="1000"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={val}
+                                            onChange={(e) =>
+                                                setSeatFees((prev) => ({ ...prev, [key]: e.target.value }))
+                                            }
+                                        />
+                                    </div>
+                                    {feeErr ? (
+                                        <p className="seat-fee-meta seat-fee-meta--error">{feeErr}</p>
+                                    ) : val.trim() && athletePays > 0 ? (
+                                        <p className="seat-fee-meta seat-fee-meta--breakdown">
+                                            Athletes pay <b>${athletePays.toFixed(2)}</b>
+                                            {" → "}you receive <b>${hostReceives.toFixed(2)}</b>
+                                        </p>
+                                    ) : null}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 

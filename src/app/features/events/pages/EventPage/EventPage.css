@@ -1,0 +1,604 @@
+/* ── Event Page Layout ───────────────────────────────────────────── */
+
+.ep-page {
+    /* flex: 1 fills the space between Navbar and Footer inside .page-container */
+    flex: 1;
+    /* reset the global `main` rule which constrains width and adds padding */
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    background: var(--surface);
+    color: var(--text);
+}
+
+.ep-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 4rem;
+}
+
+.ep-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-decoration: none;
+    margin-bottom: 1.25rem;
+}
+
+.ep-back-btn:hover { color: var(--text); }
+
+/* ── Event Header ────────────────────────────────────────────────── */
+
+.ep-event-header {
+    margin-bottom: 1.5rem;
+}
+
+.ep-header-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.ep-event-title {
+    font-size: 1.6rem;
+    font-family: "DIN Condensed", sans-serif;
+    font-weight: 700;
+    margin: 0;
+}
+
+.ep-event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+}
+
+.ep-event-description {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────── */
+
+.ep-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--surface-2);
+    margin-bottom: 1.5rem;
+}
+
+.ep-tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-family: "Oswald", sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.ep-tab-btn:hover { color: var(--text); }
+
+.ep-tab-btn.active {
+    color: var(--brand);
+    border-bottom-color: var(--brand);
+}
+
+/* ── Pills ───────────────────────────────────────────────────────── */
+
+.ep-pill {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.ep-pill--open     { background: #1a3a1a; color: #4caf50; }
+.ep-pill--closed   { background: #2a1a1a; color: #ef5350; }
+.ep-pill--draft    { background: var(--surface-2); color: var(--muted); }
+.ep-pill--running  { background: #1a2a3a; color: #42a5f5; }
+.ep-pill--finished { background: var(--surface-2); color: var(--muted); }
+
+/* ── Overview Tab ────────────────────────────────────────────────── */
+
+.ep-overview-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.ep-info-card { padding: 1.25rem; }
+
+.ep-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--surface-2);
+    font-size: 0.9rem;
+}
+.ep-info-row:last-child { border-bottom: none; }
+.ep-info-row-label { color: var(--muted); }
+
+.ep-host-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+}
+
+.ep-host-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--brand);
+    color: #000;
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ep-host-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.ep-host-rating {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.2rem;
+}
+
+.ep-fee-display {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.ep-fee-display-label { color: var(--muted); }
+.ep-fee-display-amount {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--brand);
+    margin-top: 0.25rem;
+}
+
+.ep-cta-btn {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--brand);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: "Oswald", sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: opacity 0.15s;
+}
+.ep-cta-btn:hover { opacity: 0.9; }
+
+/* ── Registration Tab ────────────────────────────────────────────── */
+
+.ep-reg-card { padding: 1.25rem; margin-bottom: 1rem; }
+
+.ep-field-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.35rem;
+}
+
+.ep-select-wrap {
+    position: relative;
+}
+
+.ep-select {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+    padding: 0.55rem 0.75rem;
+    appearance: none;
+    cursor: pointer;
+}
+
+.ep-fee-breakdown {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+}
+
+.ep-fee-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    padding: 0.3rem 0;
+    color: var(--muted);
+}
+
+.ep-fee-line.total {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
+    color: var(--text);
+    font-weight: 700;
+}
+
+.ep-stripe-wrap {
+    margin: 1rem 0;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.ep-pay-btn {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--brand);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: "Oswald", sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 0.75rem;
+    transition: opacity 0.15s;
+}
+.ep-pay-btn:hover:not(:disabled) { opacity: 0.9; }
+.ep-pay-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.ep-success-banner {
+    background: #1a3a1a;
+    border: 1px solid #4caf50;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    color: #4caf50;
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+}
+
+.ep-info-box {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 1rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.ep-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(255, 212, 0, 0.15);
+    color: var(--brand);
+    margin-top: 0.5rem;
+}
+
+.ep-invite-box {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    margin-top: 0.75rem;
+}
+
+.ep-invite-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+}
+
+.ep-invite-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ep-invite-link {
+    font-size: 0.8rem;
+    color: var(--brand);
+    text-decoration: none;
+    word-break: break-all;
+    flex: 1;
+}
+
+.ep-copy-btn {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    border-radius: 4px;
+    font-size: 0.78rem;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.ep-copy-btn:hover { background: var(--surface-2); }
+
+/* ── Boats grid ──────────────────────────────────────────────────── */
+
+.ep-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 1.5rem 0 0.75rem;
+}
+
+.ep-boats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ep-boat-card {
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    font-size: 0.85rem;
+}
+
+.ep-boat-card--own {
+    border: 1px solid rgba(255,212,0,0.3);
+}
+
+.ep-boat-club { font-weight: 600; margin-bottom: 0.2rem; }
+.ep-boat-cat  { color: var(--muted); font-size: 0.78rem; margin-bottom: 0.5rem; }
+
+.ep-seat-dots { display: flex; gap: 4px; margin-bottom: 0.5rem; }
+.ep-seat-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+}
+.ep-seat-dot--filled { background: var(--brand); }
+
+.ep-crew-list { list-style: none; padding: 0; margin: 0.35rem 0 0; }
+.ep-crew-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0;
+    font-size: 0.8rem;
+}
+.ep-crew-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; flex-shrink: 0;
+}
+.ep-you-tag {
+    font-size: 0.7rem;
+    color: var(--brand);
+    border: 1px solid var(--brand);
+    border-radius: 3px;
+    padding: 0 4px;
+}
+
+/* ── Reviews Tab ─────────────────────────────────────────────────── */
+
+.ep-reviews-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.ep-star-big {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--brand);
+    line-height: 1;
+}
+
+.ep-star-sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.15rem; }
+
+.ep-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.ep-star { font-size: 1rem; color: rgba(255,255,255,0.15); }
+.ep-star--filled { color: var(--brand); }
+
+.ep-review-card {
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.ep-review-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+}
+
+.ep-reviewer-name { font-weight: 600; font-size: 0.9rem; }
+.ep-review-date   { font-size: 0.78rem; color: var(--muted); }
+.ep-review-event  { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.35rem; }
+.ep-review-text   { font-size: 0.88rem; color: var(--muted); line-height: 1.5; margin-top: 0.4rem; }
+
+.ep-review-form { padding: 1.25rem; margin-bottom: 1rem; }
+.ep-review-form h3 { font-size: 1rem; margin-bottom: 1rem; }
+
+.ep-star-selector {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+}
+
+.ep-star-btn {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: rgba(255,255,255,0.15);
+    transition: color 0.1s;
+    padding: 0;
+}
+
+.ep-star-btn--selected,
+.ep-star-btn:hover ~ .ep-star-btn,
+.ep-star-btn:hover { color: var(--brand); }
+
+.ep-comment-area {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.9rem;
+    padding: 0.6rem 0.75rem;
+    resize: vertical;
+    min-height: 90px;
+    font-family: inherit;
+}
+
+.ep-char-count { font-size: 0.75rem; color: var(--muted); text-align: right; margin-top: 0.25rem; }
+
+/* ── Results Tab ─────────────────────────────────────────────────── */
+
+.ep-results-category {
+    margin-bottom: 2rem;
+}
+
+.ep-results-cat-title {
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--surface-2);
+}
+
+.ep-results-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.ep-result-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 6px;
+    background: var(--surface-2);
+    font-size: 0.9rem;
+    border-left: 3px solid transparent;
+}
+
+.ep-result-row--own    { background: rgba(255,212,0,0.06); border-left-color: rgba(255,212,0,0.5); }
+.ep-result-row--gold   { border-left-color: #FFD700; }
+.ep-result-row--silver { border-left-color: #C0C0C0; }
+.ep-result-row--bronze { border-left-color: #CD7F32; }
+
+.ep-result-place {
+    width: 40px;
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: var(--muted);
+}
+
+.ep-result-row--gold   .ep-result-place { color: #FFD700; }
+.ep-result-row--silver .ep-result-place { color: #C0C0C0; }
+.ep-result-row--bronze .ep-result-place { color: #CD7F32; }
+
+.ep-result-crew { flex: 1; min-width: 0; }
+
+.ep-result-names {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ep-result-club {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 0.15rem;
+}
+
+.ep-result-time {
+    font-family: "DIN Condensed", sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--brand);
+    flex-shrink: 0;
+    min-width: 64px;
+    text-align: right;
+}
+
+.ep-dnf-badge {
+    background: rgba(239,83,80,0.15);
+    color: var(--danger);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+}
+
+.ep-results-review-section {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--surface-2);
+}
+
+/* ── Shared helpers ──────────────────────────────────────────────── */
+
+.ep-muted { color: var(--muted); font-size: 0.88rem; }
+.ep-error-text { color: var(--danger); font-size: 0.85rem; }
+.ep-link { color: var(--brand); text-decoration: none; }
+.ep-link:hover { text-decoration: underline; }
+
+.ep-skeleton-bar {
+    background: var(--surface-2);
+    border-radius: 4px;
+    animation: ep-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes ep-shimmer {
+    0%, 100% { opacity: 0.5; }
+    50%       { opacity: 1; }
+}

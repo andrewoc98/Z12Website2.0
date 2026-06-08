@@ -76,6 +76,9 @@ export default function SessionRunPage() {
     const ttBoatStartTimes         = useRef<Record<string, number>>({});
     const ttBoatOriginalStartTimes = useRef<Record<string, number>>({});
 
+    const [spmValue, setSpmValue]   = useState<number | null>(null);
+    const [spmVisible, setSpmVisible] = useState(false);
+
     const intervalRef        = useRef<ReturnType<typeof setInterval> | null>(null);
     const startTimeRef       = useRef<number | null>(null);
     const boatResultIds      = useRef<Record<string, string>>({});
@@ -83,6 +86,8 @@ export default function SessionRunPage() {
     const holdTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
     const holdCompletedRef   = useRef(false);
     const lastUndoPushedAt   = useRef<number>(0);
+    const spmTapsRef         = useRef<number[]>([]);
+    const spmTimeoutRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // ── Navigation guard ──────────────────────────────────────────────────────
     const blocker = useBlocker(
@@ -234,6 +239,25 @@ export default function SessionRunPage() {
 
     function clearUndo() {
         setUndoStack([]);
+    }
+
+    // ── SPM meter ─────────────────────────────────────────────────────────────
+    function handleSpmTap() {
+        const now = Date.now();
+        const lastTap = spmTapsRef.current[spmTapsRef.current.length - 1] ?? null;
+
+        if (lastTap !== null) {
+            setSpmValue(Math.round(600_000 / (now - lastTap)) / 10);
+        }
+        spmTapsRef.current = [now];
+
+        setSpmVisible(true);
+        if (spmTimeoutRef.current) clearTimeout(spmTimeoutRef.current);
+        spmTimeoutRef.current = setTimeout(() => {
+            setSpmVisible(false);
+            spmTapsRef.current = [];
+            setSpmValue(null);
+        }, 2000);
     }
 
     function handleUndoClick() {
@@ -611,7 +635,7 @@ export default function SessionRunPage() {
                                 Yes, Save It
                             </button>
                             <button className="ts-modal__btn ts-modal__btn--primary" onClick={() => setPendingStop(null)}>
-                                Cancel
+                                Continue Timing
                             </button>
                         </div>
                     </div>
@@ -869,15 +893,34 @@ export default function SessionRunPage() {
                 )}
             </div>
 
-            {/* ── Floating undo button ───────────────────────────────────── */}
+            {/* ── Floating undo circle (bottom-left) ────────────────────── */}
             {showUndoFloat && (
                 <button
                     className={`ts-undo-float${topUndoAction ? ' ts-undo-float--active' : ''}`}
                     onClick={handleUndoClick}
                     disabled={!topUndoAction}
+                    aria-label={topUndoAction ? undoLabel(topUndoAction) : 'Undo'}
                 >
-                    ↩ {topUndoAction ? undoLabel(topUndoAction) : 'UNDO'}
+                    ↺
                 </button>
+            )}
+
+            {/* ── SPM tap button (bottom-right) ──────────────────────────── */}
+            {phase === 'running' && !showPreStart && (
+                <div className="ts-spm-wrap">
+                    {spmVisible && (
+                        <div className="ts-spm-popup">
+                            {spmValue !== null ? (
+                                <><span className="ts-spm-popup__value">{spmValue!.toFixed(1)}</span><span className="ts-spm-popup__unit">spm</span></>
+                            ) : (
+                                <span className="ts-spm-popup__hint">tap again…</span>
+                            )}
+                        </div>
+                    )}
+                    <button className="ts-spm-float" onClick={handleSpmTap} aria-label="Record stroke for SPM">
+                        SPM
+                    </button>
+                </div>
             )}
         </>
     );

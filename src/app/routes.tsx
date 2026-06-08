@@ -15,7 +15,6 @@ const EventCreatePage         = lazy(() => import("./features/events/pages/Event
 const EventSignupPage         = lazy(() => import("./features/signup/pages/EventSignupPage"));
 const HostEventManagePage     = lazy(() => import("./features/events/pages/HostEventManagePage"));
 const RowerEventListPage      = lazy(() => import("./features/signup/pages/RowerEventListPage"));
-const EventResultsPage        = lazy(() => import("./features/results/pages/EventResultsPage"));
 const ProfilePage             = lazy(() => import("./features/profile/pages/ProfilePage"));
 const InviteJoinPage          = lazy(() => import("./features/signup/pages/InviteJoinPage"));
 const HostEventListPage       = lazy(() => import("./features/events/pages/HostEventListPage"));
@@ -33,6 +32,9 @@ const FederationAdminDashboard = lazy(() => import("./features/admin/pages/Feder
 const ClubAdminDashboard      = lazy(() => import("./features/admin/pages/ClubAdminDashboard"));
 const ClubCreationRequestPage = lazy(() => import("./features/admin/pages/ClubCreationRequestPage"));
 const EventPageView              = lazy(() => import("./features/signup/pages/EventPageView"));
+const EventPage                  = lazy(() => import("./features/events/pages/EventPage/EventPage"));
+const HostPayoutPage             = lazy(() => import("./features/host/pages/HostPayoutPage"));
+const MyOrdersPage               = lazy(() => import("./features/payments/pages/MyOrdersPage"));
 const SessionListPage            = lazy(() => import("./features/trainingSessions/pages/SessionListPage"));
 const SessionCreatePage          = lazy(() => import("./features/trainingSessions/pages/SessionCreatePage"));
 const SessionRunPage             = lazy(() => import("./features/trainingSessions/pages/SessionRunPage"));
@@ -96,10 +98,7 @@ export const router = createBrowserRouter([
                 ),
             },
             {
-                path: "/rower/events/:eventId/results",
-                element: <EventResultsPage />,
-            },
-            {
+                // Legacy signup route — redirects to the new unified event page registration tab
                 path: "/rower/events/:eventId/signup",
                 element: (
                     <RequireRole role="rower">
@@ -216,7 +215,26 @@ export const router = createBrowserRouter([
             { path: "/terms", element: <Terms /> },
             { path: "/privacy", element: <Privacy /> },
             { path: "/reset-password", element: <ResetPasswordPage /> },
+            // Unified public event page (replaces EventPageView + EventSignupPage)
+            { path: "/events/:eventId", element: <EventPage /> },
+            // Legacy redirect: old view path → new unified page
             { path: "/events/:eventId/view", element: <EventPageView /> },
+            {
+                path: "/rower/my-orders",
+                element: (
+                    <RequireAuth>
+                        <MyOrdersPage />
+                    </RequireAuth>
+                ),
+            },
+            {
+                path: "/host/payout",
+                element: (
+                    <RequireRole role="host">
+                        <HostPayoutPage />
+                    </RequireRole>
+                ),
+            },
             {
                 path: "/accept-invite",
                 element: (

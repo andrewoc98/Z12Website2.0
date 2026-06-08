@@ -5,6 +5,7 @@ export type EventStatus = "draft" | "open" | "closed" | "running" | "finished";
 export type EventCategory = {
     id: string;
     name: string;
+    feeCents?: number; // per-boat entry fee in cents (0 or absent = free)
 };
 
 export type EventDoc = {
@@ -24,7 +25,7 @@ export type EventDoc = {
         | "live"
         | "category_complete"
         | "manual";
-    boats?: BoatDoc
+    boats?: BoatDoc;
 };
 
 

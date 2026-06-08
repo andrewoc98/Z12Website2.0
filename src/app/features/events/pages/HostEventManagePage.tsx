@@ -3,15 +3,16 @@ import { useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_HOST_EVENTS, TOUR_HOST_BOATS } from "../../home/components/tourMockData";
-import {categoriesFromIds, getEvent, subscribeToEventBoats, updateEventCategories} from "../api/events";
+import { getEvent, subscribeToEventBoats, updateEvent, updateEventCategories } from "../api/events";
 import "../styles/HostEventManagePage.css";
 import CategoriesTab from "../components/tabs/categories/CategoriesTab.tsx";
 import OverviewTab from "../components/tabs/overview/OverviewTab";
 import RegistrationsTab from "../components/tabs/registrations/RegistrationsTab";
 import RaceTab from "../components/tabs/raceTab/RaceTab";
 import ContactsTab from "../components/tabs/contacts/ContactsTab.tsx";
+import PaymentsTab from "../components/tabs/payments/PaymentsTab";
 
-type Tab = "overview" | "categories" | "registrations"  | "race" | "contacts";
+type Tab = "overview" | "categories" | "registrations" | "race" | "contacts" | "payments";
 
 export default function HostEventManagePage() {
 
@@ -25,21 +26,33 @@ export default function HostEventManagePage() {
     const handleSaveCategories = async (addedIds: string[], removedIds: string[]) => {
         if (!eventId || !event) return;
 
-        // 1. Calculate the final list of IDs (Current - Removed + Added)
-        const currentIds: string[] = event.categories.map((c: any) => c.id);
+        const currentCategories: any[] = event.categories ?? [];
+        const currentIds: string[] = currentCategories.map((c: any) => c.id);
         const finalIds = [
             ...currentIds.filter(id => !removedIds.includes(id)),
             ...addedIds
         ];
 
-        // 2. Convert IDs back to full EventCategory objects using your helper
-        const nextCategories = categoriesFromIds(finalIds);
+        // Preserve feeCents for existing categories; new ones start without a fee
+        const existingById = new Map(currentCategories.map((c: any) => [c.id, c]));
+        const nextCategories = finalIds.map(id => {
+            const existing = existingById.get(id);
+            return existing ? existing : { id, name: id };
+        });
 
-        // 3. Persist to Firestore
         await updateEventCategories(eventId, nextCategories, removedIds);
 
-        // 4. Refresh local state
-        // We fetch the fresh event from the DB to ensure everything is in sync
+        const updatedEvent = await getEvent(eventId);
+        setEvent(updatedEvent);
+    };
+
+    const handleSaveFees = async (feesMap: Map<string, number>) => {
+        if (!eventId || !event) return;
+        const nextCategories = (event.categories ?? []).map((c: any) => ({
+            ...c,
+            feeCents: feesMap.has(c.id) ? feesMap.get(c.id) : c.feeCents,
+        }));
+        await updateEvent(eventId, { categories: nextCategories });
         const updatedEvent = await getEvent(eventId);
         setEvent(updatedEvent);
     };
@@ -84,12 +97,13 @@ export default function HostEventManagePage() {
             case "registrations": return <RegistrationsTab event={event} boats={boats} />;
             case "race": return <RaceTab event={event} boats={boats}/>;
             case "contacts": return <ContactsTab hostId={event.createdByUid}/>;
-            case "categories": return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} />;
+            case "categories": return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} onSaveFees={handleSaveFees} />;
+            case "payments": return <PaymentsTab event={event} />;
             default: return null;
         }
     };
 
-    const tabs: Tab[] = ["overview","categories","registrations","race","contacts"];
+    const tabs: Tab[] = ["overview", "categories", "registrations", "race", "contacts", "payments"];
 
     return (
         <>

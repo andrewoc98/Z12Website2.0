@@ -144,6 +144,16 @@ export type UserProfile = {
             name?: string;
             email?: string;
             location: string;
+            country?: string;
+            stripeConnectedAccountId?: string;
+            stripeOnboarded?: boolean;
+            pendingFeeDeductions?: number;
+            defaultSeatFees?: {
+                "1x"?: number;
+                "2x"?: number;
+                "2-"?: number;
+                "4x+"?: number;
+            };
         };
 
         admin?: {
@@ -191,6 +201,7 @@ export type UserProfile = {
     updatedAt: string;
 
     hasSeenTour?: boolean;
+    hiddenSessionIds?: string[];
 };
 
 // ── Pending User ──────────────────────────────────────────────────────────────
