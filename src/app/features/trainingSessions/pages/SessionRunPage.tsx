@@ -871,13 +871,15 @@ export default function SessionRunPage() {
 
             {/* ── Floating undo button ───────────────────────────────────── */}
             {showUndoFloat && (
-                <button
-                    className={`ts-undo-float${topUndoAction ? ' ts-undo-float--active' : ''}`}
-                    onClick={handleUndoClick}
-                    disabled={!topUndoAction}
-                >
-                    ↩ {topUndoAction ? undoLabel(topUndoAction) : 'UNDO'}
-                </button>
+                <div className="ts-undo-float-wrap">
+                    <button
+                        className={`ts-undo-float${topUndoAction ? ' ts-undo-float--active' : ''}`}
+                        onClick={handleUndoClick}
+                        disabled={!topUndoAction}
+                    >
+                        ↩ {topUndoAction ? undoLabel(topUndoAction) : 'UNDO'}
+                    </button>
+                </div>
             )}
         </>
     );

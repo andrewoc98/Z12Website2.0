@@ -20,14 +20,10 @@ export function StartBoatItem({
 
     return (
         <div className="boat-item" {...longPress}>
-            <span>
+            <span className="boat-item__info">
                 {boat.bowNumber}# {boat.clubName} {formatRowerNames(boat.rowerUids, profiles, boat.boatSize)}
             </span>
-
-            <button
-                className="btn-primary"
-                onClick={() => onStart(boat.id)}
-            >
+            <button className="boat-item__start-btn" onClick={() => onStart(boat.id)}>
                 Start
             </button>
         </div>

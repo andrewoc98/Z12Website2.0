@@ -20,15 +20,16 @@ export function StopBoatItem({
     });
 
     return (
-        <div className="boat-item" {...longPress}>
-            <span>{boat.bowNumber}# {boat.clubName} {formatRowerNames(boat.rowerUids, profiles, boat.boatSize)}</span>
-            <span className="timer">
-                        {boat.startedAt ? formatElapsedTime(getLiveElapsed(boat.startedAt)) : "00:00.00"}
-            </span>
-            <button
-                className="btn-primary"
-                onClick={() => onStop(boat.id)}
-            >
+        <div className="boat-item boat-item--running" {...longPress}>
+            <div className="boat-item__body">
+                <span className="boat-item__name">
+                    {boat.bowNumber}# {boat.clubName} {formatRowerNames(boat.rowerUids, profiles, boat.boatSize)}
+                </span>
+                <span className="boat-item__elapsed">
+                    {boat.startedAt ? formatElapsedTime(getLiveElapsed(boat.startedAt)) : "00:00.00"}
+                </span>
+            </div>
+            <button className="boat-item__stop-btn" onClick={() => onStop(boat.id)}>
                 Stop
             </button>
         </div>

@@ -1137,12 +1137,19 @@
 
 /* ── Floating undo button ──────────────────────────────────────────────────── */
 
-.ts-undo-float {
+.ts-undo-float-wrap {
     position: fixed;
     bottom: 60px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
     z-index: 200;
+}
+
+.ts-undo-float {
+    pointer-events: auto;
     padding: 14px 32px;
     background: var(--surface);
     border: 1px solid var(--border);

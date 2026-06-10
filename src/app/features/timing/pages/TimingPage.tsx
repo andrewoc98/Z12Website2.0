@@ -53,13 +53,11 @@ export default function TimingPage() {
     }
 
     return (
-        <div className="timing-page page">
+        <div className="timing-page">
             <div className="timing-header">
-                <div className="timing-header-left">
-                    <button className="timing-back-btn" onClick={() => navigate("/timing")}>
-                        ← Events
-                    </button>
-                </div>
+                <button className="timing-back-btn" onClick={() => navigate("/timing")}>
+                    ← Events
+                </button>
                 <ConnectionBadge />
             </div>
 
@@ -69,59 +67,65 @@ export default function TimingPage() {
                     className={activeTab === "start" ? "active" : ""}
                     onClick={() => setActiveTab("start")}
                 >
-                    Start · {boats.filter(b => b.status === "registered").length}
+                    Start
+                    <span className="timing-tab-count">{boats.filter(b => b.status === "registered").length}</span>
                 </button>
                 <button
                     data-tour="timing-tab-in-progress"
                     className={activeTab === "in_progress" ? "active" : ""}
                     onClick={() => setActiveTab("in_progress")}
                 >
-                    In Progress · {boats.filter(b => b.status === "in_progress").length}
+                    In Progress
+                    <span className="timing-tab-count">{boats.filter(b => b.status === "in_progress").length}</span>
                 </button>
                 <button
                     className={activeTab === "finish" ? "active" : ""}
                     onClick={() => setActiveTab("finish")}
                 >
-                    Finish · {boats.filter(b => ["finished", "dns", "dnf"].includes(b.status)).length}
+                    Finish
+                    <span className="timing-tab-count">{boats.filter(b => ["finished", "dns", "dnf"].includes(b.status)).length}</span>
                 </button>
                 {reviewCount > 0 && (
                     <button
                         className={`timing-tab-review ${activeTab === "review" ? "active" : ""}`}
                         onClick={() => setActiveTab("review")}
                     >
-                        Review · {reviewCount}
+                        Review
+                        <span className="timing-tab-count">{reviewCount}</span>
                     </button>
                 )}
             </div>
 
-            {activeTab === "start" && (
-                <StartTab eventId={eventId} boats={boats} />
-            )}
-            {activeTab === "in_progress" && (
-                <InProgressTab
-                    eventId={eventId}
-                    boats={boats}
-                    reviewThresholdMs={reviewThresholdMs}
-                />
-            )}
-            {activeTab === "finish" && (
-                <FinishTab eventId={eventId} boats={boats} placeholders={placeholders} />
-            )}
-            {activeTab === "review" && (
-                <ReviewTab eventId={eventId} boats={boats} />
-            )}
+            <div className="timing-content">
+                {activeTab === "start" && (
+                    <StartTab eventId={eventId} boats={boats} />
+                )}
+                {activeTab === "in_progress" && (
+                    <InProgressTab
+                        eventId={eventId}
+                        boats={boats}
+                        reviewThresholdMs={reviewThresholdMs}
+                    />
+                )}
+                {activeTab === "finish" && (
+                    <FinishTab eventId={eventId} boats={boats} placeholders={placeholders} />
+                )}
+                {activeTab === "review" && (
+                    <ReviewTab eventId={eventId} boats={boats} />
+                )}
 
-            {isTourActive && (
-                <div className="timing-action-demo" data-tour="timing-dnf-demo">
-                    <p className="timing-action-demo-hint">Long-press any boat card to open the action menu</p>
-                    <div className="timing-demo-sheet">
-                        <div className="timing-demo-sheet-title">3# Fermoy RC</div>
-                        <div className="timing-demo-action">Stop Boat</div>
-                        <div className="timing-demo-action timing-demo-action--danger">Mark DNF</div>
-                        <div className="timing-demo-cancel">Cancel</div>
+                {isTourActive && (
+                    <div className="timing-action-demo" data-tour="timing-dnf-demo">
+                        <p className="timing-action-demo-hint">Long-press any boat card to open the action menu</p>
+                        <div className="timing-demo-sheet">
+                            <div className="timing-demo-sheet-title">3# Fermoy RC</div>
+                            <div className="timing-demo-action">Stop Boat</div>
+                            <div className="timing-demo-action timing-demo-action--danger">Mark DNF</div>
+                            <div className="timing-demo-cancel">Cancel</div>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

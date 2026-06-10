@@ -78,6 +78,9 @@ const categories = useMemo(() => {
 
     return (
         <div className="start-tab">
+            {categories.length === 0 && (
+                <p className="timing-empty">No boats registered</p>
+            )}
             {categories.map((category) => (
                 <div key={category.id} className="category-section">
                     <h3>{category.name}</h3>

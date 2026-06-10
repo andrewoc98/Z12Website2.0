@@ -15,7 +15,7 @@ interface InProgressTabProps {
 export default function InProgressTab({ eventId, boats, reviewThresholdMs }: InProgressTabProps) {
     const [, setTick] = useState(0);
     const [placeholderLoading, setPlaceholderLoading] = useState(false);
-    const [placeholderMsg, setPlaceholderMsg] = useState<string | null>(null);
+    const [placeholderFlash, setPlaceholderFlash] = useState<{ kind: 'success'; time: string } | { kind: 'error' } | null>(null);
     const [sheetBoat, setSheetBoat] = useState<BoatTimingDoc | null>(null);
 
     // Force re-render every 100ms to update timers
@@ -49,17 +49,18 @@ export default function InProgressTab({ eventId, boats, reviewThresholdMs }: InP
 
     const handleAddPlaceholder = async () => {
         setPlaceholderLoading(true);
-        setPlaceholderMsg(null);
+        setPlaceholderFlash(null);
         const now = Date.now();
         try {
             await addPlaceholderFinish(eventId, now);
-            setPlaceholderMsg("Placeholder finish added!");
+            const time = new Date(now).toLocaleTimeString("en-IE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+            setPlaceholderFlash({ kind: 'success', time });
         } catch (error) {
-            setPlaceholderMsg("Failed to add placeholder");
+            setPlaceholderFlash({ kind: 'error' });
             console.error("Failed to add placeholder:", error);
         } finally {
             setPlaceholderLoading(false);
-            setTimeout(() => setPlaceholderMsg(null), 2000);
+            setTimeout(() => setPlaceholderFlash(null), 2200);
         }
     };
 
@@ -98,23 +99,34 @@ export default function InProgressTab({ eventId, boats, reviewThresholdMs }: InP
         : [];
 
     if (inProgressBoats.length === 0) {
-        return <div className="in-progress-tab"><p style={{ color: "var(--muted)" }}>No boats in progress</p></div>;
+        return (
+            <div className="in-progress-tab">
+                <div className="timing-placeholder-bar">
+                    <button
+                        className={`timing-placeholder-btn${placeholderFlash?.kind === 'success' ? ' timing-placeholder-btn--success' : placeholderFlash?.kind === 'error' ? ' timing-placeholder-btn--error' : ''}`}
+                        onClick={handleAddPlaceholder}
+                        disabled={placeholderLoading || !!placeholderFlash}
+                    >
+                        {placeholderLoading && 'Recording…'}
+                        {!placeholderLoading && !placeholderFlash && '+ Placeholder Finish'}
+                        {placeholderFlash?.kind === 'success' && `✓ Recorded · ${placeholderFlash.time}`}
+                        {placeholderFlash?.kind === 'error' && '✕ Failed — tap to retry'}
+                    </button>
+                </div>
+                <p className="timing-empty">No boats in progress</p>
+            </div>
+        );
     }
 
     return (
         <div className="in-progress-tab">
-            <div style={{ marginBottom: "16px" }}>
-                <button className="btn-primary" onClick={handleAddPlaceholder} disabled={placeholderLoading}>
-                    {placeholderLoading ? "Adding..." : "Add Placeholder Finish"}
+            <div className="timing-placeholder-bar">
+                <button className="timing-placeholder-btn" onClick={handleAddPlaceholder} disabled={placeholderLoading}>
+                    {placeholderLoading ? "Adding…" : "+ Placeholder Finish"}
                 </button>
-                {placeholderMsg && (
-                    <span style={{ marginLeft: 12, color: placeholderMsg.startsWith("Failed") ? "#ef4444" : "#10b981" }}>
-                        {placeholderMsg}
-                    </span>
-                )}
             </div>
-            {inProgressBoats.map((boat) => (
-                <div key={boat.id} className="boat-item">
+            <div className="boats-list">
+                {inProgressBoats.map((boat) => (
                     <StopBoatItem
                         key={boat.id}
                         profiles={profiles}
@@ -125,8 +137,8 @@ export default function InProgressTab({ eventId, boats, reviewThresholdMs }: InP
                             handleStop(id);
                         }}
                     />
-                </div>
-            ))}
+                ))}
+            </div>
             <RaceActionSheet
                 open={!!sheetBoat}
                 title={

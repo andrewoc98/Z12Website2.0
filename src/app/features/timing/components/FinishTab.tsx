@@ -95,24 +95,36 @@ export default function FinishTab({ eventId, boats, placeholders }: FinishTabPro
         }
     };
 
-    const renderBoatRow = (boat: BoatTimingDoc, position: number) => (
-        <div key={boat.id} className="boat-item">
-            <span className="position-badge">
-                {boat.status === "finished" ? `#${position}` : "—"}
-            </span>
-            <span>{boat.bowNumber}# {boat.clubName} {formatRowerNames(boat.rowerUids, profiles, boat.boatSize)}</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="timer font-bold">
-                    {boat.status === "dns" && <span style={{color: "var(--red)"}}>DNS</span>}
-                    {boat.status === "dnf" && <span style={{color: "var(--orange)"}}>DNF</span>}
-                    {boat.status === "finished" && boat.startedAt && boat.finishedAt
-                        ? formatElapsedTime(boat.finishedAt - boat.startedAt + boat.adjustmentMs)
-                        : ""
-                    }
+    const renderBoatRow = (boat: BoatTimingDoc, position: number) => {
+        const isFinished = boat.status === "finished";
+        const isDNF = boat.status === "dnf";
+        const isDNS = boat.status === "dns";
+        return (
+            <div
+                key={boat.id}
+                className={`timing-result-row${isFinished ? " timing-result-row--finished" : isDNF ? " timing-result-row--dnf" : ""}`}
+            >
+                <span className={`timing-result-pos${!isFinished ? " timing-result-pos--na" : ""}`}>
+                    {isFinished ? position : "—"}
                 </span>
-                {boat.status === "finished" && (
+                <div className="timing-result-body">
+                    <span className="timing-result-name">
+                        {boat.bowNumber}# {boat.clubName} {formatRowerNames(boat.rowerUids, profiles, boat.boatSize)}
+                    </span>
+                    {boat.categoryName && (
+                        <span className="timing-result-meta">{boat.categoryName}</span>
+                    )}
+                </div>
+                {isDNS && <span className="timing-result-time timing-result-time--dns">DNS</span>}
+                {isDNF && <span className="timing-result-time timing-result-time--dnf">DNF</span>}
+                {isFinished && boat.startedAt && boat.finishedAt && (
+                    <span className="timing-result-time">
+                        {formatElapsedTime(boat.finishedAt - boat.startedAt + boat.adjustmentMs)}
+                    </span>
+                )}
+                {isFinished && (
                     <button
-                        className="btn-ghost finish-flag-btn"
+                        className="timing-result-flag-btn"
                         onClick={() => setFlagPending(boat)}
                         title="Flag for review"
                     >
@@ -120,8 +132,8 @@ export default function FinishTab({ eventId, boats, placeholders }: FinishTabPro
                     </button>
                 )}
             </div>
-        </div>
-    );
+        );
+    };
 
     const handleDeletePlaceholder = async () => {
         if (!deletePending) return;
@@ -173,7 +185,7 @@ export default function FinishTab({ eventId, boats, placeholders }: FinishTabPro
 
             {placeholders.length > 0 && (
                 <>
-                    <h3>Unassigned Placeholders</h3>
+                    <h3 className="timing-placeholder-heading">Unassigned Placeholders</h3>
                     {placeholders.map((placeholder) => (
                         <div key={placeholder.id} className="placeholder-item">
                             <span className="placeholder-time">
@@ -221,43 +233,47 @@ export default function FinishTab({ eventId, boats, placeholders }: FinishTabPro
                 </>
             )}
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <h3>Finished Boats</h3>
-                <div className="view-toggle">
-                    <button
-                        className={!grouped ? "btn-primary" : "btn-ghost"}
-                        onClick={() => setGrouped(false)}
-                    >
-                        Overall
-                    </button>
-                    <button
-                        className={grouped ? "btn-primary" : "btn-ghost"}
-                        onClick={() => setGrouped(true)}
-                    >
-                        By Category
-                    </button>
-                </div>
-            </div>
-
-            {resolvedBoats.length === 0 && (
-                <p style={{ color: "var(--muted)" }}>No boats finished yet</p>
-            )}
-
-            {!grouped ? (
-                resolvedBoats.map((boat, i) => renderBoatRow(boat, i + 1))
-            ) : (
-                categories.map((category) => (
-                    <div key={category.id} className="category-section">
-                        <h3>{category.name}</h3>
-                        <div className="boats-list">
-                            {category.boats.length === 0
-                                ? <p style={{ color: "var(--muted)" }}>No boats finished yet</p>
-                                : category.boats.map((boat, i) => renderBoatRow(boat, i + 1))
-                            }
-                        </div>
+            <div className="timing-results-section">
+                <div className="timing-results-header">
+                    <h3>Finished Boats</h3>
+                    <div className="timing-view-toggle">
+                        <button
+                            className={!grouped ? "active" : ""}
+                            onClick={() => setGrouped(false)}
+                        >
+                            Overall
+                        </button>
+                        <button
+                            className={grouped ? "active" : ""}
+                            onClick={() => setGrouped(true)}
+                        >
+                            By Category
+                        </button>
                     </div>
-                ))
-            )}
+                </div>
+
+                {resolvedBoats.length === 0 && (
+                    <p className="timing-empty">No boats finished yet</p>
+                )}
+
+                {!grouped ? (
+                    <div className="timing-results-list">
+                        {resolvedBoats.map((boat, i) => renderBoatRow(boat, i + 1))}
+                    </div>
+                ) : (
+                    categories.map((category) => (
+                        <div key={category.id} className="category-section">
+                            <h3>{category.name}</h3>
+                            <div className="timing-results-list">
+                                {category.boats.length === 0
+                                    ? <p className="timing-empty">No boats finished yet</p>
+                                    : category.boats.map((boat, i) => renderBoatRow(boat, i + 1))
+                                }
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 }
