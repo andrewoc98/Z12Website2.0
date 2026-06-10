@@ -37,11 +37,10 @@ export default function HostAdminInvite() {
 
         try {
             const inviteId = await createAdminInvite(uid, trimmed);
-            const inviteLink = `${window.location.origin}/auth?adminInvite=${inviteId}`;
 
             const functions = getFunctions();
             const sendAdminInviteEmail = httpsCallable(functions, "sendAdminInviteEmail");
-            await sendAdminInviteEmail({ email: trimmed, inviteLink });
+            await sendAdminInviteEmail({ inviteId });
 
             setSent(true);
             setEmail("");
