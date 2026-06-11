@@ -1546,9 +1546,9 @@
 
   .ts-spm-float-wrap { @apply fixed bottom-[24px] right-[20px] z-[200] flex flex-col items-center gap-2; }
   .ts-spm-popup {
-    @apply bg-surface border border-border rounded-lg px-3 py-[5px]
-           font-heading font-bold text-[1rem] text-brand-warm tracking-[0.04em]
-           [box-shadow:0_2px_8px_rgba(0,0,0,0.5)] whitespace-nowrap text-center min-w-[60px];
+    @apply bg-surface border border-border rounded-lg px-4 py-[8px]
+           font-heading font-bold text-[1.75rem] text-brand-warm tracking-[0.04em]
+           [box-shadow:0_2px_8px_rgba(0,0,0,0.5)] whitespace-nowrap text-center min-w-[70px];
   }
   .ts-spm-btn {
     @apply w-[60px] h-[60px] rounded-full bg-surface border border-[rgba(255,212,0,0.35)]
