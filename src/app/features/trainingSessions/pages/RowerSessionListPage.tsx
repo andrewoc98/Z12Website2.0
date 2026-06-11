@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../../shared/components/Navbar/Navbar';
 import { useAuth } from '../../../providers/AuthProvider';
 import { useRowerSessions } from '../hooks/useRowerSessions';
-import '../trainingSessions.css';
 
 export default function RowerSessionListPage() {
     const { profile } = useAuth();

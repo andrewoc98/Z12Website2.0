@@ -22,7 +22,7 @@ export default function PublishControls({ publishMode, setPublishMode, eventId }
     };
 
     return (
-        <div className="card publish-controls">
+        <div className="card">
             <h3>Results Publishing</h3>
             <select value={publishMode} onChange={handleChange} disabled={saving}>
                 <option value="Live">Live Results</option>

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import {sendPasswordResetEmail} from "../../../shared/lib/firebase.ts";
-import "../styles/forgotPassword.css"
 function friendlyError(message: string) {
     const m = (message || "").toLowerCase();
 
@@ -78,9 +77,9 @@ export default function ForgotPasswordPage() {
                                 </div>
                             )}
 
-                            <div className="row auth-footer-actions">
+                            <div className="flex flex-col gap-3 mt-5 flex-wrap items-center min-[600px]:flex-row">
                                 <button
-                                    className="btn-primary"
+                                    className="auth-login-btn"
                                     onClick={onSubmit}
                                     disabled={busy}
                                 >
@@ -104,8 +103,8 @@ export default function ForgotPasswordPage() {
                                 We sent a password reset link to <b>{email}</b>.
                             </div>
 
-                            <div className="row auth-footer-actions">
-                                <Link to="/auth" className="btn-primary">
+                            <div className="flex flex-col gap-3 mt-5 flex-wrap items-center min-[600px]:flex-row">
+                                <Link to="/auth" className="auth-login-btn">
                                     Back to sign in
                                 </Link>
                             </div>

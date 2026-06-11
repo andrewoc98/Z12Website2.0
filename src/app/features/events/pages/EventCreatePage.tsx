@@ -75,7 +75,7 @@ export default function EventCreatePage() {
         try {
             const startAt = dateInputToTimestampStartOfDay(startDate);
             const endAt = dateInputToTimestampEndOfDay(endDate);
-            const closeAt = dateInputToTimestampStartOfDay(closingDate);
+            const closeAt = dateInputToTimestampEndOfDay(closingDate);
 
             const startMillis = startAt.toMillis();
             const endMillis = endAt.toMillis();
@@ -130,56 +130,57 @@ export default function EventCreatePage() {
                 <h1>Create Event</h1>
 
                 <div className="card">
-                    <label className="event-form">
-                        <span>
+                    <label>
+                        <span className="inline-flex items-center">
                             Name
                             <InfoTooltip text="The public name of the event shown to all participants." position="right" />
                         </span>
                         <input value={name} onChange={(e) => setName(e.target.value)} />
                     </label>
 
-                    <label className="event-form">
-                        <span>
+                    <label>
+                        <span className="inline-flex items-center">
                             Location
                             <InfoTooltip text="The city, venue or general area where the event takes place." position="right" />
                         </span>
                         <input value={location} onChange={(e) => setLocation(e.target.value)} />
                     </label>
 
-                    <label className="event-form">
-                        <span>
+                    <label>
+                        <span className="inline-flex items-center">
                             Description
                             <InfoTooltip text="Optional details about the event shown on the event page." position="right" />
                         </span>
                         <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
                     </label>
 
-                    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr", marginTop: 10 }}>
-                        <label className="event-form">
-                            <span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-[10px] [&>label]:mt-0">
+                        <label>
+                            <span className="inline-flex items-center">
                                 Start Date
                                 <InfoTooltip text="The date the event begins." position="right" />
                             </span>
                             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                         </label>
 
-                        <label className="event-form">
-                            <span>
+                        <label>
+                            <span className="inline-flex items-center">
                                 End Date
                                 <InfoTooltip text="The last day of the event. Must be on or after the start date." position="right" />
                             </span>
                             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                         </label>
 
-                        <label className="event-form">
-                            <span>
+                        <label>
+                            <span className="inline-flex items-center">
                                 Closing Date
                                 <InfoTooltip text="The last day athletes can register. Must be before the start date." position="right" />
                             </span>
                             <input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} />
                         </label>
-                        <label className="event-form">
-                            <span>
+
+                        <label>
+                            <span className="inline-flex items-center">
                                 Length (meters)
                                 <InfoTooltip text="The total race distance in meters, e.g. 5000 for a 5K." position="right" />
                             </span>
@@ -190,12 +191,12 @@ export default function EventCreatePage() {
 
                 <CategoryPicker value={categories} onChange={setCategories} />
 
-                <div className="card" style={{ marginTop: 14 }}>
+                <div className="card mt-[14px]">
                     <div className="space-between">
                         <div>
                             <h3>Selected Categories</h3>
-                            <p className="muted" style={{ marginTop: 4 }}>
-                                Enabled: <b style={{ color: "var(--text)" }}>{categories.length}</b>
+                            <p className="muted mt-1">
+                                Enabled: <b className="text-text">{categories.length}</b>
                             </p>
                         </div>
 
@@ -204,9 +205,9 @@ export default function EventCreatePage() {
                         </button>
                     </div>
 
-                    <ul style={{ marginTop: 10, paddingLeft: 18 }}>
+                    <ul className="mt-[10px] pl-[18px]">
                         {categories.slice(0, 12).map((c) => (
-                            <li key={c} className="muted" style={{ marginBottom: 6 }}>
+                            <li key={c} className="muted mb-[6px]">
                                 {c}
                             </li>
                         ))}
@@ -214,13 +215,12 @@ export default function EventCreatePage() {
                     </ul>
                 </div>
 
-                {err && <p style={{ color: "crimson" }}>{err}</p>}
+                {err && <p className="text-[crimson]">{err}</p>}
 
                 <button
-                    className="btn-primary"
+                    className="btn-primary mt-4 w-full sm:w-auto"
                     disabled={!canSubmit || busy}
                     onClick={onCreate}
-                    style={{ marginTop: 16 }}
                 >
                     {busy ? "Creating..." : "Create Event"}
                 </button>

@@ -1,6 +1,5 @@
 import type {BoatTimingDoc} from "../types.ts";
 import {useLongPress} from "../useLongPress.ts";
-import "../styles/TimingPage.css"
 import {formatRowerNames} from "../lib/utils.ts";
 
 export function StartBoatItem({

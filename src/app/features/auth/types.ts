@@ -105,6 +105,8 @@ export type UserProfile = {
     /** @deprecated Moved to consent.nationalSelectionVisible. Kept for backward compat with existing Firestore documents. */
     nationalSelectionVisible?: boolean;
 
+    units?: "metric" | "imperial";
+
     roles: {
         rower?: {
             /**

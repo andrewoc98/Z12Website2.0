@@ -2,7 +2,6 @@ import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import { useAuth } from "../../../providers/AuthProvider";
-import "../styles/ProfileCompletionModal.css";
 
 type Props = {
     missingFields: string[];
@@ -55,31 +54,35 @@ export default function ProfileCompletionModal({ missingFields }: Props) {
     }
 
     return (
-        <div className="pcm-overlay">
-            <div className="pcm-modal" role="dialog" aria-modal="true" aria-labelledby="pcm-title">
-                <div className="pcm-header">
-                    <div className="pcm-icon">⚠</div>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000] p-4">
+            <div className="bg-surface border border-white/10 rounded-xl p-8 w-full max-w-[440px] flex flex-col gap-6" role="dialog" aria-modal="true" aria-labelledby="pcm-title">
+
+                <div className="flex gap-4 items-start">
+                    <div className="text-[1.25rem] leading-none mt-[2px] shrink-0">⚠</div>
                     <div>
-                        <h2 id="pcm-title">Complete your profile</h2>
-                        <p>You need to fill in a few details before you can enter races.</p>
+                        <h2 id="pcm-title" className="mb-1 text-[1.1rem] font-semibold text-white m-0">Complete your profile</h2>
+                        <p className="text-[0.875rem] text-white/55 leading-[1.5] m-0">You need to fill in a few details before you can enter races.</p>
                     </div>
                 </div>
 
-                <div className="pcm-fields">
+                <div className="flex flex-col gap-5">
                     {missingFields.map((field) => (
-                        <div key={field} className="pcm-field">
-                            <label htmlFor={`pcm-${field}`}>{FIELD_LABELS[field] ?? field}</label>
+                        <div key={field} className="flex flex-col gap-2">
+                            <label htmlFor={`pcm-${field}`} className="text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-white/55">
+                                {FIELD_LABELS[field] ?? field}
+                            </label>
 
                             {field === "gender" && (
-                                <div className="pcm-radio-group">
+                                <div className="flex gap-3">
                                     {["male", "female"].map((g) => (
-                                        <label key={g} className={`pcm-radio ${values.gender === g ? "pcm-radio--active" : ""}`}>
+                                        <label key={g} className={`flex-1 flex items-center justify-center gap-2 px-4 py-[0.6rem] border rounded-lg text-[0.9rem] cursor-pointer transition-[border-color,background] duration-150 text-white ${values.gender === g ? "border-white/45 bg-white/10" : "border-white/12 bg-white/4"}`}>
                                             <input
                                                 type="radio"
                                                 name="gender"
                                                 value={g}
                                                 checked={values.gender === g}
                                                 onChange={() => set("gender", g)}
+                                                className="hidden"
                                             />
                                             {g.charAt(0).toUpperCase() + g.slice(1)}
                                         </label>
@@ -94,16 +97,21 @@ export default function ProfileCompletionModal({ missingFields }: Props) {
                                     max={new Date().toISOString().slice(0, 10)}
                                     value={values.dateOfBirth ?? ""}
                                     onChange={(e) => set("dateOfBirth", e.target.value)}
+                                    className="!bg-white/6 !border-white/12 !rounded-lg !py-[0.6rem] !px-[0.875rem] !text-[0.9rem] !text-white focus:!border-white/35"
                                 />
                             )}
                         </div>
                     ))}
                 </div>
 
-                {err && <p className="pcm-error">{err}</p>}
+                {err && <p className="text-[0.85rem] text-[#f87171] m-0">{err}</p>}
 
-                <div className="pcm-actions">
-                    <button className="pcm-btn-primary" onClick={handleSave} disabled={!allFilled || saving}>
+                <div className="flex justify-end gap-3 pt-1">
+                    <button
+                        className="bg-white border-0 rounded-lg px-5 py-[0.6rem] text-[0.875rem] font-semibold text-black cursor-pointer transition-opacity duration-150 disabled:opacity-35 disabled:cursor-not-allowed [&:hover:not(:disabled)]:opacity-[0.88]"
+                        onClick={handleSave}
+                        disabled={!allFilled || saving}
+                    >
                         {saving ? "Saving…" : "Save & continue"}
                     </button>
                 </div>

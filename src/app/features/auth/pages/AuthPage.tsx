@@ -17,8 +17,6 @@ import { isMinor, signInEmail } from "../api/auth";
 import { autoClaimClubAdminInvites } from "../../admin/services/clubAdminService";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../../shared/lib/firebase";
-import "../../../shared/styles/globals.css";
-import "../styles/auth.css";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 import DateOfBirthInput from "../components/DateOfBirthInput.tsx";
 import { PhoneInput } from "../components/PhoneInput.tsx";
@@ -110,12 +108,14 @@ function defaultRoleDetails(): RoleDetails {
 function WizardSteps({ step }: { step: 1 | 2 | 3 }) {
     const labels = ["Choose roles", "Role details", "Consent & submit"];
     return (
-        <div className="wizard-steps">
+        <div className="flex items-center gap-0 mt-4 mb-2">
             {labels.map((label, i) => (
-                <div key={i} className={`wizard-step ${step === i + 1 ? "active" : step > i + 1 ? "done" : ""}`}>
-                    <span className="wizard-step-num">{step > i + 1 ? "✓" : i + 1}</span>
-                    <span className="wizard-step-label">{label}</span>
-                    {i < labels.length - 1 && <span className="wizard-step-line" />}
+                <div key={i} className="flex items-center gap-[0.4rem] flex-1">
+                    <span className={`w-[1.6rem] h-[1.6rem] rounded-full flex items-center justify-center text-[0.75rem] font-bold flex-shrink-0 transition-[background,border-color,color] border-2 ${step > i + 1 ? "bg-brand-warm border-brand-warm text-brand-ink" : step === i + 1 ? "border-brand-warm text-brand-warm bg-surface" : "border-muted text-muted bg-surface"}`}>
+                        {step > i + 1 ? "✓" : i + 1}
+                    </span>
+                    <span className={`text-[0.72rem] whitespace-nowrap max-[600px]:whitespace-normal max-[600px]:text-[0.65rem] ${step >= i + 1 ? "text-text" : "text-muted"}`}>{label}</span>
+                    {i < labels.length - 1 && <span className="flex-1 h-[2px] bg-muted mx-[0.4rem]" />}
                 </div>
             ))}
         </div>
@@ -140,20 +140,21 @@ function StepPickRoles({
     }
 
     return (
-        <div className="step-pick-roles">
+        <div className="flex flex-col gap-[0.6rem]">
             <p className="muted" style={{ marginBottom: "1rem" }}>
                 Select all roles that apply. You can always add more later in your profile settings.
             </p>
             {ALL_ROLES.map((role) => (
-                <label key={role} className="role-card-checkbox">
+                <label key={role} className="flex items-start gap-3 p-[0.85rem_1rem] border-2 border-border rounded-[8px] cursor-pointer transition-[border-color,background] hover:border-brand-warm has-[input:checked]:border-brand-warm has-[input:checked]:bg-[rgba(254,185,89,0.06)]">
                     <input
                         type="checkbox"
+                        className="mt-[0.15rem] accent-[var(--color-brand-warm)] w-4 h-4 flex-shrink-0"
                         checked={selectedRoles.includes(role)}
                         onChange={() => toggle(role)}
                     />
-                    <div className="role-card-body">
-                        <span className="role-card-title">{role.charAt(0).toUpperCase() + role.slice(1)}</span>
-                        <span className="role-card-desc">
+                    <div className="flex flex-col gap-[0.15rem]">
+                        <span className="font-bold text-[0.9rem] text-text">{role.charAt(0).toUpperCase() + role.slice(1)}</span>
+                        <span className="text-[0.78rem] text-muted">
                             {role === "rower" && "Track your performance and join events."}
                             {role === "coach" && "Manage athletes and review their data."}
                             {role === "host"  && "Host events and manage registrations."}
@@ -190,12 +191,12 @@ function StepRoleDetails({
     return (
         <div className="step-role-details">
             {selectedRoles.length > 1 && (
-                <div className="role-tabs">
+                <div className="flex gap-[0.4rem] mb-4 border-b-2 border-border pb-0">
                     {selectedRoles.map((role) => (
                         <button
                             key={role}
                             type="button"
-                            className={`role-tab ${activeTab === role ? "active" : ""}`}
+                            className={`bg-none border-none border-b-2 px-[1rem] py-[0.45rem] text-[0.85rem] font-semibold cursor-pointer mb-[-2px] transition-[color,border-color] hover:text-text hover:shadow-none !normal-case !tracking-normal min-h-0 rounded-none ${activeTab === role ? "text-brand-warm border-b-brand-warm" : "text-muted border-b-transparent"}`}
                             onClick={() => setActiveTab(role)}
                         >
                             {role.charAt(0).toUpperCase() + role.slice(1)}
@@ -205,7 +206,7 @@ function StepRoleDetails({
             )}
 
             {(selectedRoles.length === 1 ? [selectedRoles[0]] : [activeTab]).map((role) => (
-                <div key={role} className="role-tab-content">
+                <div key={role} className="flex flex-col gap-2">
 
                     {role === "rower" && d.rower && (
                         <>
@@ -240,7 +241,7 @@ function StepRoleDetails({
                                 </>
                             )}
 
-                            <label>Club <span className="optional-badge">Optional</span></label>
+                            <label>Club <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(189,189,189,0.12)] text-[#bdbdbd]">Optional</span></label>
                             <ClubPicker
                                 value={d.rower.club}
                                 onChange={(club) => patch("rower", { club })}
@@ -255,7 +256,7 @@ function StepRoleDetails({
 
                     {role === "coach" && d.coach && (
                         <>
-                            <label>Club <span className="optional-badge">Optional</span></label>
+                            <label>Club <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(189,189,189,0.12)] text-[#bdbdbd]">Optional</span></label>
                             <ClubPicker
                                 value={d.coach.club}
                                 onChange={(club) => patch("coach", { club })}
@@ -307,32 +308,32 @@ function StepConsent({
             <label>
                 <input type="checkbox" checked={acceptedNationalFederation} onChange={(e) => setAcceptedNationalFederation(e.target.checked)} />
                 I agree to share my data with my national federation
-                <span className="optional-badge">Optional</span>
+                <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(189,189,189,0.12)] text-[#bdbdbd]">Optional</span>
             </label>
 
             <label>
                 <input type="checkbox" checked={acceptedDataSharing} onChange={(e) => setAcceptedDataSharing(e.target.checked)} />
                 I agree to share my data with coaches/universities
-                <span className="optional-badge">Optional</span>
+                <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(189,189,189,0.12)] text-[#bdbdbd]">Optional</span>
             </label>
             </>
             )}
             <label>
                 <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />
                 I agree to the terms and conditions
-                <span className="required-badge">Required</span>
+                <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(254,185,89,0.12)] text-brand-warm">Required</span>
             </label>
             <label>
                 <input type="checkbox" checked={acceptedPrivacy} onChange={(e) => setAcceptedPrivacy(e.target.checked)} />
                 I agree to the privacy policy
-                <span className="required-badge">Required</span>
+                <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(254,185,89,0.12)] text-brand-warm">Required</span>
             </label>
             {isRower && (
                 <>
                     <label>
                         <input type="checkbox" checked={acceptedPerformanceTracking} onChange={(e) => setAcceptedPerformanceTracking(e.target.checked)} />
                         I agree to performance tracking
-                        <span className="required-badge">Required</span>
+                        <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(254,185,89,0.12)] text-brand-warm">Required</span>
                     </label>
                 </>
             )}
@@ -543,8 +544,8 @@ function AdminInviteFlow({
                         <p className="error" style={{ marginTop: 0 }}>Passwords do not match.</p>
                     )}
                     <div className="terms-checkbox" style={{ marginTop: "1rem" }}>
-                        <label><input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />I agree to the terms and conditions<span className="required-badge">Required</span></label>
-                        <label><input type="checkbox" checked={acceptedPrivacy} onChange={(e) => setAcceptedPrivacy(e.target.checked)} />I agree to the privacy policy<span className="required-badge">Required</span></label>
+                        <label><input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />I agree to the terms and conditions<span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(254,185,89,0.12)] text-brand-warm">Required</span></label>
+                        <label><input type="checkbox" checked={acceptedPrivacy} onChange={(e) => setAcceptedPrivacy(e.target.checked)} />I agree to the privacy policy<span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(254,185,89,0.12)] text-brand-warm">Required</span></label>
                     </div>
                     <div className="auth-row" style={{ marginTop: "1rem", gap: "0.75rem" }}>
                         <button className="btn-secondary" onClick={() => { setAdminStep("check-email"); setErr(null); }} disabled={busy}>← Back</button>
@@ -705,12 +706,12 @@ function ClubAdminRegistrationForm({
                 <label>
                     <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} />
                     I agree to the terms and conditions
-                    <span className="required-badge">Required</span>
+                    <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(254,185,89,0.12)] text-brand-warm">Required</span>
                 </label>
                 <label>
                     <input type="checkbox" checked={acceptedPrivacy} onChange={e => setAcceptedPrivacy(e.target.checked)} />
                     I agree to the privacy policy
-                    <span className="required-badge">Required</span>
+                    <span className="inline-block text-[10px] font-bold tracking-[0.08em] uppercase py-[2px] px-[6px] rounded-[4px] align-middle ml-[6px] bg-[rgba(254,185,89,0.12)] text-brand-warm">Required</span>
                 </label>
             </div>
 
@@ -1088,7 +1089,7 @@ export default function AuthPage() {
                                             <h3>Verify your email</h3>
                                             <p className="muted">We've sent a verification link to <b>{email}</b>. Please verify your account before signing in.</p>
                                             <div className="row auth-footer-actions">
-                                                <button className="btn-primary" onClick={() => { clearForm(); setMode("signin"); setVerificationSent(false); }}>Back to sign in</button>
+                                                <button className="auth-login-btn" onClick={() => { clearForm(); setMode("signin"); setVerificationSent(false); }}>Back to sign in</button>
                                             </div>
                                         </>
                                     )}
@@ -1103,7 +1104,7 @@ export default function AuthPage() {
                                             <h3>Host event added ✓</h3>
                                             <p className="muted">The new host event has been added to your admin account. You can sign in to manage it now.</p>
                                             <div className="row auth-footer-actions">
-                                                <button className="btn-primary" onClick={() => { clearForm(); setMode("signin"); setVerificationSent(false); }}>Go to sign in</button>
+                                                <button className="auth-login-btn" onClick={() => { clearForm(); setMode("signin"); setVerificationSent(false); }}>Go to sign in</button>
                                             </div>
                                         </>
                                     )}
@@ -1112,7 +1113,7 @@ export default function AuthPage() {
                                             <h3>Account created ✓</h3>
                                             <p className="muted">We've sent a verification link to <b>{adminInvite?.email}</b>. Please verify your email before signing in.</p>
                                             <div className="row auth-footer-actions">
-                                                <button className="btn-primary" onClick={() => { clearForm(); setMode("signin"); setVerificationSent(false); }}>Back to sign in</button>
+                                                <button className="auth-login-btn" onClick={() => { clearForm(); setMode("signin"); setVerificationSent(false); }}>Back to sign in</button>
                                             </div>
                                         </>
                                     )}

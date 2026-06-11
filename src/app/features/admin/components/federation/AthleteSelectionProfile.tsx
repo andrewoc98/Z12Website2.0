@@ -1,7 +1,6 @@
 import type { AthleteSelectionProfile } from "../../types/admin.types";
 import { useUserResults, type UserRaceResult } from "../../../results/hooks/useUserResults";
-import "../../styles/platformAdmin.css";
-import "../../styles/federationAdmin.css";
+import { formatLength, formatWingspan, formatWeight } from "../../../profile/api/user";
 
 type HighlightDist = {
     label: string;
@@ -14,6 +13,7 @@ type Props = {
     isShortlisted: boolean;
     onToggleShortlist: () => void;
     highlightDist: HighlightDist;
+    unit: "metric" | "imperial";
 };
 
 function initials(name: string): string {
@@ -28,10 +28,6 @@ function fmtTime(seconds?: number): string {
     return `${m}:${s}`;
 }
 
-function fmtStat(val?: number, unit?: string): string {
-    if (val == null) return "—";
-    return unit ? `${val} ${unit}` : String(val);
-}
 
 function fmtAge(dob: string): string {
     if (!dob) return "—";
@@ -112,9 +108,14 @@ export default function AthleteSelectionProfileModal({
     isShortlisted,
     onToggleShortlist,
     highlightDist,
+    unit,
 }: Props) {
     const p = athlete.performances;
     const s = athlete.stats;
+
+    const fmtHeight   = (val?: number) => val != null ? formatLength(val, unit)   : "—";
+    const fmtWingspan = (val?: number) => val != null ? formatWingspan(val, unit)  : "—";
+    const fmtWeight   = (val?: number) => val != null ? formatWeight(val, unit)    : "—";
 
     const performanceRows: [string, number | undefined][] = (
         [
@@ -172,15 +173,15 @@ export default function AthleteSelectionProfileModal({
                     <p className="fa-profile-section-title">Biometrics</p>
                     <div className="fa-profile-stat-grid">
                         <div className="fa-profile-stat">
-                            <div className="fa-profile-stat__val">{fmtStat(s.heightCm, "cm")}</div>
+                            <div className="fa-profile-stat__val">{fmtHeight(s.heightCm)}</div>
                             <div className="fa-profile-stat__label">Height</div>
                         </div>
                         <div className="fa-profile-stat">
-                            <div className="fa-profile-stat__val">{fmtStat(s.wingspanCm, "cm")}</div>
+                            <div className="fa-profile-stat__val">{fmtWingspan(s.wingspanCm)}</div>
                             <div className="fa-profile-stat__label">Wingspan</div>
                         </div>
                         <div className="fa-profile-stat">
-                            <div className="fa-profile-stat__val">{fmtStat(s.weightKg, "kg")}</div>
+                            <div className="fa-profile-stat__val">{fmtWeight(s.weightKg)}</div>
                             <div className="fa-profile-stat__label">Weight</div>
                         </div>
                     </div>

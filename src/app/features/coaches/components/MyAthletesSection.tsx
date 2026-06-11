@@ -3,7 +3,6 @@ import type { UserProfile, ClubRef } from "../../auth/types";
 import { AthleteRosterList } from "./AthleteRosterList";
 import { OpenAssignmentToggle } from "./OpenAssignmentToggle";
 import { useTourMock } from "../../../providers/TourMockContext";
-import "../coaches.css";
 
 interface Props {
     profile: UserProfile;

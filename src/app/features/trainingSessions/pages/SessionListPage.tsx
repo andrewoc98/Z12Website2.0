@@ -4,7 +4,6 @@ import Navbar from '../../../shared/components/Navbar/Navbar';
 import { useAuth } from '../../../providers/AuthProvider';
 import { useCoachSessions } from '../hooks/useCoachSessions';
 import type { Session } from '../types/session';
-import '../trainingSessions.css';
 
 function statusLabel(status: Session['status']) {
     return status.charAt(0).toUpperCase() + status.slice(1);

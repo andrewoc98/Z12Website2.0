@@ -4,7 +4,6 @@ import { useCoachAssignments } from "../hooks/useCoachAssignments";
 import { COACH_ROLE_LABELS } from "../constants/coachRoles";
 import type { CoachAssignment } from "../types/coachAssignment";
 import Modal from "../../../shared/components/Modal/Modal";
-import "../coaches.css";
 
 interface Props {
     rowerId: string;

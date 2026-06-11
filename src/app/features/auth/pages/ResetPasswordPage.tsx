@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
                             <div className="auth-success-title">Password updated</div>
                             <div className="muted">You can now sign in with your new password.</div>
                             <div className="row auth-footer-actions">
-                                <Link to="/auth" className="btn-primary">Back to sign in</Link>
+                                <Link to="/auth" className="auth-login-btn">Back to sign in</Link>
                             </div>
                         </div>
                     ) : (
@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
 
                             <div className="row auth-footer-actions">
                                 <button
-                                    className="btn-primary"
+                                    className="auth-login-btn"
                                     onClick={onSubmit}
                                     disabled={busy || !oobCode}
                                 >

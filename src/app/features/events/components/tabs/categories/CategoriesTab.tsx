@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 
-import "./categories.css";
 import type {Gender} from "../../../../auth/types.ts";
 import {type BoatClass, categoryKey, DIVISIONS, GENDERS} from "../../../lib/categories.ts";
 import type {Gender as GENDER_ID} from "../../../lib/categories.ts";

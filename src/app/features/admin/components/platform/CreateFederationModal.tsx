@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { createFederation } from "../../services/federationService";
-import "../../styles/platformAdmin.css";
 
 type Props = {
     onClose:   () => void;

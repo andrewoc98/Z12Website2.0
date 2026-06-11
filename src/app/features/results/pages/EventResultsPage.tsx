@@ -5,7 +5,6 @@ import { listBoatsForEvent } from "../../signup/api/boats";
 import { getEventById } from "../api/results";
 import OverallResults from "../components/OverallResults";
 import CategoryResults from "../components/CategoryResults";
-import "../style/EventResultsPage.css";
 import type {Boat} from "../components/ResultCard.tsx";
 import { useUserProfiles } from "../../timing/useUserProfiles.ts";
 import { useAuth } from "../../../providers/AuthProvider";
@@ -173,23 +172,35 @@ export default function EventResultsPage() {
     return (
         <>
             <Navbar />
-            <main className="results-page">
-                <div className="results-header">
+            <main className="px-4 pt-6 pb-12 max-w-[900px] mx-auto max-sm:px-3 max-sm:pt-4 max-sm:pb-10">
+                <div className="flex flex-col gap-2 mb-6">
                     <Link to="/events" className="btn-ghost">← Back to events</Link>
-                    <h1>{event?.name} — Results</h1>
+                    <h1 className="m-0 text-[1.6rem]">{event?.name} — Results</h1>
                     {event && (
-                        <div className="event-meta">
+                        <div className="text-muted text-[0.9rem]">
                             {event.location} • {formatDate(event.startDate)} → {formatDate(event.endDate)}
                         </div>
                     )}
-                    <div className="tab-buttons">
-                        <button className="btn-primary" disabled={tab === "overall"} onClick={() => { setTab("overall"); setPage(1); }}>Overall</button>
-                        <button className="btn-primary" disabled={tab === "category"} onClick={() => { setTab("category"); setPage(1); }}>By Category</button>
-                        <button className="btn-primary" onClick={refresh}>Refresh</button>
+                    <div className="flex gap-0 bg-surface border border-border rounded-DEFAULT p-1 w-fit mt-2 max-sm:w-full">
+                        {(["overall", "category"] as const).map(t => (
+                            <button
+                                key={t}
+                                className={`flex-1 border-none px-5 py-2 font-semibold text-[0.85rem] tracking-[0.05em] cursor-pointer rounded-[calc(16px-2px)] transition-[color,background] duration-150 ${tab === t ? "text-brand bg-surface-2 shadow-[0_1px_3px_rgba(0,0,0,0.3)] cursor-default" : "bg-none text-muted hover:text-text hover:bg-surface-2"} max-sm:px-[10px] max-sm:text-[0.8rem]`}
+                                onClick={() => { setTab(t); setPage(1); }}
+                            >
+                                {t === "overall" ? "Overall" : "By Category"}
+                            </button>
+                        ))}
+                        <button
+                            className="border-l border-border rounded-none ml-1 pl-4 flex-1 border-t-0 border-r-0 border-b-0 py-2 font-semibold text-[0.85rem] tracking-[0.05em] text-muted cursor-pointer bg-none transition-[color,background] duration-150 hover:text-text hover:bg-surface-2 max-sm:px-[10px] max-sm:text-[0.8rem]"
+                            onClick={refresh}
+                        >
+                            Refresh
+                        </button>
                     </div>
 
                     {tab === "category" && (
-                        <div className="category-filter">
+                        <div className="flex items-center gap-2 mt-2 text-muted text-[0.9rem]">
                             <label>Filter by category: </label>
                             <select value={selectedCategory} onChange={e => { setSelectedCategory(e.target.value); setPage(1); }}>
                                 <option value="All">All</option>
@@ -206,7 +217,7 @@ export default function EventResultsPage() {
                 {loading ? (
                     <p>Loading results…</p>
                 ) : err ? (
-                    <p className="error">{err}</p>
+                    <p className="text-danger">{err}</p>
                 ) : finishedBoats.length === 0 ? (
                     <p>No finished results yet.</p>
                 ) : tab === "overall" ? (
@@ -214,8 +225,8 @@ export default function EventResultsPage() {
                 ) : (
                     <CategoryResults byCategory={byCategory} selectedCategory={selectedCategory} inProgressBoats={inProgressBoats} profiles={profiles} page={page} pageSize={PAGE_SIZE} currentUserUid={user?.uid} linkedAthleteUids={linkedAthleteUids} />
                 )}
-                {((finishedBoats.length > PAGE_SIZE) && tab === "overall") && (
-                    <div className="pagination">
+                {finishedBoats.length > PAGE_SIZE && tab === "overall" && (
+                    <div className="flex justify-center items-center gap-3 mt-6 text-muted text-[0.9rem]">
                         <button className="btn-primary" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button>
                         <span>Page {page} of {totalPages}</span>
                         <button className="btn-primary" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next</button>

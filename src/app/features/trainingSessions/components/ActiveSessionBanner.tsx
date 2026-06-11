@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../providers/AuthProvider';
 import { useActiveCoachSession } from '../hooks/useActiveCoachSession';
 import { completePiece, finishSession } from '../services/sessionService';
-import '../trainingSessions.css';
 
 export default function ActiveSessionBanner() {
     const { profile } = useAuth();

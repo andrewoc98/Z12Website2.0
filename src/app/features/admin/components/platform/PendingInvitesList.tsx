@@ -1,5 +1,4 @@
 import type { FederationInvite } from "../../types/admin.types";
-import "../../styles/platformAdmin.css";
 
 type Props = {
     invites: FederationInvite[];

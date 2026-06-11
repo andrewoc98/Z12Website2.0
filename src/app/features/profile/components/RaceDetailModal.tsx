@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import type { UserRaceResult } from "../../results/hooks/useUserResults";
-import "../style/profile.css";
 
 function fmtMs(ms: number): string {
     const totalSec = Math.floor(ms / 1000);

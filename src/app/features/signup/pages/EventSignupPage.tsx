@@ -11,7 +11,6 @@ import { useAuth } from "../../../providers/AuthProvider";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_ROWER_EVENTS, TOUR_TIMING_BOATS, TOUR_USER_PROFILES } from "../../home/components/tourMockData";
 import { mapEvent } from "../../events/lib/mapper.tsx";
-import "../styles/eventSignUp.css";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 
 // ---------- Types ----------

@@ -8,34 +8,40 @@ import { listActiveFederations } from "../services/federationService";
 import { submitClubCreationRequest } from "../services/clubAdminService";
 import { forceTokenRefresh } from "../services/federationService";
 import type { ClubCreationRequest } from "../types/admin.types";
-import "../styles/platformAdmin.css";
-import "../styles/clubRequest.css";
-
-// ── Stepper indicator ────────────────────────────────────────────────────────
 
 const STEPS = ["Select federation", "Club details", "Review & submit"] as const;
 
 function Stepper({ current }: { current: 1 | 2 | 3 }) {
+    const circleCls = (n: 1 | 2 | 3) => {
+        const done = n < current;
+        const active = n === current;
+        if (done)   return "w-8 h-8 rounded-full border-2 flex items-center justify-center text-[0.8rem] font-bold shrink-0 bg-[rgba(52,211,153,0.15)] border-[rgba(52,211,153,0.5)] text-[#34d399] transition-[background,border-color,color]";
+        if (active) return "w-8 h-8 rounded-full border-2 flex items-center justify-center text-[0.8rem] font-bold shrink-0 bg-brand-warm border-brand-warm text-brand-ink transition-[background,border-color,color]";
+        return "w-8 h-8 rounded-full border-2 flex items-center justify-center text-[0.8rem] font-bold shrink-0 bg-surface-2 border-border text-muted transition-[background,border-color,color]";
+    };
+    const labelCls = (n: 1 | 2 | 3) => {
+        const done = n < current;
+        const active = n === current;
+        if (done)   return "text-[0.7rem] font-medium text-[#34d399] text-center whitespace-nowrap transition-[color]";
+        if (active) return "text-[0.7rem] font-semibold text-brand-warm text-center whitespace-nowrap transition-[color]";
+        return "text-[0.7rem] font-medium text-muted text-center whitespace-nowrap transition-[color]";
+    };
+    const connectorCls = (afterStep: 1 | 2) => {
+        return `flex-1 max-w-[48px] h-[2px] mb-[26px] transition-[background] ${afterStep < current ? "bg-[rgba(52,211,153,0.4)]" : "bg-border"}`;
+    };
+
     return (
-        <div className="cr-stepper">
+        <div className="flex items-center justify-center mb-6">
             {STEPS.map((label, i) => {
-                const n    = (i + 1) as 1 | 2 | 3;
-                const done = n < current;
-                const active = n === current;
+                const n = (i + 1) as 1 | 2 | 3;
                 return (
                     <>
                         {i > 0 && (
-                            <div
-                                key={`conn-${i}`}
-                                className={`cr-connector${done ? " cr-connector--done" : ""}`}
-                            />
+                            <div key={`conn-${i}`} className={connectorCls(i as 1 | 2)} />
                         )}
-                        <div
-                            key={n}
-                            className={`cr-step${active ? " cr-step--active" : ""}${done ? " cr-step--done" : ""}`}
-                        >
-                            <div className="cr-step__circle">{done ? "✓" : n}</div>
-                            <div className="cr-step__label">{label}</div>
+                        <div key={n} className="flex flex-col items-center gap-[6px] min-w-[80px]">
+                            <div className={circleCls(n)}>{n < current ? "✓" : n}</div>
+                            <div className={labelCls(n)}>{label}</div>
                         </div>
                     </>
                 );
@@ -43,8 +49,6 @@ function Stepper({ current }: { current: 1 | 2 | 3 }) {
         </div>
     );
 }
-
-// ── Status tracker ───────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("en-IE", {
@@ -66,52 +70,62 @@ function StatusTracker({ request }: { request: ClubCreationRequest }) {
         navigate("/admin/club", { replace: true });
     }
 
-    return (
-        <div className="cr-tracker">
+    const iconCls = (state: "done" | "active" | "rejected" | "default") => {
+        const base = "w-8 h-8 rounded-full border-2 flex items-center justify-center text-[0.85rem] shrink-0 z-[1]";
+        if (state === "done")     return `${base} bg-[rgba(52,211,153,0.15)] border-[rgba(52,211,153,0.5)] text-[#34d399]`;
+        if (state === "active")   return `${base} bg-[rgba(254,185,89,0.15)] border-[rgba(254,185,89,0.5)] text-brand-warm animate-[cr-pulse_2s_ease-in-out_infinite]`;
+        if (state === "rejected") return `${base} bg-[rgba(255,77,109,0.15)] border-[rgba(255,77,109,0.4)] text-danger`;
+        return `${base} bg-surface-2 border-border text-muted`;
+    };
 
-            {/* Step 1 — Submitted */}
-            <div className="cr-tracker__step cr-tracker__step--done">
-                <div className="cr-tracker__icon">✓</div>
-                <div className="cr-tracker__body">
-                    <div className="cr-tracker__title">Request submitted</div>
-                    <div className="cr-tracker__sub">
+    const stepCls = (isDone: boolean, isLast: boolean) => {
+        const connector = isLast ? "" : `before:content-[''] before:absolute before:left-[15px] before:top-8 before:bottom-[-8px] before:w-[2px] ${isDone ? "before:bg-[rgba(52,211,153,0.4)]" : "before:bg-border"}`;
+        return `flex gap-4 relative ${connector}`;
+    };
+
+    return (
+        <div className="flex flex-col">
+
+            <div className={stepCls(true, false)}>
+                <div className={iconCls("done")}>✓</div>
+                <div className="pb-6 pt-1">
+                    <div className="font-semibold text-[0.9rem] text-text">Request submitted</div>
+                    <div className="text-[0.8rem] text-muted mt-[3px] leading-[1.5]">
                         {formatDate(request.submittedAt)} · <strong style={{ color: "var(--text)" }}>{request.proposedClubName}</strong>
                     </div>
                 </div>
             </div>
 
-            {/* Step 2 — Under review / outcome */}
-            <div className={`cr-tracker__step${isPending ? " cr-tracker__step--active" : isRejected ? " cr-tracker__step--rejected" : " cr-tracker__step--done"}`}>
-                <div className="cr-tracker__icon">
+            <div className={stepCls(isApproved, !isApproved && !isPending)}>
+                <div className={iconCls(isPending ? "active" : isRejected ? "rejected" : "done")}>
                     {isPending ? "⏳" : isRejected ? "✕" : "✓"}
                 </div>
-                <div className="cr-tracker__body">
-                    <div className="cr-tracker__title">
+                <div className="pb-6 pt-1">
+                    <div className="font-semibold text-[0.9rem] text-text">
                         {isPending  ? "Under review" : ""}
                         {isApproved ? "Approved" : ""}
                         {isRejected ? "Not approved" : ""}
                     </div>
-                    <div className="cr-tracker__sub">
+                    <div className="text-[0.8rem] text-muted mt-[3px] leading-[1.5]">
                         {isPending && "A federation administrator will review your request."}
                         {isApproved && request.reviewedAt && `Approved on ${formatDate(request.reviewedAt)}`}
                         {isRejected && request.reviewedAt && `Reviewed on ${formatDate(request.reviewedAt)}`}
                     </div>
                     {isRejected && request.rejectionReason && (
-                        <div className="cr-tracker__reason">
+                        <div className="mt-2 px-3 py-[10px] bg-[rgba(255,77,109,0.08)] border border-[rgba(255,77,109,0.2)] rounded-[8px] text-[0.8rem] text-white/70 leading-[1.5]">
                             <strong>Reason:</strong> {request.rejectionReason}
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Step 3 — Club active (only shown when approved) */}
             {(isApproved || isPending) && (
-                <div className={`cr-tracker__step${isApproved ? " cr-tracker__step--done" : ""}`}>
-                    <div className="cr-tracker__icon">{isApproved ? "✓" : "🏠"}</div>
-                    <div className="cr-tracker__body">
-                        <div className="cr-tracker__title">Club active</div>
+                <div className={stepCls(isApproved, true)}>
+                    <div className={iconCls(isApproved ? "done" : "default")}>{isApproved ? "✓" : "🏠"}</div>
+                    <div className="pb-6 pt-1">
+                        <div className="font-semibold text-[0.9rem] text-text">Club active</div>
                         {isApproved ? (
-                            <div className="cr-tracker__sub">
+                            <div className="text-[0.8rem] text-muted mt-[3px] leading-[1.5]">
                                 You are now the club administrator.
                                 {" "}
                                 <button
@@ -124,7 +138,7 @@ function StatusTracker({ request }: { request: ClubCreationRequest }) {
                                 </button>
                             </div>
                         ) : (
-                            <div className="cr-tracker__sub">Pending approval</div>
+                            <div className="text-[0.8rem] text-muted mt-[3px]">Pending approval</div>
                         )}
                     </div>
                 </div>
@@ -133,8 +147,6 @@ function StatusTracker({ request }: { request: ClubCreationRequest }) {
         </div>
     );
 }
-
-// ── Multi-step form ──────────────────────────────────────────────────────────
 
 type FedOption = { id: string; name: string; country: string };
 
@@ -155,6 +167,8 @@ const EMPTY_FORM: FormData = {
     proposedClubDescription: "",
     supportingInfo:          "",
 };
+
+const fedCardBase = "flex items-center gap-4 px-4 py-[14px] bg-surface-2 border border-border rounded-[12px] cursor-pointer text-left w-full font-sans normal-case tracking-normal min-h-[unset] transition-[border-color,background,box-shadow]";
 
 function Step1({
     federations,
@@ -186,24 +200,24 @@ function Step1({
                     <p className="pa-empty__text">No active federations found. Contact the platform administrator.</p>
                 </div>
             ) : (
-                <div className="cr-fed-list">
+                <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent] pr-1">
                     {federations.map(fed => (
                         <button
                             key={fed.id}
-                            className={`cr-fed-card${selected === fed.id ? " cr-fed-card--selected" : ""}`}
+                            className={`${fedCardBase} ${selected === fed.id ? "border-brand-warm bg-brand-warm/8" : "hover:border-brand-warm/35 hover:bg-brand-warm/4 hover:shadow-none"}`}
                             onClick={() => onSelect(fed.id, fed.name)}
                         >
-                            <div className="cr-fed-card__radio" />
+                            <div className={`w-[18px] h-[18px] rounded-full border-2 shrink-0 flex items-center justify-center transition-[border-color] ${selected === fed.id ? "border-brand-warm after:content-[''] after:w-2 after:h-2 after:rounded-full after:bg-brand-warm" : "border-border"}`} />
                             <div>
-                                <div className="cr-fed-card__name">{fed.name}</div>
-                                <div className="cr-fed-card__country">{fed.country}</div>
+                                <div className="font-semibold text-[0.9rem] text-text">{fed.name}</div>
+                                <div className="text-[0.78rem] text-muted mt-[2px]">{fed.country}</div>
                             </div>
                         </button>
                     ))}
                 </div>
             )}
 
-            <div className="cr-nav">
+            <div className="flex justify-between items-center mt-4 gap-2">
                 <span />
                 <button
                     className="pa-btn pa-btn--primary"
@@ -276,7 +290,7 @@ function Step2({
                 />
             </label>
 
-            <div className="cr-nav">
+            <div className="flex justify-between items-center mt-4 gap-2">
                 <button className="pa-btn pa-btn--ghost" onClick={onBack}>← Back</button>
                 <button className="pa-btn pa-btn--primary" onClick={onNext} disabled={!valid}>
                     Next →
@@ -306,7 +320,7 @@ function Step3({
                 Check the details below before submitting. The federation administrator will be notified.
             </p>
 
-            <div className="card card--tight cr-review">
+            <div className="card p-3 flex flex-col gap-3">
                 {([
                     ["Federation",   form.federationName],
                     ["Club name",    form.proposedClubName],
@@ -314,16 +328,16 @@ function Step3({
                     ["Description",  form.proposedClubDescription],
                     form.supportingInfo ? ["Supporting info", form.supportingInfo] : null,
                 ] as ([string, string] | null)[]).filter((x): x is [string, string] => x !== null).map(([label, value]) => (
-                    <div key={label} className="cr-review__row">
-                        <div className="cr-review__label">{label}</div>
-                        <div className="cr-review__value">{value}</div>
+                    <div key={label} className="flex gap-[10px] items-start font-sans text-[0.875rem]">
+                        <div className="text-muted min-w-[120px] shrink-0 text-[0.78rem] font-semibold uppercase tracking-[0.05em] pt-[2px]">{label}</div>
+                        <div className="text-text flex-1 leading-[1.5]">{value}</div>
                     </div>
                 ))}
             </div>
 
             {error && <div className="pa-error" style={{ marginTop: 12 }}>{error}</div>}
 
-            <div className="cr-nav">
+            <div className="flex justify-between items-center mt-4 gap-2">
                 <button className="pa-btn pa-btn--ghost" onClick={onBack} disabled={submitting}>← Back</button>
                 <button className="pa-btn pa-btn--primary" onClick={onSubmit} disabled={submitting}>
                     {submitting ? "Submitting…" : "Submit request"}
@@ -332,8 +346,6 @@ function Step3({
         </>
     );
 }
-
-// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ClubCreationRequestPage() {
     return (
@@ -362,13 +374,11 @@ function ClubCreationRequestContent() {
             .finally(() => setFedLoading(false));
     }, []);
 
-    // Most recent request (pending takes priority)
     const activeRequest =
         requests.find(r => r.status === "pending") ??
         requests.find(r => r.status === "approved") ??
         requests[0] ?? null;
 
-    // Show tracker if there's a pending or approved request
     const showTracker = activeRequest?.status === "pending" || activeRequest?.status === "approved";
 
     function patch(p: Partial<FormData>) {

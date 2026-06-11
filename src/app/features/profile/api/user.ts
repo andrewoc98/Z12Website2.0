@@ -104,6 +104,11 @@ export function formatLength(cm: number, units: "metric" | "imperial") {
     return `${feet}'${remInches}"`;
 }
 
+export function formatWingspan(cm: number, units: "metric" | "imperial") {
+    if (units === "metric") return `${cm} cm`;
+    return `${Math.round(cm / 2.54)}"`;
+}
+
 export function formatWeight(kg: number, units: "metric" | "imperial") {
     if (units === "metric") return `${kg} kg`;
     const lbs = Math.round(kg * 2.20462);
@@ -180,6 +185,7 @@ export async function saveCoreProfile(
         displayName: string;
         dateOfBirth: string;
         gender: string;
+        units: "metric" | "imperial";
     }>
 ) {
     return updateDoc(

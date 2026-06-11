@@ -6,7 +6,6 @@ import {
     saveUserRole,
     removeUserRole,
 } from "../api/user.ts";
-import "../style/profile.css";
 import DateOfBirthInput from "../../auth/components/DateOfBirthInput.tsx";
 import { ClubSearchInput } from "../../../shared/components/ClubSearchInput/ClubSearchInput.tsx";
 
@@ -43,6 +42,62 @@ function detectTimeMistake(value: string): string | null {
     if (minutes < 1) return null;
     if (seconds > 59) return null;
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+// ─── Unit conversion helpers ──────────────────────────────────────────────────
+
+function cmToFtIn(cm: number): { ft: number; inches: number } {
+    const totalIn = cm / 2.54;
+    return { ft: Math.floor(totalIn / 12), inches: Math.round(totalIn % 12) };
+}
+function ftInToCm(ft: number, inches: number): number {
+    return Math.round(ft * 30.48 + inches * 2.54);
+}
+function kgToLbs(kg: number): number {
+    return Math.round(kg * 2.20462);
+}
+function lbsToKg(lbs: number): number {
+    return Math.round((lbs / 2.20462) * 10) / 10;
+}
+
+function FtInInput({ valueCm, onChange }: { valueCm: number | undefined; onChange: (cm: number | undefined) => void }) {
+    const ft     = valueCm ? cmToFtIn(valueCm).ft     : 0;
+    const inches = valueCm ? cmToFtIn(valueCm).inches : 0;
+
+    return (
+        <div className="flex gap-2">
+            <div className="relative flex-1">
+                <input
+                    type="number"
+                    value={valueCm ? String(ft) : ""}
+                    onChange={(e) => {
+                        const newFt = Number(e.target.value) || 0;
+                        const curIn = valueCm ? cmToFtIn(valueCm).inches : 0;
+                        onChange(newFt || curIn ? ftInToCm(newFt, curIn) : undefined);
+                    }}
+                    placeholder="ft"
+                    min={0} max={8}
+                    style={{ paddingRight: "32px" }}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-sm pointer-events-none">ft</span>
+            </div>
+            <div className="relative flex-1">
+                <input
+                    type="number"
+                    value={valueCm ? String(inches) : ""}
+                    onChange={(e) => {
+                        const newIn = Number(e.target.value) || 0;
+                        const curFt = valueCm ? cmToFtIn(valueCm).ft : 0;
+                        onChange(curFt || newIn ? ftInToCm(curFt, newIn) : undefined);
+                    }}
+                    placeholder="in"
+                    min={0} max={11}
+                    style={{ paddingRight: "32px" }}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-sm pointer-events-none">in</span>
+            </div>
+        </div>
+    );
 }
 
 const PERF_BOUNDS = {
@@ -240,21 +295,20 @@ function PerfField({ perfKey, label, value, onChange }: {
 
 // ─── Role panels ──────────────────────────────────────────────────────────────
 
-function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLeft }: {
+function RowerPanel({ rower, dob, uid, unit, onSave, onRemove, onClubJoined, onClubLeft }: {
     rower:        NonNullable<UserProfile["roles"]["rower"]>;
     dob:          string;
     uid:          string;
+    unit:         "metric" | "imperial";
     onSave:       (data: NonNullable<UserProfile["roles"]["rower"]>) => Promise<void>;
     onRemove:     () => Promise<void>;
     onClubJoined: (ref: ClubRef) => void;
     onClubLeft:   (clubId: string) => void;
 }) {
     const [dateOfBirth, setDateOfBirth] = useState(dob ?? "");
-    const [stats, setStats] = useState({
-        heightCm:   String(rower.stats?.heightCm   ?? ""),
-        wingspanCm: String(rower.stats?.wingspanCm ?? ""),
-        weightKg:   String(rower.stats?.weightKg   ?? ""),
-    });
+    const [heightCm,   setHeightCm]   = useState<number | undefined>(rower.stats?.heightCm   || undefined);
+    const [wingspanCm, setWingspanCm] = useState<number | undefined>(rower.stats?.wingspanCm || undefined);
+    const [weightKg,   setWeightKg]   = useState<number | undefined>(rower.stats?.weightKg   || undefined);
     const [perf, setPerf] = useState({
         best100m:   formatTime(rower.performances?.best100m),
         best500m:   formatTime(rower.performances?.best500m),
@@ -276,9 +330,9 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLef
             await onSave({
                 clubMemberships: rower.clubMemberships ?? [],
                 stats: {
-                    heightCm:   Number(stats.heightCm)   || undefined,
-                    wingspanCm: Number(stats.wingspanCm) || undefined,
-                    weightKg:   Number(stats.weightKg)   || undefined,
+                    heightCm,
+                    wingspanCm,
+                    weightKg,
                 },
                 performances: {
                     best100m:   parseTime(perf.best100m),
@@ -332,30 +386,56 @@ function RowerPanel({ rower, dob, uid, onSave, onRemove, onClubJoined, onClubLef
 
             <div className="role-panel-section">
                 <h4 className="role-panel-section-title">Physical stats</h4>
-                <Field label="Height (cm)">
-                    <input
-                        type="number"
-                        value={stats.heightCm}
-                        onChange={e => setStats(s => ({ ...s, heightCm: e.target.value }))}
-                        placeholder="-"
-                    />
-                </Field>
-                <Field label="Wingspan (cm)">
-                    <input
-                        type="number"
-                        value={stats.wingspanCm}
-                        onChange={e => setStats(s => ({ ...s, wingspanCm: e.target.value }))}
-                        placeholder="-"
-                    />
-                </Field>
-                <Field label="Weight (kg)">
-                    <input
-                        type="number"
-                        value={stats.weightKg}
-                        onChange={e => setStats(s => ({ ...s, weightKg: e.target.value }))}
-                        placeholder="-"
-                    />
-                </Field>
+                {unit === "imperial" ? (
+                    <>
+                        <Field label="Height (ft / in)">
+                            <FtInInput valueCm={heightCm} onChange={setHeightCm} />
+                        </Field>
+                        <Field label="Wingspan (in)">
+                            <input
+                                type="number"
+                                value={wingspanCm ? String(Math.round(wingspanCm / 2.54)) : ""}
+                                onChange={e => setWingspanCm(e.target.value ? Math.round(Number(e.target.value) * 2.54) : undefined)}
+                                placeholder="-"
+                            />
+                        </Field>
+                        <Field label="Weight (lbs)">
+                            <input
+                                type="number"
+                                value={weightKg ? String(kgToLbs(weightKg)) : ""}
+                                onChange={e => setWeightKg(e.target.value ? lbsToKg(Number(e.target.value)) : undefined)}
+                                placeholder="-"
+                            />
+                        </Field>
+                    </>
+                ) : (
+                    <>
+                        <Field label="Height (cm)">
+                            <input
+                                type="number"
+                                value={heightCm ?? ""}
+                                onChange={e => setHeightCm(Number(e.target.value) || undefined)}
+                                placeholder="-"
+                            />
+                        </Field>
+                        <Field label="Wingspan (cm)">
+                            <input
+                                type="number"
+                                value={wingspanCm ?? ""}
+                                onChange={e => setWingspanCm(Number(e.target.value) || undefined)}
+                                placeholder="-"
+                            />
+                        </Field>
+                        <Field label="Weight (kg)">
+                            <input
+                                type="number"
+                                value={weightKg ?? ""}
+                                onChange={e => setWeightKg(Number(e.target.value) || undefined)}
+                                placeholder="-"
+                            />
+                        </Field>
+                    </>
+                )}
             </div>
 
             <div className="role-panel-section">
@@ -571,8 +651,9 @@ function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function ProfileEditor({ profile, onProfileChange }: {
+export function ProfileEditor({ profile, unit, onProfileChange }: {
     profile:         UserProfile;
+    unit:            "metric" | "imperial";
     onProfileChange: (updated: Partial<UserProfile>) => void;
 }) {
     const { user }                    = useAuth();
@@ -716,6 +797,7 @@ export function ProfileEditor({ profile, onProfileChange }: {
                         rower={roles.rower}
                         dob={profile.dateOfBirth ?? ""}
                         uid={user.uid}
+                        unit={unit}
                         onSave={data => handleSaveRole("rower", data)}
                         onRemove={() => handleRemoveRole("rower")}
                         onClubJoined={handleRowerClubJoined}

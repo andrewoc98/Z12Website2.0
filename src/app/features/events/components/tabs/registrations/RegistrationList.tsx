@@ -8,9 +8,9 @@ export default function RegistrationList({
                                          }: any) {
 
     return (
-        <div className="card registration-list">
+        <div className="card flex flex-col">
 
-            <div className="list-header">
+            <div className="grid grid-cols-[80px_1fr_1fr_140px] font-semibold border-b border-border pb-2 text-text max-[700px]:hidden">
                 <span>Bow</span>
                 <span>Club</span>
                 <span>Category</span>
@@ -21,7 +21,7 @@ export default function RegistrationList({
                 <CrewRow key={boat.id} boat={boat} />
             ))}
 
-            <div className="card card--tight registration-pagination">
+            <div className="card p-3">
                 <div className="space-between">
                     <button
                         className="btn-ghost"

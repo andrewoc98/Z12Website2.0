@@ -3,7 +3,6 @@ import { useAuth } from "../../../providers/AuthProvider";
 import { formatTime } from "../api/user";
 import { WORLD_RECORDS, LIGHTWEIGHT_THRESHOLD_KG, type DistanceKey } from "../data/worldRecords";
 import type { UserProfile } from "../../auth/types";
-import "../style/profile.css";
 
 function calculateAge(dateOfBirth: string): number {
     const today = new Date();

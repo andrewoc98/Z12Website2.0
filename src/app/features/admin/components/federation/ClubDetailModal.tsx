@@ -1,8 +1,6 @@
 import { useState } from "react";
 import type { Club } from "../../../auth/club";
 import { suspendClub, reactivateClub, inviteClubAdmin } from "../../services/clubAdminService";
-import "../../styles/platformAdmin.css";
-import "../../styles/federationAdmin.css";
 
 type Tab = "details" | "invite" | "status";
 

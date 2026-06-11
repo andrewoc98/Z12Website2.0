@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import "../../profile/style/profile.css";
 import {createAdminInvite} from "../../../shared/lib/firebase.ts";
 
 export default function HostAdminInvite() {

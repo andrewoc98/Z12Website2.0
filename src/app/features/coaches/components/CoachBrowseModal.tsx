@@ -4,7 +4,6 @@ import { assignCoach } from "../services/coachAssignmentService";
 import { CoachRolePicker } from "./CoachRolePicker";
 import type { CoachAssignment, CoachProfile } from "../types/coachAssignment";
 import type { CoachRole } from "../constants/coachRoles";
-import "../coaches.css";
 
 interface Props {
     rowerId: string;

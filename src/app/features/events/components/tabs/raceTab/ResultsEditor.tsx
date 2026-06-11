@@ -74,11 +74,13 @@ export default function ResultsEditor({ event, boats }: any) {
         return parsed.isValid() ? parsed.valueOf() : null;
     };
 
+    const rowCls = "grid grid-cols-[60px_1fr_120px_120px_120px_100px] gap-2 py-[6px] border-b border-border items-center text-text max-[700px]:flex max-[700px]:flex-col max-[700px]:gap-1 max-[700px]:p-2 max-[700px]:bg-surface max-[700px]:rounded-[8px] max-[700px]:mb-2";
+
     return (
-        <div className="card results-editor">
+        <div className="card">
             <h3>Results & Times</h3>
 
-            <div className="results-header">
+            <div className={`${rowCls} font-semibold max-[700px]:hidden`}>
                 <span>Bow</span>
                 <span>Club</span>
                 <span>Start Time</span>
@@ -98,7 +100,7 @@ export default function ResultsEditor({ event, boats }: any) {
                         : null;
 
                 return (
-                    <div key={b.id} className="result-row">
+                    <div key={b.id} className={rowCls}>
                         <span>{b.bowNumber}</span>
                         <span>{b.clubName}</span>
                         <span>{formatTime(startMs)}</span>

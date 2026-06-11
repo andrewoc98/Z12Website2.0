@@ -1,5 +1,4 @@
 import type { Federation } from "../../../auth/club";
-import "../../styles/platformAdmin.css";
 
 type Props = {
     federations:     Federation[];

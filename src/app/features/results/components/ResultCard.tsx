@@ -47,53 +47,62 @@ export default function ResultCard({ boat, rank, inProgress, profiles, currentUs
     const rowerNames = formatRowerNames(boat.rowerUids ?? [], profiles, boat.boatSize);
     const displayStarted = new Date(boat.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+    const cardCls = [
+        "bg-surface border rounded-sm px-4 py-[14px] cursor-pointer transition-[border-color] duration-150 max-sm:px-3",
+        inProgress           ? "border-[#3b82f6] bg-[rgba(59,130,246,0.05)]" : "",
+        isMe && !inProgress  ? "border-brand bg-[rgba(255,212,0,0.03)] animate-[mine-glow_3s_ease-in-out_infinite] hover:border-brand" : "",
+        isMyAthlete          ? "border-[#10b981] bg-[rgba(16,185,129,0.03)] hover:border-[#10b981]" : "",
+        !inProgress && !isMe && !isMyAthlete ? "border-border hover:border-brand" : "",
+    ].filter(Boolean).join(" ");
+
     return (
-        <li className={`result-card ${inProgress ? "result-card--in-progress" : ""} ${isSpecialStatus ? "result-card--status" : ""} ${isMe ? "result-card--mine" : ""} ${isMyAthlete ? "result-card--my-athlete" : ""}`} onClick={() => setOpen(!open)}>
-            <div className="result-card-main">
-                <div className="result-card-left">
-                    {/* Hide rank for DNF/DNS or show it differently */}
+        <li className={cardCls} onClick={() => setOpen(!open)}>
+            <div className="flex justify-between items-center gap-3 max-sm:flex-wrap max-sm:gap-2">
+                <div className="flex items-center gap-3 min-w-0 max-sm:flex-1 max-sm:min-w-0">
                     {!inProgress && rank && !isSpecialStatus && (
-                        <span className="result-rank">#{rank}</span>
+                        <span className="text-[1rem] font-bold text-brand min-w-8 max-sm:min-w-6 max-sm:text-[0.9rem]">#{rank}</span>
                     )}
                     {isSpecialStatus && (
-                        <span className="result-rank result-rank--status">—</span>
+                        <span className="text-[1rem] font-bold text-brand min-w-8 max-sm:min-w-6 max-sm:text-[0.9rem]">—</span>
                     )}
                     {inProgress && (
-                        <span className="result-on-course-dot" title="On course" />
+                        <span className="w-[10px] h-[10px] rounded-full bg-[#3b82f6] shrink-0 animate-[pulse_1.5s_infinite]" title="On course" />
                     )}
-                    <div className="result-card-info">
-                        <span className="result-card-name">
+                    <div className="flex flex-col gap-[2px] min-w-0">
+                        <span className="font-semibold text-text truncate max-sm:text-[0.9rem] max-sm:max-w-[160px]">
                             {boat.clubName}
-                            {isMe && <span className="result-you-chip">YOU</span>}
-                            {isMyAthlete && <span className="result-athlete-chip">ATHLETE</span>}
+                            {isMe && (
+                                <span className="inline-flex items-center px-[7px] py-[1px] rounded-full bg-brand/15 border border-brand/35 text-brand text-[0.62rem] font-bold tracking-[0.07em] align-middle ml-[7px] font-sans">YOU</span>
+                            )}
+                            {isMyAthlete && (
+                                <span className="inline-flex items-center px-[7px] py-[1px] rounded-full bg-[#10b981]/12 border border-[#10b981]/35 text-[#10b981] text-[0.62rem] font-bold tracking-[0.07em] align-middle ml-[7px] font-sans">ATHLETE</span>
+                            )}
                         </span>
-                        <span className="result-card-sub">{rowerNames}</span>
-                        <span className="result-card-sub">
+                        <span className="text-[0.8rem] text-muted max-sm:text-[0.75rem]">{rowerNames}</span>
+                        <span className="text-[0.8rem] text-muted max-sm:text-[0.75rem]">
                             Bow {boat.bowNumber ?? "—"} • {boat.categoryName ?? boat.category ?? "—"}
                         </span>
                     </div>
                 </div>
-                <div className="result-card-right">
+                <div className="flex items-center gap-3 shrink-0 ml-auto max-sm:shrink-0 max-sm:ml-auto">
                     {inProgress ? (
-                        <span className="result-on-course-label">ON COURSE</span>
+                        <span className="text-[0.75rem] font-bold tracking-[0.08em] text-[#3b82f6]">ON COURSE</span>
                     ) : isSpecialStatus ? (
-                        <span className="result-time status-label" style={{ color: "#d9534f", fontWeight: "bold" }}>
-                            {status}
-                        </span>
+                        <span className="font-mono font-bold text-[1rem] text-[#d9534f] max-sm:text-[0.9rem]">{status}</span>
                     ) : (
-                        <span className="result-time">{formatElapsed(adjustedElapsedMs)}</span>
+                        <span className="font-mono font-bold text-[1rem] text-brand max-sm:text-[0.9rem]">{formatElapsed(adjustedElapsedMs)}</span>
                     )}
-                    <span className="result-chevron">{open ? "▲" : "▼"}</span>
+                    <span className="text-[0.7rem] text-muted">{open ? "▲" : "▼"}</span>
                 </div>
             </div>
 
             {open && (
-                <div className="result-card-details">
-                    <div><strong>Status:</strong> {status || "Finished"}</div>
-                    <div><strong>Club:</strong> {boat.clubName}</div>
-                    <div><strong>Rowers:</strong> {rowerNames}</div>
-                    <div><strong>Boat size:</strong> {boat.boatSize}</div>
-                    <div><strong>Started:</strong> {displayStarted}</div>
+                <div className="mt-3 pt-3 border-t border-border grid gap-1 text-[0.85rem] text-muted">
+                    <div><strong className="text-text">Status:</strong> {status || "Finished"}</div>
+                    <div><strong className="text-text">Club:</strong> {boat.clubName}</div>
+                    <div><strong className="text-text">Rowers:</strong> {rowerNames}</div>
+                    <div><strong className="text-text">Boat size:</strong> {boat.boatSize}</div>
+                    <div><strong className="text-text">Started:</strong> {displayStarted}</div>
                 </div>
             )}
         </li>

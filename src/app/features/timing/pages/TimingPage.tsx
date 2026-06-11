@@ -10,7 +10,6 @@ import InProgressTab from "../components/InProgressTab";
 import FinishTab from "../components/FinishTab";
 import ReviewTab from "../components/ReviewTab";
 import ConnectionBadge from "../components/ConnectionBadge";
-import "../styles/TimingPage.css";
 import { useConnectionStatus } from "../useConnectionStatus";
 import { usePreventUnload } from "../usePreventUnload";
 

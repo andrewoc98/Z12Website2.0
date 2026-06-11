@@ -12,6 +12,7 @@ window.addEventListener('vite:preloadError', () => {
 import { AuthProvider } from "./app/providers/AuthProvider";
 import { RoleProvider } from "./app/providers/RoleProvider";
 
+import "./app/shared/styles/tailwind.css";
 import "./app/shared/styles/globals.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

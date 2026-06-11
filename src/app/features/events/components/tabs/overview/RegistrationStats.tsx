@@ -18,7 +18,7 @@ export default function RegistrationStats({ boats }: any) {
 
             <h2>Registration Status</h2>
 
-            <div className="stats-grid">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
 
                 <Stat label="Total Crews" value={stats.total} />
                 <Stat label="Registered" value={stats.registered} />
@@ -33,9 +33,9 @@ export default function RegistrationStats({ boats }: any) {
 
 function Stat({ label, value, alert }: any) {
     return (
-        <div className={`stat ${alert ? "alert" : ""}`}>
-            <span className="stat-value">{value}</span>
-            <span className="stat-label">{label}</span>
+        <div className={`bg-surface p-[14px] rounded-[8px] flex flex-col border ${alert ? "border-[rgba(255,107,107,0.25)] bg-[rgba(255,107,107,0.08)] text-[#ff6b6b]" : "border-border"}`}>
+            <span className="text-[22px] font-semibold text-text">{value}</span>
+            <span className="text-[11px] text-muted">{label}</span>
         </div>
     );
 }

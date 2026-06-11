@@ -3,7 +3,6 @@ import { approveAssignment, declineAssignment } from "../services/coachAssignmen
 import { useAthleteRoster } from "../hooks/useAthleteRoster";
 import { COACH_ROLE_LABELS } from "../constants/coachRoles";
 import type { RosterEntry } from "../types/coachAssignment";
-import "../coaches.css";
 
 interface Props {
     coachId: string;

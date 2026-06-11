@@ -17,7 +17,7 @@ export default function ActiveCrewList({ boats }: ActiveCrewListProps) {
             (map[b.categoryId] ??= []).push(b);
         }
 
-        return Object.entries(map); // [string, BoatDoc[]][]
+        return Object.entries(map);
 
     }, [boats]);
 
@@ -27,15 +27,15 @@ export default function ActiveCrewList({ boats }: ActiveCrewListProps) {
 
     return (
 
-        <div className="active-crew-container">
+        <div>
 
             {/* QUICK NAV */}
-            <div className="category-nav">
+            <div className="flex gap-[6px] overflow-x-auto pb-1">
                 {grouped.map(([cat, list]) => (
                     <button
                         key={cat}
                         onClick={() => setOpenCategory(cat)}
-                        className={openCategory === cat ? "active" : ""}
+                        className={`px-[10px] py-[6px] rounded-[6px] border border-border bg-surface text-text whitespace-nowrap cursor-pointer min-h-[unset] ${openCategory === cat ? "bg-brand-warm text-brand-ink border-transparent" : ""}`}
                     >
                         {cat} ({list.length})
                     </button>
@@ -48,23 +48,23 @@ export default function ActiveCrewList({ boats }: ActiveCrewListProps) {
                 const open = openCategory === cat;
 
                 return (
-                    <div key={cat} className="category-section">
+                    <div key={cat} className="border border-border rounded-[12px] overflow-hidden bg-surface text-text mb-3">
 
                         <div
-                            className="category-header"
+                            className="px-3 py-[10px] flex justify-between items-center cursor-pointer font-semibold bg-surface-2 rounded-t-[8px] transition-[background] hover:bg-surface"
                             onClick={() => toggle(cat)}
                         >
                             {open ? "▼" : "▶"} {cat} ({list.length})
                         </div>
 
                         {open && (
-                            <div className="crew-list">
+                            <div className="flex flex-col">
                                 {list.map((b) => (
                                     <div
                                         key={b.id}
-                                        className="crew-row"
+                                        className="flex gap-3 px-3 py-[10px] cursor-pointer rounded-[8px] transition-[background] hover:bg-surface-2"
                                     >
-                                        <span className="bow">{b.bowNumber}</span>
+                                        <span className="bg-surface-2 px-[10px] py-[6px] rounded-[6px] font-semibold text-text">{b.bowNumber}</span>
                                         <span>{b.clubName}</span>
                                     </div>
                                 ))}

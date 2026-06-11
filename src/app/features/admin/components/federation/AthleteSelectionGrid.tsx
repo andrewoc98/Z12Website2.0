@@ -3,8 +3,7 @@ import { getAthleteSelectionProfiles } from "../../services/clubAdminService";
 import AthleteSelectionProfileModal from "./AthleteSelectionProfile";
 import Pagination from "../../../../shared/components/Pagination/Pagination";
 import type { AthleteSelectionProfile } from "../../types/admin.types";
-import "../../styles/platformAdmin.css";
-import "../../styles/federationAdmin.css";
+import { useAuth } from "../../../../providers/AuthProvider";
 
 const ATHLETES_PER_PAGE = 20;
 
@@ -76,6 +75,9 @@ function SkeletonGrid() {
 }
 
 export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
+    const { profile: authProfile } = useAuth() as any;
+    const unit: "metric" | "imperial" = authProfile?.units ?? "metric";
+
     const [athletes, setAthletes] = useState<AthleteSelectionProfile[]>([]);
     const [loading,  setLoading]  = useState(true);
     const [selected, setSelected] = useState<AthleteSelectionProfile | null>(null);
@@ -396,6 +398,7 @@ export default function AthleteSelectionGrid({ clubIds, federationId }: Props) {
                     isShortlisted={shortlisted.has(selected.uid)}
                     onToggleShortlist={() => toggleShortlist(selected.uid)}
                     highlightDist={selectedDist}
+                    unit={unit}
                 />
             )}
         </>

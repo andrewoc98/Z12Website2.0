@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import RegistrationFilters from "./RegistrationFilters";
 import RegistrationList from "./RegistrationList";
-import "./registrations.css";
 
 const PAGE_SIZE = 10;
 
@@ -62,7 +61,7 @@ export default function RegistrationsTab({ event, boats = [] }: any) {
     }, [filteredBoats, page]);
 
     return (
-        <div className="registrations-container">
+        <div className="flex flex-col gap-5 bg-bg text-text">
 
             <RegistrationFilters
                 event={event}

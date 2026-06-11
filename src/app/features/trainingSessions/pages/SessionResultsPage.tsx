@@ -6,7 +6,6 @@ import Navbar from '../../../shared/components/Navbar/Navbar';
 import { useAuth } from '../../../providers/AuthProvider';
 import { formatTime } from '../types/session';
 import type { Session, PieceResult } from '../types/session';
-import '../trainingSessions.css';
 
 export default function SessionResultsPage() {
     const { sessionId } = useParams<{ sessionId: string }>();

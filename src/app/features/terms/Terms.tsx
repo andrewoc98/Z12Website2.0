@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import {useLocation, useNavigate} from "react-router-dom";
-import "./Terms.css";
 
 const Terms: React.FC = () => {
     const navigate = useNavigate();
@@ -11,8 +10,8 @@ const Terms: React.FC = () => {
     }, []);
 
     return (
-        <div className="legal-page">
-            <div className="legal-container">
+        <div className="min-h-screen bg-bg text-text px-5 py-[40px]">
+            <div className="max-w-[800px] mx-auto leading-relaxed [&_h1]:mb-5 [&_h2]:mt-[30px] [&_h2]:mb-[10px] [&_h3]:mt-5 [&_ul]:pl-5">
                 <h1>Terms & Conditions</h1>
 
                 <section>
@@ -148,9 +147,9 @@ const Terms: React.FC = () => {
                     </ul>
                 </section>
 
-                <div className="legal-footer">
+                <div className="mt-[40px] text-center">
                     <button
-                        className="return-btn"
+                        className="px-6 py-3 bg-brand-warm text-brand-ink cursor-pointer rounded-lg font-bold transition-[filter] duration-150 hover:brightness-95 border-0"
                         onClick={() =>
                             navigate("/auth", { state: formState })
                         }

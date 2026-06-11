@@ -10,7 +10,6 @@ import {
 } from '../services/sessionService';
 import { formatTime, boatDisplayLabel } from '../types/session';
 import type { Session, PieceResult } from '../types/session';
-import '../trainingSessions.css';
 
 type Phase = 'ready' | 'running' | 'results';
 

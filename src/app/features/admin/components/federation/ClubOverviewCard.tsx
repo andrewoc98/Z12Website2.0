@@ -1,6 +1,4 @@
 import type { Club } from "../../../auth/club";
-import "../../styles/platformAdmin.css";
-import "../../styles/federationAdmin.css";
 
 type Props = {
     club:    Club;

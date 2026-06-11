@@ -31,7 +31,7 @@ export function categoriesFromIds(ids: string[]): EventCategory[] {
 
 export function dateInputToTimestampStartOfDay(dateStr: string): Timestamp {
     const [year, month, day] = dateStr.split("-").map(Number);
-    const d = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const d = new Date(year, month - 1, day, 0, 1, 0, 0);
     return Timestamp.fromDate(d);
 }
 

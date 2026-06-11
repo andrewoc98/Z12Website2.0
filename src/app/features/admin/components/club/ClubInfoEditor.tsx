@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Club } from "../../../auth/club";
 import { updateClubInfo } from "../../services/clubAdminService";
-import "../../styles/platformAdmin.css";
-import "../../styles/clubAdmin.css";
 
 type Props = {
     club:     Club;
@@ -52,7 +50,7 @@ export default function ClubInfoEditor({ club, onSaved }: Props) {
     }
 
     return (
-        <form className="cl-editor" onSubmit={onSave}>
+        <form className="grid gap-[14px]" onSubmit={onSave}>
 
             <label>
                 Club name *
@@ -64,7 +62,7 @@ export default function ClubInfoEditor({ club, onSaved }: Props) {
                 />
             </label>
 
-            <div className="cl-editor__row">
+            <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
                 <label>
                     City
                     <input
@@ -105,10 +103,10 @@ export default function ClubInfoEditor({ club, onSaved }: Props) {
                 />
             </label>
 
-            <div className="cl-editor__toggle-row">
+            <div className="flex items-center justify-between px-[14px] py-3 bg-surface-2 border border-border rounded-sm gap-md">
                 <div>
-                    <div className="cl-editor__toggle-label">Open membership</div>
-                    <div className="cl-editor__toggle-sub">
+                    <div className="text-[0.875rem] text-text font-medium">Open membership</div>
+                    <div className="text-[0.775rem] text-muted mt-[2px]">
                         When enabled, any user can join without approval
                     </div>
                 </div>

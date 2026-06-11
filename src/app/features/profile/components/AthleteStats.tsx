@@ -1,13 +1,13 @@
 import { useAuth } from "../../../providers/AuthProvider";
-import { formatLength, formatWeight } from "../api/user";
-import "../style/profile.css"
+import { formatLength, formatWingspan, formatWeight } from "../api/user";
 export function AthleteStats({ unit }: { unit: "metric" | "imperial" }) {
 
     const { profile } = useAuth();
     const stats = profile?.roles?.rower?.stats;
 
-    const safeLength = (val?: number) => val != null ? formatLength(val, unit) : "-";
-    const safeWeight = (val?: number) => val != null ? formatWeight(val, unit) : "-";
+    const safeLength   = (val?: number) => val != null ? formatLength(val, unit)   : "-";
+    const safeWingspan = (val?: number) => val != null ? formatWingspan(val, unit)  : "-";
+    const safeWeight   = (val?: number) => val != null ? formatWeight(val, unit)    : "-";
 
     return (
         <section className="card profile-section stats-section" data-tour="profile-stats">
@@ -18,7 +18,7 @@ export function AthleteStats({ unit }: { unit: "metric" | "imperial" }) {
                     <div className="muted">Height</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-value">{safeLength(stats?.wingspanCm)}</div>
+                    <div className="stat-value">{safeWingspan(stats?.wingspanCm)}</div>
                     <div className="muted">Wingspan</div>
                 </div>
                 <div className="stat-card">

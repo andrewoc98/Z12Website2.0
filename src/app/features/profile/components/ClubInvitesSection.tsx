@@ -6,7 +6,6 @@ import {
     respondToClubInvite,
 } from "../../admin/services/clubAdminService";
 import type { ClubInvite } from "../../admin/types/admin.types";
-import "../style/profile.css";
 
 export function ClubInvitesSection() {
     const { user } = useAuth() as { user: { uid: string; email: string | null } | null };

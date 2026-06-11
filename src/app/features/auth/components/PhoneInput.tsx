@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import "../styles/phoneInput.css";
 
 const COUNTRY_CODES = [
     { code: "+353", flag: "🇮🇪", label: "Ireland" },
@@ -56,7 +55,6 @@ export function PhoneInput({ value, onChange, placeholder = "87 123 4567" }: Pho
         setLocal(parsed.local);
     }, [value]);
 
-    // Close dropdown on outside click
     useEffect(() => {
         function handleClick(e: MouseEvent) {
             if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
@@ -91,36 +89,39 @@ export function PhoneInput({ value, onChange, placeholder = "87 123 4567" }: Pho
     const showError = local.length > 0 && !isValid;
 
     return (
-        <div className="phone-input-wrapper" ref={wrapperRef}>
-            <div className="phone-input-row">
+        <div className="flex flex-col gap-1" ref={wrapperRef}>
+            <div className="flex gap-2 items-stretch">
 
                 {/* Custom dial-code picker */}
-                <div className="phone-dial-wrapper">
+                <div className="relative flex-none">
                     <button
                         type="button"
-                        className="phone-dial-trigger"
+                        className="flex items-center gap-[0.35rem] h-full px-[0.6rem] py-2 bg-[#1a1a1a] border border-border rounded-[6px] text-text text-[0.95rem] cursor-pointer whitespace-nowrap transition-[border-color] duration-150 hover:border-brand-warm"
                         onClick={() => setOpen(v => !v)}
                         aria-haspopup="listbox"
                         aria-expanded={open}
                     >
-                        <span className="phone-dial-flag">{selected.flag}</span>
-                        <span className="phone-dial-code">{selected.code}</span>
-                        <span className="phone-dial-caret" aria-hidden="true">▾</span>
+                        <span className="text-[1.1rem] leading-none">{selected.flag}</span>
+                        <span className="text-[0.9rem] tracking-[0.02em]">{selected.code}</span>
+                        <span className="text-[0.7rem] opacity-60 ml-[0.1rem]" aria-hidden="true">▾</span>
                     </button>
 
                     {open && (
-                        <ul className="phone-dial-dropdown" role="listbox">
+                        <ul
+                            className="absolute top-[calc(100%+4px)] left-0 z-[200] min-w-[220px] max-h-[260px] overflow-y-auto m-0 py-1 list-none bg-[#1e1e1e] border border-border rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+                            role="listbox"
+                        >
                             {COUNTRY_CODES.map(c => (
                                 <li
                                     key={c.code + c.label}
                                     role="option"
                                     aria-selected={c.code === dialCode}
-                                    className={`phone-dial-option ${c.code === dialCode ? "selected" : ""}`}
+                                    className={`flex items-center gap-[0.6rem] px-3 py-[0.45rem] cursor-pointer text-[0.9rem] text-text transition-[background] duration-100 ${c.code === dialCode ? "bg-brand-warm/12 text-brand-warm" : "hover:bg-white/7"}`}
                                     onMouseDown={() => handleSelect(c.code)}
                                 >
-                                    <span className="phone-dial-flag">{c.flag}</span>
-                                    <span className="phone-dial-option-label">{c.label}</span>
-                                    <span className="phone-dial-option-code">{c.code}</span>
+                                    <span className="text-[1.1rem] leading-none">{c.flag}</span>
+                                    <span className="flex-1">{c.label}</span>
+                                    <span className="text-[0.8rem] opacity-55 tabular-nums">{c.code}</span>
                                 </li>
                             ))}
                         </ul>
@@ -128,7 +129,7 @@ export function PhoneInput({ value, onChange, placeholder = "87 123 4567" }: Pho
                 </div>
 
                 <input
-                    className={`phone-local-input ${showError ? "input-error" : ""}`}
+                    className={`flex-1 min-w-0 ${showError ? "!border-[#e53e3e]" : ""}`}
                     type="tel"
                     inputMode="numeric"
                     value={local}
@@ -138,7 +139,9 @@ export function PhoneInput({ value, onChange, placeholder = "87 123 4567" }: Pho
             </div>
 
             {showError && (
-                <p className="field-error">Please enter a valid phone number (7–15 digits).</p>
+                <p className="text-[0.8rem] text-[#e53e3e] m-0">
+                    Please enter a valid phone number (7–15 digits).
+                </p>
             )}
         </div>
     );

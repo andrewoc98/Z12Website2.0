@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import "../style/profile.css"
 type Props = {
     athlete: any;
     onApprove?: () => void;

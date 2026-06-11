@@ -1,7 +1,6 @@
 import EventHeaderEditor from "./EventHeaderEditor";
 import RegistrationStats from "./RegistrationStats";
 import CategoryBreakdown from "./CategoryBreakdown";
-import "./overview.css";
 import {assignBowNumbersForEvent} from "../../../../signup/api/boats.ts";
 import {useState} from "react";
 import DangerZoneCard from "./DangerZoneCard.tsx";
@@ -34,13 +33,13 @@ export default function OverviewTab({ event, boats = [] }: any) {
     };
 
     return (
-        <div className="overview-container">
+        <div className="flex flex-col gap-5 bg-bg text-text">
 
             <EventHeaderEditor event={event} />
 
-            <div className="overview-actions">
+            <div>
                 <button
-                    className={`assign-bows-btn ${busy ? "busy" : ""}`}
+                    className="btn-primary"
                     onClick={assignBows}
                     disabled={busy}
                 >

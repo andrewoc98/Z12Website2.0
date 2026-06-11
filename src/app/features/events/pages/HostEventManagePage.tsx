@@ -4,7 +4,6 @@ import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_HOST_EVENTS, TOUR_HOST_BOATS } from "../../home/components/tourMockData";
 import {categoriesFromIds, getEvent, subscribeToEventBoats, updateEventCategories} from "../api/events";
-import "../styles/HostEventManagePage.css";
 import CategoriesTab from "../components/tabs/categories/CategoriesTab.tsx";
 import OverviewTab from "../components/tabs/overview/OverviewTab";
 import RegistrationsTab from "../components/tabs/registrations/RegistrationsTab";
@@ -75,17 +74,23 @@ export default function HostEventManagePage() {
         return "open";
     }, [event]);
 
+    const STATUS_COLORS: Record<string, string> = {
+        open:     "bg-[#22c55e] text-brand-ink",
+        running:  "bg-brand-warm text-brand-ink",
+        finished: "bg-surface-2 text-muted",
+        closed:   "bg-[#ff6b6b] text-brand-ink",
+    };
+
     if (!event) return <div className="loading">Loading…</div>;
 
     const renderTab = () => {
-
         switch (tab) {
-            case "overview": return <OverviewTab event={event} boats = {boats}/>;
+            case "overview":      return <OverviewTab event={event} boats={boats}/>;
             case "registrations": return <RegistrationsTab event={event} boats={boats} />;
-            case "race": return <RaceTab event={event} boats={boats}/>;
-            case "contacts": return <ContactsTab hostId={event.createdByUid}/>;
-            case "categories": return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} />;
-            default: return null;
+            case "race":          return <RaceTab event={event} boats={boats}/>;
+            case "contacts":      return <ContactsTab hostId={event.createdByUid}/>;
+            case "categories":    return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} />;
+            default:              return null;
         }
     };
 
@@ -95,58 +100,52 @@ export default function HostEventManagePage() {
         <>
             <Navbar />
 
-            <main className="host-dashboard">
+            <main className="h-screen flex flex-col bg-bg text-text">
 
                 {/* HEADER */}
-                <header className="event-header">
-
-                    <div className="event-title">
+                <header className="h-[60px] border-b border-border px-5 py-[14px] sticky top-0 z-[20] bg-surface text-text">
+                    <div className="flex items-center gap-[14px]">
                         <button
-                            className="menu-toggle"
+                            className="hidden max-md:block border-0 bg-transparent text-[20px] cursor-pointer text-text min-h-[unset]"
                             onClick={() => setSidebarOpen(true)}
                         >
                             ☰
                         </button>
-
-                        <h1>{event.name}</h1>
-
-                        <span className={`status-badge ${status}`}>
+                        <h1 className="text-[20px] m-0">{event.name}</h1>
+                        <span className={`px-[10px] py-1 rounded-full text-[12px] capitalize ${STATUS_COLORS[status] ?? "bg-surface-2 text-muted"}`}>
                             {status}
                         </span>
                     </div>
-
                 </header>
 
-
                 {/* MOBILE OVERLAY */}
-                <div
-                    className={`overlay ${sidebarOpen ? "show" : ""}`}
-                    onClick={() => setSidebarOpen(false)}
-                />
-
+                {sidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/70 z-[15] block"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
 
                 {/* WORKSPACE */}
-                <div className="workspace">
+                <div className="flex-1 flex min-h-0">
 
-                    <aside className={`sidebar ${sidebarOpen ? "open" : ""}`} data-tour="host-manage-tabs">
-
+                    <aside
+                        className={`w-[220px] bg-surface border-r border-border flex flex-col p-[10px] gap-[6px] max-md:fixed max-md:top-[120px] max-md:h-[calc(100%-120px)] max-md:z-[30] max-md:transition-[left] max-md:duration-250 ${sidebarOpen ? "max-md:left-0" : "max-md:-left-[260px]"}`}
+                        data-tour="host-manage-tabs"
+                    >
                         {tabs.map(t => (
                             <button
                                 key={t}
                                 data-tour={`tab-${t}`}
-                                className={`nav-item ${tab === t ? "active" : ""}`}
-                                onClick={() => {
-                                    setTab(t);
-                                    setSidebarOpen(false);
-                                }}
+                                className={`px-3 py-[10px] rounded-lg border-0 text-left cursor-pointer text-text min-h-[44px] transition-[background] duration-100 ${tab === t ? "bg-brand-warm text-brand-ink font-semibold" : "bg-transparent hover:bg-surface-2 hover:shadow-none"}`}
+                                onClick={() => { setTab(t); setSidebarOpen(false); }}
                             >
                                 {t}
                             </button>
                         ))}
-
                     </aside>
 
-                    <section className="content-area" data-tour="host-manage-content">
+                    <section className="flex-1 overflow-auto p-6 bg-bg text-text" data-tour="host-manage-content">
                         {renderTab()}
                     </section>
 

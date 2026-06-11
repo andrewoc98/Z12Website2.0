@@ -115,6 +115,20 @@ export default function CategoryPicker({ value, onChange }: Props) {
         onChange(Array.from(next));
     }
 
+    const totalAllCategories = useMemo(() => {
+        let count = 0;
+        for (const d of DIVISIONS as DivisionConfig[]) {
+            const genders = allowedGendersForDivision(d);
+            for (const _g of genders) {
+                count += boatClassesForGender(d).length;
+            }
+        }
+        return count;
+    }, []);
+
+    const allEnabled = value.length === totalAllCategories;
+    const noneEnabled = value.length === 0;
+
     function setAllGlobal(on: boolean) {
         if (!on) return onChange([]);
         const all: string[] = [];
@@ -161,10 +175,10 @@ export default function CategoryPicker({ value, onChange }: Props) {
             <div className="space-between">
                 <h3>Categories</h3>
                 <div className="row">
-                    <button type="button" className="btn-ghost" onClick={() => setAllGlobal(true)}>
+                    <button type="button" className={allEnabled ? "btn-primary" : "btn-ghost"} onClick={() => setAllGlobal(true)}>
                         Enable all
                     </button>
-                    <button type="button" className="btn-ghost" onClick={() => setAllGlobal(false)}>
+                    <button type="button" className={noneEnabled ? "btn-primary" : "btn-ghost"} onClick={() => setAllGlobal(false)}>
                         Disable all
                     </button>
                 </div>
@@ -328,10 +342,10 @@ export default function CategoryPicker({ value, onChange }: Props) {
                     </div>
 
                     <div className="row">
-                        <button type="button" className="btn-ghost" onClick={() => setAllGlobal(false)}>
-                            Clear
+                        <button type="button" className={noneEnabled ? "btn-primary" : "btn-ghost"} onClick={() => setAllGlobal(false)}>
+                            Disable all
                         </button>
-                        <button type="button" className="btn-primary" onClick={() => setAllGlobal(true)}>
+                        <button type="button" className={allEnabled ? "btn-primary" : "btn-ghost"} onClick={() => setAllGlobal(true)}>
                             Enable all
                         </button>
                     </div>

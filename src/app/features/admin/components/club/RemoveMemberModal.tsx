@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { ClubMembership } from "../../../auth/club";
 import { adminRemoveMember } from "../../services/clubAdminService";
-import "../../styles/platformAdmin.css";
 
 type Props = {
     member:   ClubMembership;

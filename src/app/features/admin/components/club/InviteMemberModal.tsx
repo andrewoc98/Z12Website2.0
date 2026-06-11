@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { inviteClubMember } from "../../services/clubAdminService";
-import "../../styles/platformAdmin.css";
 
 type Props = {
     onClose:   () => void;

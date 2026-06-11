@@ -14,7 +14,6 @@ import Navbar from "../../../shared/components/Navbar/Navbar";
 import { auth, db, functions, onApproveAndCreate } from "../../../shared/lib/firebase";
 import { createGuardianProfile } from "../api/users";
 import { EyeIcon } from "../components/EyeIcon.tsx";
-import "../styles/auth.css";
 import type { PendingUser } from "../types.ts";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

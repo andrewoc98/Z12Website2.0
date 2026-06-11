@@ -8,7 +8,6 @@ import {
     BOAT_CLASSES, BOAT_CLASS_LABELS, BOAT_CLASS_SEATS,
     type BoatClass, type BoatEntry, type SessionType,
 } from '../types/session';
-import '../trainingSessions.css';
 
 interface BoatForm {
     boatId: string;

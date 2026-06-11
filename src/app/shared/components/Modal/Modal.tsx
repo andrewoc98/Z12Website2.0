@@ -1,6 +1,4 @@
-// Modal.tsx
 import React from "react";
-import "./Modal.css";
 
 type ModalAction = {
     label: string;
@@ -15,26 +13,24 @@ type ModalProps = {
     actions?: ModalAction[];
 };
 
-const Modal: React.FC<ModalProps> = ({
-                                         title,
-                                         message,
-                                         onClose,
-                                         actions = [],
-                                     }) => {
+const Modal: React.FC<ModalProps> = ({ title, message, onClose, actions = [] }) => {
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div
+            className="fixed inset-0 bg-black/65 backdrop-blur-[4px] flex justify-center items-center z-[1000] p-[16px]"
+            onClick={onClose}
+        >
             <div
-                className="modal"
-                onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+                className="w-[min(420px,100%)] bg-surface border border-border rounded-DEFAULT shadow-DEFAULT px-[18px] py-5 text-center animate-[modal-in_0.18s_ease-out]"
+                onClick={(e) => e.stopPropagation()}
             >
-                <h3 className="modal-title">{title}</h3>
-                <p className="modal-message">{message}</p>
+                <h3 className="mb-2">{title}</h3>
+                <p className="mb-[18px] text-muted">{message}</p>
 
-                <div className="modal-actions">
+                <div className="flex justify-center gap-[10px] flex-wrap">
                     {actions.map((action, index) => (
                         <button
                             key={index}
-                            className={`modal-btn ${action.variant || "secondary"}`}
+                            className={`min-w-[110px] ${action.variant === "primary" ? "btn-primary" : "btn-ghost"}`}
                             onClick={action.onClick}
                         >
                             {action.label}

@@ -3,7 +3,6 @@ import type { UserProfile, ClubRef } from "../../auth/types";
 import { useCoachAssignments } from "../hooks/useCoachAssignments";
 import { CoachAssignmentList } from "./CoachAssignmentList";
 import { CoachBrowseModal } from "./CoachBrowseModal";
-import "../coaches.css";
 
 interface Props {
     profile: UserProfile;

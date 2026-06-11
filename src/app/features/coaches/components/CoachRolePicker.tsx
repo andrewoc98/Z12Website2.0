@@ -1,5 +1,4 @@
 import { COACH_ROLES, type CoachRole } from "../constants/coachRoles";
-import "../coaches.css";
 
 interface Props {
     selected: CoachRole[];

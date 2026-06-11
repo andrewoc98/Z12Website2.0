@@ -1,4 +1,3 @@
-import "../style/profile.css"
 import {useState} from "react";
 import {deleteUserAccount} from "../api/user.ts";
 import type {User} from "firebase/auth";

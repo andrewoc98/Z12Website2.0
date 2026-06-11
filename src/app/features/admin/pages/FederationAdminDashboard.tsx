@@ -9,8 +9,6 @@ import Pagination from "../../../shared/components/Pagination/Pagination";
 import { useFederationAdminData } from "../hooks/useFederationAdminData";
 import { useAdminClaims } from "../hooks/useAdminClaims";
 import { updateFederationSettings } from "../services/federationService";
-import "../styles/platformAdmin.css";
-import "../styles/federationAdmin.css";
 
 import type { Club } from "../../auth/club";
 

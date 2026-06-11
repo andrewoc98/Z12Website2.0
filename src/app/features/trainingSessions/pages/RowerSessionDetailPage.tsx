@@ -3,7 +3,6 @@ import Navbar from '../../../shared/components/Navbar/Navbar';
 import { useAuth } from '../../../providers/AuthProvider';
 import { useRowerSessionDetail } from '../hooks/useRowerSessions';
 import { formatTime } from '../types/session';
-import '../trainingSessions.css';
 
 export default function RowerSessionDetailPage() {
     const { sessionId } = useParams<{ sessionId: string }>();

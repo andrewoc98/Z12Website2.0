@@ -52,7 +52,7 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
         try {
             const startAt = dateInputToTimestampStartOfDay(startDate);
             const endAt   = dateInputToTimestampEndOfDay(endDate);
-            const closeAt = dateInputToTimestampStartOfDay(closingDate);
+            const closeAt = dateInputToTimestampEndOfDay(closingDate);
 
             if (endAt.toMillis() < startAt.toMillis()) {
                 throw new Error("End date must be on or after start date.");
@@ -61,7 +61,6 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
                 throw new Error("Registration closing date must be before the start date.");
             }
 
-            // Derive status from today vs the new dates
             const now = Date.now();
             const status: "open" | "closed" | "running" | "finished" =
                 now > endAt.toMillis()    ? "finished" :
@@ -99,7 +98,7 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
 
     return (
         <section className="card">
-            <div className="card-header">
+            <div className="flex justify-between items-center mb-4">
                 <h2>Event Overview</h2>
                 {!edit && (
                     <button onClick={() => setEdit(true)}>Edit</button>
@@ -112,7 +111,7 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
                 )}
             </div>
 
-            <div className="event-grid">
+            <div className="grid grid-cols-[150px_1fr] gap-[10px] max-[700px]:grid-cols-1">
                 <label>Name</label>
                 {edit
                     ? <input value={name} onChange={e => setName(e.target.value)} />
@@ -145,11 +144,11 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
 
                 <label>Description</label>
                 {edit
-                    ? <textarea value={description} onChange={e => setDescription(e.target.value)} />
+                    ? <textarea value={description} onChange={e => setDescription(e.target.value)} className="min-h-[80px] bg-surface-2 border border-border text-text rounded-[6px] p-2" />
                     : <span>{event.description || "—"}</span>}
             </div>
 
-            {err && <p style={{ color: "crimson", marginTop: 8 }}>{err}</p>}
+            {err && <p className="text-danger mt-2">{err}</p>}
         </section>
     );
 }

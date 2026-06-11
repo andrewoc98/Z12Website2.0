@@ -6,8 +6,6 @@ import MemberList from "../components/club/MemberList";
 import InviteMemberModal from "../components/club/InviteMemberModal";
 import { useClubAdminData } from "../hooks/useClubAdminData";
 import { useAdminClaims } from "../hooks/useAdminClaims";
-import "../styles/platformAdmin.css";
-import "../styles/clubAdmin.css";
 
 type ToastState = { msg: string; type: "success" | "error" } | null;
 

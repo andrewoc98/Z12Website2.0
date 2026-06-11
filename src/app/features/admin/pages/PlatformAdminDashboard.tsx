@@ -7,7 +7,6 @@ import CreateFederationModal from "../components/platform/CreateFederationModal"
 import InviteFederationAdminModal from "../components/platform/InviteFederationAdminModal";
 import { usePlatformAdminData } from "../hooks/usePlatformAdminData";
 import type { Federation } from "../../auth/club";
-import "../styles/platformAdmin.css";
 
 type ToastState = { msg: string; type: "success" | "error" } | null;
 

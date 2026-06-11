@@ -9,7 +9,7 @@ export default function RegistrationFilters({
                                             }: any) {
 
     return (
-        <div className="card filter-bar">
+        <div className="card flex gap-[10px] flex-wrap">
 
             <input
                 placeholder="Search club..."

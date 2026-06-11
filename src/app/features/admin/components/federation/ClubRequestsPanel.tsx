@@ -5,8 +5,6 @@ import {
     rejectClubCreationRequest,
 } from "../../services/clubAdminService";
 import Pagination from "../../../../shared/components/Pagination/Pagination";
-import "../../styles/platformAdmin.css";
-import "../../styles/federationAdmin.css";
 
 const REQUESTS_PER_PAGE = 5;
 

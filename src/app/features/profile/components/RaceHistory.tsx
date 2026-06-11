@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useUserResults, type UserRaceResult } from "../../results/hooks/useUserResults";
 import { RaceDetailModal } from "./RaceDetailModal";
-import "../style/profile.css";
 
 function fmtMs(ms: number): string {
     const totalSec = Math.floor(ms / 1000);

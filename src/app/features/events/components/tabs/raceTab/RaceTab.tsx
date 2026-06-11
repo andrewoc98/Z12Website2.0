@@ -3,7 +3,6 @@ import PublishControls from "./PublishControls";
 import ActiveRaceList from "./ActiveRaceList";
 import ResultsEditor from "./ResultsEditor";
 import CollapsibleCard from "../../CollapsibleCard";
-import "./race.css";
 
 export default function RaceTab({ event, boats = [] }: any) {
 
@@ -29,7 +28,7 @@ export default function RaceTab({ event, boats = [] }: any) {
     }, [boats]);
 
     return (
-        <div className="race-container">
+        <div className="flex flex-col gap-5 bg-bg text-text">
 
             <CollapsibleCard title="Results Publishing" defaultOpen={false}>
                 <PublishControls

@@ -9,9 +9,10 @@ import { useAuth } from "../../../providers/AuthProvider";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_HOST_EVENTS } from "../../home/components/tourMockData";
 import { formatDate, getEventStatus } from "../lib/categories.ts";
-import "../../signup/styles/events.css";
 
 type Mode = "active" | "finished";
+
+const skeletonBar = "rounded-full [background:linear-gradient(90deg,var(--color-surface)_25%,var(--color-surface-2)_50%,var(--color-surface)_75%)] [background-size:600px_100%] animate-[sk-shimmer_1.4s_infinite_linear]";
 
 function tsToDate(ts: any): Date | null {
     if (!ts) return null;
@@ -71,119 +72,111 @@ export default function HostEventListPage() {
     return (
         <>
             <Navbar />
-            <div className="events-page page" data-tour="host-events-list">
-                    {/* header */}
-                    <div className="events-header">
-                        <div className="events-title">
-                            <h1>MY EVENTS</h1>
-                            <p>Manage registrations and boats for your events.</p>
-                        </div>
-                        <div className="events-toggle">
-                            <button
-                                className={mode === "active" ? "btn-primary" : "btn-ghost"}
-                                onClick={() => setMode("active")}
-                            >
-                                Active
-                            </button>
-                            <button
-                                className={mode === "finished" ? "btn-primary" : "btn-ghost"}
-                                onClick={() => setMode("finished")}
-                            >
-                                Finished
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* content */}
-                    {loading && (
+            <div className="grid gap-6 flex-1 content-start page" data-tour="host-events-list">
+                <div className="flex justify-between items-end gap-5 max-[700px]:flex-col max-[700px]:items-start">
                     <div>
-                        <div className="skeleton-stats">
-                        <div className="skeleton-bar" style={{ width: 130, height: 32, borderRadius: 999 }} />
+                        <h1>MY EVENTS</h1>
+                        <p>Manage registrations and boats for your events.</p>
+                    </div>
+                    <div className="flex bg-bg border-2 border-brand-warm rounded-[14px] overflow-hidden">
+                        <button
+                            className={mode === "active" ? "btn-primary" : "btn-ghost"}
+                            onClick={() => setMode("active")}
+                        >
+                            Active
+                        </button>
+                        <button
+                            className={mode === "finished" ? "btn-primary" : "btn-ghost"}
+                            onClick={() => setMode("finished")}
+                        >
+                            Finished
+                        </button>
+                    </div>
+                </div>
+
+                {loading && (
+                    <div>
+                        <div className="flex gap-[10px] my-4">
+                            <div className={skeletonBar} style={{ width: 130, height: 32, borderRadius: 999 }} />
                         </div>
 
                         {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="event-card">
-                            <div className="event-grid">
-                            <div className="event-left">
-                                <div className="event-line">
-                                <div className="skeleton-bar" style={{ width: "50%", height: 28, borderRadius: 6 }} />
-                                <div className="skeleton-bar" style={{ width: 160, height: 16, borderRadius: 999 }} />
-                                </div>
-                                <div className="event-line event-meta">
-                                <div className="skeleton-bar" style={{ width: 120, height: 14, borderRadius: 999 }} />
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-                                    <div className="skeleton-bar" style={{ width: 160, height: 12, borderRadius: 999 }} />
-                                    <div className="skeleton-bar" style={{ width: 150, height: 12, borderRadius: 999 }} />
-                                    <div className="skeleton-bar" style={{ width: 155, height: 12, borderRadius: 999 }} />
-                                </div>
+                            <div key={i} className="border-2 border-brand-warm rounded-[14px] px-5 py-4 bg-transparent mb-[14px]">
+                                <div className="grid grid-cols-[1fr_auto] items-center gap-4">
+                                    <div className="flex flex-col gap-[6px]">
+                                        <div className="grid grid-cols-[1fr_auto] items-center gap-2">
+                                            <div className={skeletonBar} style={{ width: "50%", height: 28, borderRadius: 6 }} />
+                                            <div className={skeletonBar} style={{ width: 160, height: 16, borderRadius: 999 }} />
+                                        </div>
+                                        <div className="grid grid-cols-[1fr_auto] items-center gap-2 text-muted">
+                                            <div className={skeletonBar} style={{ width: 120, height: 14, borderRadius: 999 }} />
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                                                <div className={skeletonBar} style={{ width: 160, height: 12, borderRadius: 999 }} />
+                                                <div className={skeletonBar} style={{ width: 150, height: 12, borderRadius: 999 }} />
+                                                <div className={skeletonBar} style={{ width: 155, height: 12, borderRadius: 999 }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className={skeletonBar} style={{ width: 90, height: 70, borderRadius: 14 }} />
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="event-action">
-                                <div className="skeleton-bar" style={{ width: 90, height: 70, borderRadius: 14 }} />
-                            </div>
-                            </div>
-                        </div>
                         ))}
                     </div>
-                    )}
-                    {err && <p style={{ color: "crimson" }}>{err}</p>}
-                    {!loading && !err && visible.length === 0 && (
-                        <p>No {mode === "finished" ? "finished" : "active"} events found.</p>
-                    )}
+                )}
+                {err && <p className="text-danger">{err}</p>}
+                {!loading && !err && visible.length === 0 && (
+                    <p>No {mode === "finished" ? "finished" : "active"} events found.</p>
+                )}
 
-                    {!loading && !err && visible.length > 0 && (
-                        <>
-                            {/* stats */}
-                            <div className="events-stats">
-                                <span className="badge">
-                                    {visible.length} {mode === "finished" ? "finished" : "active"} events
-                                </span>
-                            </div>
+                {!loading && !err && visible.length > 0 && (
+                    <>
+                        <div className="flex gap-[10px] my-4">
+                            <span className="badge">
+                                {visible.length} {mode === "finished" ? "finished" : "active"} events
+                            </span>
+                        </div>
 
-                            {/* event list */}
-                            <div className="events-list">
-                                {visible.map((e) => {
-                                    const status = getEventStatus(e);
-                                    return (
-                                        <Link
-                                            key={e.id}
-                                            to={`/host/events/${e.id}`}
-                                            style={{ textDecoration: "none", color: "inherit", display: "block" }}
-                                        >
-                                            <div className="event-card">
-                                                <div className="event-grid">
-                                                    <div className="event-left">
-                                                        <div className="event-line">
-                                                            <span className="event-name">{e.name}</span>
-                                                            <span className="event-type">{e.lengthMeters}m Time Trial</span>
-                                                        </div>
-                                                        <div className="event-line event-meta">
-                                                            <span>{e.location}</span>
-                                                            <div
-                                                                className="event-dates"
-                                                                style={{ marginTop: 4, fontSize: "0.85em", color: "#555" }}
-                                                            >
-                                                                <div>Closes: {formatDate(e.closingDate)}</div>
-                                                                <div>Starts: {formatDate(e.startDate)}</div>
-                                                                <div>Ends: {formatDate(e.endDate)}</div>
-                                                            </div>
-                                                        </div>
+                        <div className="grid gap-[14px]">
+                            {visible.map((e) => {
+                                const status = getEventStatus(e);
+                                return (
+                                    <Link
+                                        key={e.id}
+                                        to={`/host/events/${e.id}`}
+                                        style={{ textDecoration: "none", color: "inherit", display: "block" }}
+                                    >
+                                        <div className="border-2 border-brand-warm rounded-[14px] px-5 py-4 bg-transparent transition-[border-color,transform,box-shadow] hover:border-[#f5b457] hover:-translate-y-[2px]">
+                                            <div className="grid grid-cols-[1fr_auto] items-center gap-4 max-[640px]:flex max-[640px]:flex-col max-[640px]:gap-3">
+                                                <div className="flex flex-col gap-[6px]">
+                                                    <div className="grid grid-cols-[1fr_auto] items-center gap-2 max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-[6px]">
+                                                        <span className="font-condensed text-[28px] tracking-[1px] text-brand-warm max-[640px]:text-[2rem]">{e.name}</span>
+                                                        <span className="text-[16px] text-muted max-[640px]:text-[0.9rem]">{e.lengthMeters}m Time Trial</span>
                                                     </div>
-
-                                                    <div className="event-action">
-                                                        <button className="enter-race-btn">
-                                                            {status === "finished" ? "View" : "Manage"}
-                                                        </button>
+                                                    <div className="grid grid-cols-[1fr_auto] items-center gap-2 text-[14px] text-muted max-[640px]:flex max-[640px]:flex-col max-[640px]:items-start">
+                                                        <span>{e.location}</span>
+                                                        <div className="flex flex-col gap-1 mt-1 text-[0.85em]">
+                                                            <div>Closes: {formatDate(e.closingDate)}</div>
+                                                            <div>Starts: {formatDate(e.startDate)}</div>
+                                                            <div>Ends: {formatDate(e.endDate)}</div>
+                                                        </div>
                                                     </div>
                                                 </div>
+
+                                                <div className="max-[640px]:mt-[10px] max-[640px]:w-full">
+                                                    <button className="w-[90px] h-[70px] rounded-[14px] bg-brand-warm text-brand-ink font-bold text-[14px] leading-[1.1] border-none transition-[filter] hover:brightness-95 hover:shadow-none max-[640px]:w-full max-[640px]:h-[54px]">
+                                                        {status === "finished" ? "View" : "Manage"}
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    )}
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
             </div>
         </>
     );

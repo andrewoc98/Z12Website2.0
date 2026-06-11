@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { setOpenAssignment } from "../services/coachAssignmentService";
-import "../coaches.css";
 
 interface Props {
     initial: boolean;

@@ -22,21 +22,30 @@ export default function FinishPanel({ selectedBoat }: any) {
     };
 
     return (
-        <div className="card finish-panel">
+        <div className="card text-center">
 
             <h3>Finish Control</h3>
 
-            <div className="finish-crew">
+            <div>
                 <strong>{selectedBoat.clubName}</strong>
             </div>
 
-            <button className="finish-btn" onClick={markFinish}>
+            <button
+                className="w-full py-[18px] text-[20px] font-bold bg-[#22c55e] border-none rounded-[10px] text-white mt-[10px] transition-[filter] hover:brightness-110 hover:shadow-none"
+                onClick={markFinish}
+            >
                 FINISH
             </button>
 
-            <div className="secondary-actions">
-                <button onClick={markDNF}>DNF</button>
-                <button onClick={markDNS}>DNS</button>
+            <div className="flex gap-[10px] mt-[10px]">
+                <button
+                    className="flex-1 py-3 bg-surface-2 border-none text-text rounded-[6px] cursor-pointer hover:bg-surface"
+                    onClick={markDNF}
+                >DNF</button>
+                <button
+                    className="flex-1 py-3 bg-surface-2 border-none text-text rounded-[6px] cursor-pointer hover:bg-surface"
+                    onClick={markDNS}
+                >DNS</button>
             </div>
 
         </div>

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { saveConsentSettings } from "../api/user";
 import type { UserProfile } from "../../auth/types";
-import "../style/profile.css";
 
 type Props = {
     profile: UserProfile;
