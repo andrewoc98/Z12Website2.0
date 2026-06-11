@@ -119,8 +119,19 @@ export default function SessionCreatePage() {
         setPieces(ps => ps.filter((_, i) => i !== idx));
     }
 
+    function generateSessionName(): string {
+        const d = new Date(`${date}T12:00:00`);
+        const day = d.toLocaleDateString('en-IE', { weekday: 'long' });
+        const typeLabel = sessionType === 'time_trial' ? 'Time Trial' : 'Race';
+        const dists = pieces.map(p => {
+            const m = Number(p.distanceMeters);
+            return m >= 1000 && m % 1000 === 0 ? `${m / 1000}k` : `${m}m`;
+        });
+        const distStr = [...new Set(dists)].join('/');
+        return `${day} ${distStr} ${typeLabel}`;
+    }
+
     function validate(): string | null {
-        if (!name.trim()) return 'Session name is required.';
         if (!date) return 'Date is required.';
         for (let pi = 0; pi < pieces.length; pi++) {
             const p = pieces[pi];
@@ -158,9 +169,10 @@ export default function SessionCreatePage() {
                 });
 
             const trimmedEmail = assistantEmail.trim() || null;
+            const finalName = name.trim() || generateSessionName();
             const sessionId = await createSession(
                 profile.uid,
-                name.trim(),
+                finalName,
                 new Date(date),
                 sessionType,
                 trimmedEmail,
@@ -192,10 +204,9 @@ export default function SessionCreatePage() {
                             id="session-name"
                             className="ts-input"
                             type="text"
-                            placeholder="e.g. Tuesday 2k / 1k"
+                            placeholder="Leave blank to auto-generate"
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            required
                         />
                     </div>
 

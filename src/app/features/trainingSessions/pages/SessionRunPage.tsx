@@ -72,8 +72,12 @@ export default function SessionRunPage() {
     const [undoConfirmPending, setUndoConfirmPending] = useState(false);
 
     const [perBoatElapsed, setPerBoatElapsed] = useState<Record<string, number>>({});
+    const [lastSpmTap, setLastSpmTap]         = useState<number | null>(null);
+    const [spmValue, setSpmValue]             = useState<number | null>(null);
+
     const ttBoatStartTimes         = useRef<Record<string, number>>({});
     const ttBoatOriginalStartTimes = useRef<Record<string, number>>({});
+    const spmTimeoutRef            = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const intervalRef        = useRef<ReturnType<typeof setInterval> | null>(null);
     const startTimeRef       = useRef<number | null>(null);
@@ -233,6 +237,22 @@ export default function SessionRunPage() {
 
     function clearUndo() {
         setUndoStack([]);
+    }
+
+    function handleSpmTap() {
+        const now = Date.now();
+        if (lastSpmTap !== null) {
+            const intervalMs = now - lastSpmTap;
+            if (intervalMs > 0 && intervalMs < 10_000) {
+                setSpmValue(60_000 / intervalMs);
+            }
+        }
+        setLastSpmTap(now);
+        if (spmTimeoutRef.current) clearTimeout(spmTimeoutRef.current);
+        spmTimeoutRef.current = setTimeout(() => {
+            setSpmValue(null);
+            setLastSpmTap(null);
+        }, 8_000);
     }
 
     function handleUndoClick() {
@@ -868,15 +888,33 @@ export default function SessionRunPage() {
                 )}
             </div>
 
-            {/* ── Floating undo button ───────────────────────────────────── */}
+            {/* ── Floating undo button (left) ────────────────────────────── */}
             {showUndoFloat && (
                 <div className="ts-undo-float-wrap">
                     <button
                         className={`ts-undo-float${topUndoAction ? ' ts-undo-float--active' : ''}`}
                         onClick={handleUndoClick}
                         disabled={!topUndoAction}
+                        title={topUndoAction ? undoLabel(topUndoAction) : 'Undo'}
+                        aria-label={topUndoAction ? undoLabel(topUndoAction) : 'Undo'}
                     >
-                        ↩ {topUndoAction ? undoLabel(topUndoAction) : 'UNDO'}
+                        ↺
+                    </button>
+                </div>
+            )}
+
+            {/* ── SPM button (right) ─────────────────────────────────────── */}
+            {phase === 'running' && !showPreStart && (
+                <div className="ts-spm-float-wrap">
+                    {spmValue !== null && (
+                        <div className="ts-spm-popup">{spmValue.toFixed(1)}</div>
+                    )}
+                    <button
+                        className="ts-spm-btn"
+                        onClick={handleSpmTap}
+                        aria-label="Tap to measure strokes per minute"
+                    >
+                        SPM
                     </button>
                 </div>
             )}
