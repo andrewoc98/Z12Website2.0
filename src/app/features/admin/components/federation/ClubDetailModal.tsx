@@ -45,11 +45,11 @@ export default function ClubDetailModal({ club, onClose, onAction, onReload }: P
                     </div>
                 </div>
 
-                <div className="fa-club-modal__tabs">
+                <div className="editor-tabs">
                     {(["details", "invite", "status"] as Tab[]).map(t => (
                         <button
                             key={t}
-                            className={`fa-club-modal__tab${tab === t ? " fa-club-modal__tab--active" : ""}`}
+                            className={`editor-tab${tab === t ? " editor-tab--active" : ""}`}
                             onClick={() => setTab(t)}
                         >
                             {t === "details" ? "Details"
