@@ -1,7 +1,8 @@
 import {
     collection, doc, addDoc, updateDoc, writeBatch, deleteDoc, Timestamp,
 } from 'firebase/firestore';
-import { db } from '../../../shared/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../../../shared/lib/firebase';
 import type { Session, PieceDefinition, BoatEntry, SessionType } from '../types/session';
 import { boatDisplayLabel } from '../types/session';
 
@@ -219,4 +220,9 @@ export async function finishSession(sessionId: string): Promise<void> {
         status: 'completed',
         updatedAt: Timestamp.now(),
     });
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+    const fn = httpsCallable<{ sessionId: string }, { deleted: string }>(functions, 'deleteSession');
+    await fn({ sessionId });
 }

@@ -1356,6 +1356,25 @@
            !normal-case !tracking-normal min-h-0
            hover:-translate-y-[2px] hover:shadow-soft;
   }
+  /* Variant with a delete button — outer is a div, inner .ts-session-card__main is the clickable area */
+  .ts-session-card--deletable {
+    @apply flex items-stretch gap-0 bg-surface border border-border rounded-[12px]
+           !cursor-default !p-0
+           transition-[transform,box-shadow] duration-[180ms] ease-in-out
+           hover:-translate-y-[2px] hover:shadow-soft;
+  }
+  .ts-session-card__main {
+    @apply flex flex-1 items-center justify-between gap-4 px-4 py-[14px]
+           cursor-pointer text-left text-text !normal-case !tracking-normal min-h-0
+           bg-transparent border-none rounded-l-[12px];
+  }
+  .ts-session-card__delete {
+    @apply flex items-center justify-center w-[44px] flex-shrink-0
+           bg-transparent border-none border-l border-border text-muted cursor-pointer
+           rounded-r-[12px] !normal-case !tracking-normal min-h-0
+           transition-[color,background] duration-150
+           hover:text-danger hover:bg-danger/10 hover:shadow-none;
+  }
   .ts-session-card__body { @apply flex flex-col gap-[3px] min-w-0; }
   .ts-session-card__name { @apply font-semibold text-[0.9375rem] text-text whitespace-nowrap overflow-hidden text-ellipsis; }
   .ts-session-card__meta { @apply text-[0.8rem] text-muted; }
