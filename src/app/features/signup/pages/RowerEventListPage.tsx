@@ -30,30 +30,26 @@ function getEventAction(event: EventDoc) {
     const isRower = !!user && hasRole("rower");
 
     const now = new Date();
-    const closing = tsToDate(event.closingDate);
     const start = tsToDate(event.startDate);
     const end = tsToDate(event.endDate);
 
     if (!start || !end) return { type: "none", label: "Unavailable" };
 
     if (now > end) {
-        return { type: "results", label: "View Results", link: `/rower/events/${event.id}/results` };
+        return { type: "results", label: "View Results", link: `/events/${event.id}?tab=results` };
     }
 
     if (now >= start && now <= end) {
-        return { type: "results", label: "View Results", link: `/rower/events/${event.id}/results` };
+        return { type: "results", label: "View Results", link: `/events/${event.id}?tab=results` };
     }
 
     if (now < start) {
         if (isRower) {
-            if (closing && now > closing) {
-                return { type: "disabled", label: "Reg Closed" };
-            }
-            return { type: "signup", label: "Enter Race", link: `/rower/events/${event.id}/signup` };
+            return { type: "signup", label: "Enter Race", link: `/events/${event.id}?tab=entries` };
         }
 
         if (!isRower) {
-            return { type: "view", label: "View Start List", link: `/events/${event.id}/view` };
+            return { type: "view", label: "View Start List", link: `/events/${event.id}?tab=entries` };
         }
 
         return { type: "login", label: "Login to Enter", link: "/auth" };
@@ -191,7 +187,7 @@ export default function RowerEventListPage() {
                                         <div className="grid grid-cols-[1fr_auto] items-center gap-4 max-[640px]:flex max-[640px]:flex-col max-[640px]:gap-3">
                                             <div className="flex flex-col gap-[6px]">
                                                 <div className="grid grid-cols-[1fr_auto] items-center gap-2 max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-[6px] max-[640px]:flex-col max-[640px]:items-start">
-                                                    <span className="font-condensed text-[28px] tracking-[1px] text-brand-warm max-[640px]:text-[2rem]">{e.name}</span>
+                                                    <Link to={`/events/${e.id}`} className="font-condensed text-[28px] tracking-[1px] text-brand-warm max-[640px]:text-[2rem] hover:underline">{e.name}</Link>
                                                     <span className="text-[16px] text-muted max-[640px]:text-[0.9rem]">{e.lengthMeters}m Time Trial</span>
                                                 </div>
                                                 <div className="grid grid-cols-[1fr_auto] items-center gap-2 text-[14px] text-muted max-[640px]:flex max-[640px]:flex-col max-[640px]:items-start max-[640px]:gap-[2px]">
@@ -211,10 +207,16 @@ export default function RowerEventListPage() {
                                                         <button className="w-[90px] h-[70px] rounded-[14px] bg-brand-warm text-brand-ink font-bold text-[14px] leading-[1.1] border-none transition-[filter] hover:brightness-95 hover:shadow-none max-[640px]:w-full max-[640px]:h-[54px]">{action.label}</button>
                                                     </Link>
                                                 ) : action.type === "disabled" ? (
-                                                    <button className="w-[90px] h-[70px] rounded-[14px] bg-brand-warm text-brand-ink font-bold text-[14px] leading-[1.1] border-none opacity-35 cursor-not-allowed max-[640px]:w-full max-[640px]:h-[54px]" disabled>
-                                                        {action.label}
-                                                    </button>
-                                                ) : null}
+                                                    <Link to={`/events/${e.id}?tab=entries`}>
+                                                        <button className="w-[90px] h-[70px] rounded-[14px] bg-brand-warm text-brand-ink font-bold text-[14px] leading-[1.1] border-none opacity-50 max-[640px]:w-full max-[640px]:h-[54px]">
+                                                            {action.label}
+                                                        </button>
+                                                    </Link>
+                                                ) : (
+                                                    <Link to={`/events/${e.id}`}>
+                                                        <button className="w-[90px] h-[70px] rounded-[14px] bg-brand-warm text-brand-ink font-bold text-[14px] leading-[1.1] border-none transition-[filter] hover:brightness-95 hover:shadow-none max-[640px]:w-full max-[640px]:h-[54px]">View</button>
+                                                    </Link>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

@@ -54,7 +54,7 @@ const ROWER_STEPS: TourStep[] = [
         },
     },
     {
-        route: "/rower/events/tour-event-1/signup",
+        route: "/events/tour-event-1?tab=entries",
         element: '[data-tour="signup-form"]',
         popover: {
             title: "Choose Your Category",
@@ -63,7 +63,7 @@ const ROWER_STEPS: TourStep[] = [
         },
     },
     {
-        route: "/rower/events/tour-event-1/signup",
+        route: "/events/tour-event-1?tab=entries",
         element: '[data-tour="signup-start-list"]',
         popover: {
             title: "Start List",

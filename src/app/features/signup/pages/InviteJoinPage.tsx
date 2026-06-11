@@ -127,7 +127,7 @@ export default function InviteJoinPage() {
                         <>
                             <p className="muted">You’ve joined the crew.</p>
                             <div className="auth-actions">
-                                <Link to={`/rower/events/${eventId}/signup`}>
+                                <Link to={`/events/${eventId}?tab=entries`}>
                                     <button className="btn-primary">Back to event</button>
                                 </Link>
                             </div>

@@ -235,7 +235,7 @@
   .esu-card-section-title { @apply text-[1rem] font-semibold text-white/85 mt-0 mb-[1.1rem]; }
   .esu-field-label   { @apply flex flex-col gap-2 text-[0.8rem] font-medium text-white/45 tracking-[0.04em] uppercase mb-3; }
 
-  .esu-custom-select  { @apply relative block w-full border-[1.5px] border-brand-warm rounded-[12px] bg-surface; }
+  .esu-custom-select  { @apply relative block w-full border border-border rounded-[12px] bg-surface; }
   .esu-signup-meta-row { @apply flex flex-wrap items-center gap-2 min-h-[28px] mb-4; }
   .esu-badge          { @apply inline-flex items-center gap-[5px] px-[10px] py-[4px] rounded-[6px] text-[0.78rem] font-semibold; }
   .esu-badge--brand   { @apply bg-[rgba(254,185,89,0.15)] text-brand-warm border border-[rgba(254,185,89,0.25)]; }
@@ -301,6 +301,40 @@
   .esu-skeleton-state { @apply opacity-70; }
   .esu-skeleton-bar   { @apply bg-white/[0.08] rounded-[6px] animate-[esu-shimmer_1.4s_ease-in-out_infinite]; }
   .esu-skeleton-card  { @apply min-h-[100px] animate-[esu-shimmer_1.4s_ease-in-out_infinite] bg-white/[0.04]; }
+
+  /* ── esu- tab bar ── */
+  .esu-tab-bar        { @apply flex gap-[2px] bg-white/[0.04] border border-white/[0.06] rounded-[14px] p-[4px] mb-6 w-fit max-[500px]:w-full; }
+  .esu-tab-btn        { @apply flex-1 border-none px-5 py-[9px] font-semibold text-[0.85rem] tracking-[0.03em] rounded-[10px] cursor-pointer transition-[color,background] duration-150 bg-transparent text-white/40 hover:text-white/70 hover:bg-white/[0.04] max-[500px]:px-3 max-[500px]:text-[0.8rem]; }
+  .esu-tab-btn--active { @apply bg-surface-2 text-white/90 shadow-[0_1px_4px_rgba(0,0,0,0.35)] cursor-default hover:bg-surface-2 hover:text-white/90; }
+
+  /* ── esu- overview tab ── */
+  .esu-detail-grid    { @apply flex flex-col divide-y divide-white/[0.05]; }
+  .esu-detail-row     { @apply flex justify-between items-center py-[10px] text-[0.9rem]; }
+  .esu-detail-label   { @apply text-white/35 text-[0.8rem] font-medium; }
+  .esu-category-list  { @apply list-none p-0 m-0 flex flex-col gap-[6px] mt-1; }
+  .esu-category-item  { @apply text-[0.875rem] text-white/70 py-[6px] px-3 rounded-[8px] bg-white/[0.03] border border-white/[0.05]; }
+
+  /* ── esu- entries tab search/filter ── */
+  .esu-search-row     { @apply flex flex-col gap-2 mb-4; }
+  .esu-search-input   { @apply w-full rounded-[12px] px-[16px] py-[10px] text-[0.9rem] bg-surface border border-border text-white/80 placeholder:text-white/25 focus:outline-none; }
+  .esu-filter-selects { @apply flex gap-2 flex-wrap; }
+  .esu-category-group { @apply mb-5; }
+  .esu-category-group-label { @apply text-[0.75rem] font-semibold tracking-[0.05em] uppercase text-white/30 mb-[0.625rem] pl-1; }
+  .esu-crew-toggle    { @apply bg-transparent border-none py-2 w-full text-left text-white/35 text-[0.82rem] cursor-pointer hover:text-white/60; }
+
+  /* ── esu- error banner ── */
+  .esu-error-banner   { @apply flex items-center gap-2 bg-[rgba(255,107,107,0.08)] border border-[rgba(255,107,107,0.2)] rounded-[8px] px-4 py-[0.7rem] text-[0.9rem] text-[#ff6b6b] mb-4; }
+
+  /* ── esu- results sub-tabs ── */
+  .esu-results-subtabs { @apply flex gap-[2px] bg-surface border border-border rounded-DEFAULT p-1 w-fit mb-4 max-sm:w-full; }
+  .esu-results-subtab  {
+    @apply flex-1 border-none px-5 py-2 font-semibold text-[0.85rem] tracking-[0.05em] cursor-pointer rounded-[calc(16px-2px)] transition-[color,background] duration-150 bg-transparent text-white/40 hover:text-text hover:bg-surface-2 max-sm:px-[10px] max-sm:text-[0.8rem];
+  }
+  .esu-results-subtab--active  { @apply text-brand bg-surface-2 shadow-[0_1px_3px_rgba(0,0,0,0.3)] cursor-default hover:bg-surface-2 hover:text-brand; }
+  .esu-results-subtab--refresh { @apply border-l border-border rounded-none ml-1 pl-4; }
+  .esu-results-filter  { @apply flex items-center gap-2 mb-4 text-[0.9rem]; }
+  .esu-hr              { @apply border-none border-t border-t-border my-4; }
+  .esu-pagination      { @apply flex justify-center items-center gap-3 mt-6 text-[0.9rem]; }
 
   /* ── Coach assignment bridges (ca-) ── */
   .ca-section           { @apply flex flex-col gap-0; }
@@ -1633,7 +1667,7 @@
   border-radius: 10px; border: none; background: transparent;
   color: white; font-size: 0.95rem; appearance: none; outline: none; cursor: pointer;
 }
-.esu-custom-select:focus-within { box-shadow: 0 0 0 3px rgba(254,185,89,0.15); }
+.esu-custom-select:focus-within { border-color: rgba(255,212,0,0.65); box-shadow: 0 0 0 4px var(--brand-soft); }
 .esu-btn-loading::before {
   content: ""; display: inline-block;
   width: 14px; height: 14px;

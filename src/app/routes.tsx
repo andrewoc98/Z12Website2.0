@@ -1,6 +1,15 @@
 // src/router.tsx
-import {createBrowserRouter, Outlet, useLocation} from "react-router-dom";
+import {createBrowserRouter, Navigate, Outlet, useLocation, useParams} from "react-router-dom";
 import {lazy, useMemo} from "react";
+
+function RedirectToResults() {
+    const { eventId } = useParams<{ eventId: string }>();
+    return <Navigate to={`/events/${eventId}?tab=results`} replace />;
+}
+function RedirectToEntries() {
+    const { eventId } = useParams<{ eventId: string }>();
+    return <Navigate to={`/events/${eventId}?tab=entries`} replace />;
+}
 import HomePage from "./features/home/pages/HomePage";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
 import RequireRole from "./guards/RequireRole";
@@ -13,9 +22,9 @@ import { TourMockProvider } from "./providers/TourMockContext";
 
 const EventCreatePage         = lazy(() => import("./features/events/pages/EventCreatePage"));
 const EventSignupPage         = lazy(() => import("./features/signup/pages/EventSignupPage"));
+const EventPage               = lazy(() => import("./features/events/pages/EventPage"));
 const HostEventManagePage     = lazy(() => import("./features/events/pages/HostEventManagePage"));
 const RowerEventListPage      = lazy(() => import("./features/signup/pages/RowerEventListPage"));
-const EventResultsPage        = lazy(() => import("./features/results/pages/EventResultsPage"));
 const ProfilePage             = lazy(() => import("./features/profile/pages/ProfilePage"));
 const InviteJoinPage          = lazy(() => import("./features/signup/pages/InviteJoinPage"));
 const HostEventListPage       = lazy(() => import("./features/events/pages/HostEventListPage"));
@@ -32,7 +41,6 @@ const PlatformAdminDashboard  = lazy(() => import("./features/admin/pages/Platfo
 const FederationAdminDashboard = lazy(() => import("./features/admin/pages/FederationAdminDashboard"));
 const ClubAdminDashboard      = lazy(() => import("./features/admin/pages/ClubAdminDashboard"));
 const ClubCreationRequestPage = lazy(() => import("./features/admin/pages/ClubCreationRequestPage"));
-const EventPageView              = lazy(() => import("./features/signup/pages/EventPageView"));
 const SessionListPage            = lazy(() => import("./features/trainingSessions/pages/SessionListPage"));
 const SessionCreatePage          = lazy(() => import("./features/trainingSessions/pages/SessionCreatePage"));
 const SessionRunPage             = lazy(() => import("./features/trainingSessions/pages/SessionRunPage"));
@@ -96,16 +104,16 @@ export const router = createBrowserRouter([
                 ),
             },
             {
+                path: "/events/:eventId",
+                element: <EventPage />,
+            },
+            {
                 path: "/rower/events/:eventId/results",
-                element: <EventResultsPage />,
+                element: <RedirectToResults />,
             },
             {
                 path: "/rower/events/:eventId/signup",
-                element: (
-                    <RequireRole role="rower">
-                        <EventSignupPage />
-                    </RequireRole>
-                ),
+                element: <RedirectToEntries />,
             },
             {
                 path: "/host/events",
@@ -216,7 +224,7 @@ export const router = createBrowserRouter([
             { path: "/terms", element: <Terms /> },
             { path: "/privacy", element: <Privacy /> },
             { path: "/reset-password", element: <ResetPasswordPage /> },
-            { path: "/events/:eventId/view", element: <EventPageView /> },
+            { path: "/events/:eventId/view", element: <RedirectToEntries /> },
             {
                 path: "/accept-invite",
                 element: (
