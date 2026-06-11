@@ -588,6 +588,8 @@ export default function EventPage() {
 
     function renderEntriesTab() {
         if (!event) return null;
+        const closingMs = toTimestamp(event.closingDate);
+        const isRegistrationClosed = closingMs != null && Date.now() > closingMs;
         return (
             <div>
                 {myRegisteredBoats.length > 0 && (
@@ -614,6 +616,16 @@ export default function EventPage() {
                         <div>
                             <strong>Registration is {event.status}</strong>
                             <p className="esu-muted" style={{ margin: "4px 0 0" }}>Sign-up is no longer available for this event.</p>
+                        </div>
+                    </div>
+                ) : isRegistrationClosed ? (
+                    <div className="esu-card" style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
+                        <div style={{ fontSize: "1.25rem", lineHeight: 1, marginTop: "2px", opacity: 0.5 }}>🗓</div>
+                        <div>
+                            <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "rgba(255,255,255,0.8)", marginBottom: "0.3rem" }}>Registration deadline passed</div>
+                            <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)" }}>
+                                Entries closed on {formatDate(event.closingDate)}. The start list is shown below.
+                            </div>
                         </div>
                     </div>
                 ) : (
