@@ -371,17 +371,17 @@ export default function EventPage() {
     [boats, user]);
 
     const myRegisteredBoats = useMemo(() =>
-        !user ? [] : boats.filter(b => (b.status ?? "registered") === "registered" && (b.rowerUids ?? []).includes(user.uid)),
+        !user ? [] : boats.filter(b => b.status !== "pending_crew" && (b.rowerUids ?? []).includes(user.uid)),
     [boats, user]);
 
     const otherRegisteredBoats = useMemo(() =>
         !user
-            ? boats.filter(b => (b.status ?? "registered") === "registered")
-            : boats.filter(b => (b.status ?? "registered") === "registered" && !(b.rowerUids ?? []).includes(user.uid)),
+            ? boats.filter(b => b.status !== "pending_crew")
+            : boats.filter(b => b.status !== "pending_crew" && !(b.rowerUids ?? []).includes(user.uid)),
     [boats, user]);
 
     const registeredBoats = useMemo(() =>
-        boats.filter(b => (b.status ?? "registered") === "registered"),
+        boats.filter(b => b.status !== "pending_crew"),
     [boats]);
 
     const filteredBoats = useMemo(() => {
