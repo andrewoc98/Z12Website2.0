@@ -204,7 +204,7 @@ export default function SessionCreatePage() {
                             id="session-name"
                             className="ts-input"
                             type="text"
-                            placeholder="Leave blank to auto-generate"
+                            placeholder={generateSessionName()}
                             value={name}
                             onChange={e => setName(e.target.value)}
                         />
