@@ -45,6 +45,7 @@ export interface Session {
     sessionType?: SessionType;
     timingAssistantEmail?: string | null;
     timingAssistantName?: string | null;
+    assistantTokenExpiresAt?: Timestamp | null;
     name: string;
     date: Timestamp;
     status: 'draft' | 'active' | 'completed';

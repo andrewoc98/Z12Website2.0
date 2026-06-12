@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useBlocker } from 'react-router-dom';
+import { useNavigate, useParams, useBlocker, useSearchParams } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../../../shared/lib/firebase';
+import { signInWithCustomToken, signOut } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
+import { db, auth, functions } from '../../../shared/lib/firebase';
 import Navbar from '../../../shared/components/Navbar/Navbar';
 import { useAuth } from '../../../providers/AuthProvider';
 import {
@@ -53,7 +55,19 @@ function undoLabel(action: UndoAction): string {
 export default function SessionRunPage() {
     const { sessionId } = useParams<{ sessionId: string }>();
     const navigate = useNavigate();
-    const { profile } = useAuth();
+    const { user, loading: authLoading } = useAuth();
+
+    const [searchParams] = useSearchParams();
+    const inviteToken = searchParams.get('t');
+
+    type TokenAuthStatus = 'idle' | 'exchanging' | 'error';
+    const [tokenAuthStatus, setTokenAuthStatus] = useState<TokenAuthStatus>('idle');
+    const [tokenError, setTokenError]           = useState<string | null>(null);
+    const [assistantClaim, setAssistantClaim]   = useState<string | null>(null);
+    const [showAssistantConfirm, setShowAssistantConfirm] = useState(false);
+
+    const tokenExchangeRef       = useRef<boolean>(false);
+    const assistantConfirmDismissed = useRef<boolean>(false);
 
     const [session, setSession]             = useState<Session | null>(null);
     const [loading, setLoading]             = useState(true);
@@ -145,10 +159,65 @@ export default function SessionRunPage() {
         setHoldingBoatId(null);
     }
 
+    // ── Custom-claims reader ──────────────────────────────────────────────────
+    useEffect(() => {
+        if (!user) { setAssistantClaim(null); return; }
+        user.getIdTokenResult()
+            .then(result => setAssistantClaim((result.claims['assistantFor'] as string) ?? null))
+            .catch(() => setAssistantClaim(null));
+    }, [user]);
+
+    // ── Token exchange (unauthenticated assistant) ────────────────────────────
+    useEffect(() => {
+        if (authLoading || user || !inviteToken || !sessionId) return;
+        if (tokenExchangeRef.current) return;
+        tokenExchangeRef.current = true;
+        void exchangeInviteToken();
+    }, [authLoading, user, inviteToken, sessionId]);
+
+    async function exchangeInviteToken() {
+        if (!inviteToken || !sessionId) return;
+        setTokenAuthStatus('exchanging');
+        try {
+            const fn = httpsCallable<
+                { sessionId: string; token: string },
+                { customToken: string }
+            >(functions, 'getSessionAssistantToken');
+            const result = await fn({ sessionId, token: inviteToken });
+            await signInWithCustomToken(auth, result.data.customToken);
+            setTokenAuthStatus('idle');
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Invalid or expired invite link.';
+            setTokenError(msg);
+            setTokenAuthStatus('error');
+        }
+    }
+
+    async function handleAssistantConfirm() {
+        setShowAssistantConfirm(false);
+        tokenExchangeRef.current = true;
+        setTokenAuthStatus('exchanging');
+        try {
+            await signOut(auth);
+            await exchangeInviteToken();
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Sign-in failed.';
+            setTokenError(msg);
+            setTokenAuthStatus('error');
+        }
+    }
+
     // ── Session load + restore ────────────────────────────────────────────────
     useEffect(() => {
         if (!sessionId) return;
+        if (authLoading) return;
+        if (!user && inviteToken) return; // waiting for token exchange to complete
         (async () => {
+            setLoading(true);
+            if (!user) {
+                setLoading(false);
+                return;
+            }
             const snap = await getDoc(doc(db, 'sessions', sessionId));
             if (!snap.exists()) { setLoading(false); return; }
             const s = { id: snap.id, ...snap.data() } as Session;
@@ -178,7 +247,19 @@ export default function SessionRunPage() {
             setLoading(false);
         })();
         return () => stopTimer();
-    }, [sessionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionId, authLoading, user?.uid]);
+
+    // ── Show assistant confirmation modal when session is loaded ─────────────
+    useEffect(() => {
+        if (!session || !user || !inviteToken) return;
+        if (assistantConfirmDismissed.current) return;
+        const isCoachNow = user.uid === session.coachId;
+        const hasEmailAccess = !!user.email && user.email === session.timingAssistantEmail;
+        if (!isCoachNow && !hasEmailAccess && assistantClaim !== sessionId) {
+            setShowAssistantConfirm(true);
+        }
+    }, [session, user, inviteToken, assistantClaim, sessionId]);
 
     async function restoreActivePiece(s: Session, idx: number) {
         const piece = s.pieces[idx];
@@ -524,7 +605,7 @@ export default function SessionRunPage() {
         if (nextIdx < 0) {
             await finishSession(sessionId);
             intentionalNavRef.current = true;
-            navigate(profile?.uid === session.coachId ? `/coach/sessions/${sessionId}/results` : '/');
+            navigate(user?.uid === session.coachId ? `/coach/sessions/${sessionId}/results` : '/');
             return;
         }
         setPieceIdx(nextIdx);
@@ -542,16 +623,28 @@ export default function SessionRunPage() {
         await completePiece(sessionId, session, pieceIdx);
         await finishSession(sessionId);
         intentionalNavRef.current = true;
-        navigate(profile?.uid === session.coachId ? `/coach/sessions/${sessionId}/results` : '/');
+        navigate(user?.uid === session.coachId ? `/coach/sessions/${sessionId}/results` : '/');
     }
 
     // ── Render guards ─────────────────────────────────────────────────────────
-    if (loading) return (<><Navbar /><div className="ts-page page shell ts-loading">Loading session…</div></>);
+    if (authLoading || loading || tokenAuthStatus === 'exchanging') {
+        return (<><Navbar /><div className="ts-page page shell ts-loading">Loading session…</div></>);
+    }
+    if (!user && !inviteToken) {
+        return (<><Navbar /><div className="ts-page page shell ts-loading">Use the invite link from your email to access this session.</div></>);
+    }
     if (!session) return (<><Navbar /><div className="ts-page page shell ts-loading">Session not found.</div></>);
 
-    const isCoach     = profile?.uid === session.coachId;
-    const isAssistant = !isCoach && !!session.timingAssistantEmail && profile?.email === session.timingAssistantEmail;
-    if (!isCoach && !isAssistant) return (<><Navbar /><div className="ts-page page shell ts-loading">You don't have access to this session.</div></>);
+    const isCoach     = !!user && user.uid === session.coachId;
+    const isAssistant = !isCoach && (
+        (!!user?.email && user.email === session.timingAssistantEmail) ||
+        assistantClaim === sessionId
+    );
+
+    if (!isCoach && !isAssistant && !showAssistantConfirm) {
+        const msg = tokenError ?? 'You don\'t have access to this session.';
+        return (<><Navbar /><div className="ts-page page shell ts-loading">{msg}</div></>);
+    }
 
     const piece          = session.pieces[pieceIdx];
     const isLastPiece    = session.pieces.slice(pieceIdx + 1).every(p => p.status === 'completed');
@@ -567,6 +660,33 @@ export default function SessionRunPage() {
     return (
         <>
             <Navbar />
+
+            {/* ── Assistant sign-in confirmation modal ───────────────────── */}
+            {showAssistantConfirm && (
+                <div className="ts-modal-overlay">
+                    <div className="ts-modal">
+                        <h2 className="ts-modal__title">Access this session as assistant?</h2>
+                        <p className="ts-modal__body">
+                            You are currently signed in as <strong>{user?.email}</strong>. Continuing
+                            will sign you out and grant you timing access for this session only. Your
+                            current session will end.
+                        </p>
+                        <div className="ts-modal__actions">
+                            <button className="ts-modal__btn ts-modal__btn--danger"
+                                onClick={handleAssistantConfirm}>
+                                Continue as Timing Assistant
+                            </button>
+                            <button className="ts-modal__btn ts-modal__btn--primary"
+                                onClick={() => {
+                                    assistantConfirmDismissed.current = true;
+                                    setShowAssistantConfirm(false);
+                                }}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Exit confirmation modal ────────────────────────────────── */}
             {exitModalOpen && (
