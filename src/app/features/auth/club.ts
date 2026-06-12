@@ -113,6 +113,9 @@ export type Club = {
     /** Whether new members can join without admin approval */
     openMembership: boolean;
 
+    /** When true, excluded from club search — used for internal/platform clubs */
+    hidden?: boolean;
+
     createdAt: ISOTimestamp;
     updatedAt: ISOTimestamp;
 

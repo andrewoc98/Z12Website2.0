@@ -98,7 +98,7 @@ export const router = createBrowserRouter([
             {
                 path: "/host/events/new",
                 element: (
-                    <RequireRole role="host">
+                    <RequireRole role="clubAdmin">
                         <EventCreatePage />
                     </RequireRole>
                 ),
@@ -118,7 +118,7 @@ export const router = createBrowserRouter([
             {
                 path: "/host/events",
                 element: (
-                    <RequireRole role="host">
+                    <RequireRole role="clubAdmin">
                         <HostEventListPage />
                     </RequireRole>
                 ),
@@ -126,7 +126,7 @@ export const router = createBrowserRouter([
             {
                 path: "/host/events/:eventId",
                 element: (
-                    <RequireRole role="host">
+                    <RequireRole role="clubAdmin">
                         <HostEventManagePage />
                     </RequireRole>
                 ),

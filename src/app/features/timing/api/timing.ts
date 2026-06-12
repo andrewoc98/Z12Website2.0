@@ -3,24 +3,26 @@ import { db } from "../../../shared/lib/firebase";
 import type { BoatTimingDoc, PlaceholderFinish } from "../types";
 import { addToPendingQueue } from "../lib/pendingQueue";
 
-// Get events that the user can time (host or admin)
-export async function getTimingEvents(userId: string, userRoles: any): Promise<any[]> {
-    // For host: events where createdByUid === userId
-    // For admin: events where createdByUid is in any of userRoles.admin.hostIds
+// Get events that the user can time (clubAdmin or timing admin)
+export async function getTimingEvents(_userId: string, userRoles: any): Promise<any[]> {
+    const clubAdminClubId   = userRoles?.clubAdmin?.clubId as string | undefined;
+    const timingAdminHostIds = userRoles?.admin?.hostIds   as string[] | undefined;
 
-    let hostIds: string[] = [];
-    if (userRoles.host) {
-        hostIds.push(userId);
+    if (clubAdminClubId) {
+        // Club admin: all events for their club
+        const q = query(collection(db, "events"), where("clubId", "==", clubAdminClubId));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
-    if (userRoles.admin?.hostIds) {
-        hostIds.push(...userRoles.admin.hostIds);
+
+    if (timingAdminHostIds?.length) {
+        // Timing admin: events created by their associated club admin(s)
+        const q = query(collection(db, "events"), where("createdByUid", "in", timingAdminHostIds));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
-    if (hostIds.length === 0) return [];
-
-    const q = query(collection(db, "events"), where("createdByUid", "in", hostIds));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return [];
 }
 
 // Subscribe to boats for an event

@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
-import { listEvents } from "../api/events";
+import { getEventsByClub } from "../api/events";
 import type { EventDoc } from "../types";
-import { DEV_MODE } from "../../../shared/lib/config";
-import { useMockAuth } from "../../../providers/MockAuthProvider";
-import { useAuth } from "../../../providers/AuthProvider";
+import { useAdminClaims } from "../../admin/hooks/useAdminClaims";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_HOST_EVENTS } from "../../home/components/tourMockData";
 import { formatDate, getEventStatus } from "../lib/categories.ts";
@@ -22,10 +20,7 @@ function tsToDate(ts: any): Date | null {
 }
 
 export default function HostEventListPage() {
-    const mock = DEV_MODE ? useMockAuth() : null;
-    const fb = !DEV_MODE ? useAuth() : null;
-    const hostUid = DEV_MODE ? mock?.user?.uid ?? null : fb?.user?.uid ?? null;
-
+    const { clubId, loading: claimsLoading } = useAdminClaims();
     const { isTourActive } = useTourMock();
 
     const [events, setEvents] = useState<(EventDoc & { id: string })[]>([]);
@@ -39,20 +34,23 @@ export default function HostEventListPage() {
             setLoading(false);
             return;
         }
-        if (!hostUid) return;
+        if (claimsLoading) return;
+        if (!clubId) {
+            setLoading(false);
+            return;
+        }
         (async () => {
             setLoading(true);
             setErr(null);
             try {
-                const all = await listEvents();
-                setEvents(all.filter((e: any) => e.createdByUid === hostUid));
+                setEvents(await getEventsByClub(clubId));
             } catch (e: any) {
                 setErr(e?.message ?? "Failed to load events");
             } finally {
                 setLoading(false);
             }
         })();
-    }, [hostUid, isTourActive]);
+    }, [clubId, claimsLoading, isTourActive]);
 
     const visible = useMemo(() => {
         return events

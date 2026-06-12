@@ -17,6 +17,7 @@ export type EventDoc = {
     location: string;
     description?: string;
     lengthMeters: number;
+    clubId?: string;
     createdByUid?: string;
     createdByName?: string;
     categories: EventCategory[];
@@ -37,6 +38,7 @@ export type FirestoreEventDoc = {
     location: string;
     description?: string;
     lengthMeters: number;
+    clubId?: string;
     createdByName?: string;
     createdByUid: string;
     categories: EventCategory[];

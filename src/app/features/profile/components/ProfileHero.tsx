@@ -12,10 +12,10 @@ export function ProfileHero({
     const roles = profile.roles ?? {};
 
     const roleLabels = [
-        roles.rower && "Rower",
-        roles.coach && "Coach",
-        roles.host  && "Host",
-        roles.admin && "Admin",
+        roles.rower      && "Rower",
+        roles.coach      && "Coach",
+        roles.clubAdmin  && "Club Admin",
+        roles.admin      && "Admin",
     ].filter(Boolean) as string[];
 
     const subtitle = roleLabels.join(" · ") || "Member";

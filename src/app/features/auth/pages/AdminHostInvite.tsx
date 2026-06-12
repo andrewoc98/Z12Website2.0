@@ -10,7 +10,7 @@ export default function HostAdminInvite() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    if (!profile?.roles?.host) return null;
+    if (!profile?.roles?.clubAdmin) return null;
 
     function isValidEmail(value: string) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);

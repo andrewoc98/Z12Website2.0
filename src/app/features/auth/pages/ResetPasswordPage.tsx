@@ -15,7 +15,8 @@ export default function ResetPasswordPage() {
     const [searchParams] = useSearchParams();
     const oobCode = searchParams.get("oobCode");
 
-    const [password, setPassword] = useState("");
+    const [password,     setPassword]     = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [busy, setBusy] = useState(false);
     const [done, setDone] = useState(false);
     const [err, setErr] = useState<string | null>(null);
@@ -57,12 +58,19 @@ export default function ResetPasswordPage() {
                         <>
                             <label>
                                 New password
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="At least 6 characters"
-                                />
+                                <div className="password-wrapper">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="At least 6 characters"
+                                    />
+                                    <button type="button" className={`toggle-password ${showPassword ? "active" : ""}`} onClick={() => setShowPassword(v => !v)}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FEB959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path className="eye" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle className="pupil" cx="12" cy="12" r="3" /><line className="slash" x1="1" y1="1" x2="23" y2="23" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </label>
 
                             {err && (

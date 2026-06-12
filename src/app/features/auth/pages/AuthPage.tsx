@@ -26,7 +26,7 @@ import type { ClubSelection } from "../components/ClubPicker.tsx";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Mode = "signin" | "register";
-type RoleChoice = "rower" | "host" | "coach";
+type RoleChoice = "rower" | "coach";
 
 type AdminStep = "check-email" | "sign-in" | "register" | "add-mobile";
 
@@ -40,9 +40,6 @@ interface RoleDetails {
     };
     coach?: {
         club: ClubSelection | null;        // ← was: string
-    };
-    host?: {
-        location: string;
     };
 }
 
@@ -92,14 +89,13 @@ function normalizeFullName(name: string) {
     return name.trim().replace(/\s+/g, " ");
 }
 
-const ALL_ROLES: RoleChoice[] = ["rower", "coach", "host"];
+const ALL_ROLES: RoleChoice[] = ["rower", "coach"];
 
 // ── CHANGED: default club is now null instead of ""
 function defaultRoleDetails(): RoleDetails {
     return {
         rower: { gender: "male", dateOfBirth: "", club: null, parentEmail: "" },
         coach: { club: null },
-        host:  { location: "" },
     };
 }
 
@@ -157,7 +153,6 @@ function StepPickRoles({
                         <span className="text-[0.78rem] text-muted">
                             {role === "rower" && "Track your performance and join events."}
                             {role === "coach" && "Manage athletes and review their data."}
-                            {role === "host"  && "Host events and manage registrations."}
                         </span>
                     </div>
                 </label>
@@ -269,15 +264,7 @@ function StepRoleDetails({
                         </>
                     )}
 
-                    {role === "host" && d.host && (
-                        <>
-                            <label>Location</label>
-                            <input
-                                value={d.host.location}
-                                onChange={(e) => patch("host", { location: e.target.value })}
-                            />
-                        </>
-                    )}
+
                 </div>
             ))}
         </div>
@@ -574,7 +561,8 @@ function ClubAdminRegistrationForm({
     const [password,        setPassword]        = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [fullName,        setFullName]        = useState("");
-    const [showPassword,    setShowPassword]    = useState(false);
+    const [showPassword,        setShowPassword]        = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [acceptedTerms,   setAcceptedTerms]   = useState(false);
     const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
     const [err,  setErr]  = useState<string | null>(null);
@@ -690,12 +678,17 @@ function ClubAdminRegistrationForm({
             <label>Confirm password *
                 <div className="password-wrapper">
                     <input
-                        type={showPassword ? "text" : "password"}
+                        type={showConfirmPassword ? "text" : "password"}
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
                         placeholder="Repeat your password"
                         required
                     />
+                    <button type="button" className={`toggle-password ${showConfirmPassword ? "active" : ""}`} onClick={() => setShowConfirmPassword(v => !v)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#FEB959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path className="eye" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle className="pupil" cx="12" cy="12" r="3" /><line className="slash" x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                    </button>
                 </div>
                 {confirmPassword.length > 0 && password !== confirmPassword && (
                     <p className="error" style={{ marginTop: 0 }}>Passwords do not match.</p>
@@ -890,7 +883,6 @@ export default function AuthPage() {
                     if (r.parentEmail.trim().toLowerCase() === email.trim().toLowerCase()) return false;
                 }
             }
-            if (role === "host" && roleDetails.host!.location.trim().length < 2) return false;
             // Coach club is optional — no validation required
         }
         return true;
@@ -1060,7 +1052,6 @@ export default function AuthPage() {
                 roleDetails: {
                     rower:  selectedRoles.includes("rower")  ? { clubId: roleDetails.rower!.club?.clubId ?? null }     : undefined,
                     coach:  selectedRoles.includes("coach")  ? { clubId: roleDetails.coach!.club?.clubId ?? null }     : undefined,
-                    host:   selectedRoles.includes("host")   ? { location: roleDetails.host!.location.trim() }        : undefined,
                 },
             });
 

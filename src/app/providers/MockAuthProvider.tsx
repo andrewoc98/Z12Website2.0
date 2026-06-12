@@ -3,7 +3,7 @@ import type { MockUser } from "../shared/lib/mockUsers";
 
 type MockAuthCtx = {
     user: MockUser | null;
-    loginAs: (role: "rower" | "host" | "admin") => void;
+    loginAs: (role: "rower" | "admin") => void;
     logout: () => void;
 };
 
@@ -20,7 +20,7 @@ export function MockAuthProvider({
 }) {
     const [user, setUser] = useState<MockUser | null>(null);
 
-    function loginAs(role: "rower" | "host" | "admin") {
+    function loginAs(role: "rower" | "admin") {
         import("../shared/lib/mockUsers").then(({ MOCK_USERS }) => {
             setUser(MOCK_USERS[role]);
         });

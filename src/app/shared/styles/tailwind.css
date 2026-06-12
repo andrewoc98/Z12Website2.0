@@ -161,10 +161,12 @@
   .consent-step-divider  { @apply text-[#5a5a5a] text-[16px] leading-none; }
 
   .password-wrapper { @apply relative w-full; }
+  .password-wrapper input { @apply pr-10; }
   .toggle-password  {
     @apply absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0 flex items-center min-h-0
            hover:shadow-none active:translate-y-[-50%];
   }
+  .toggle-password svg { @apply w-5 h-5; }
 
   .terms-checkbox   { @apply mt-[18px] flex flex-col gap-[10px]; }
   .terms-checkbox > label {

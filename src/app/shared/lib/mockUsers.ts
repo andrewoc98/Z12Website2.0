@@ -1,7 +1,7 @@
 // ----------------------------------
 // Roles
 // ----------------------------------
-export type MockRole = "rower" | "host" | "admin";
+export type MockRole = "rower" | "admin";
 
 export type Gender = "male" | "female";
 
@@ -23,9 +23,6 @@ export type MockUser = {
         rower?: {
             club: string;
             coach?: string;
-        };
-        host?: {
-            location: string;
         };
         admin?: {
             // admins are timers only
@@ -54,20 +51,6 @@ export const MOCK_USERS: Record<MockRole, MockUser> = {
             rower: {
                 club: "Z12 RC",
                 coach: "Coach A",
-            },
-        },
-    },
-
-    host: {
-        uid: "mock-host-uid",
-        email: "host@test.com",
-        displayName: "Hannah Host",
-        primaryRole: "host",
-
-        // hosts do NOT need eligibility fields
-        roles: {
-            host: {
-                location: "Boston, MA",
             },
         },
     },

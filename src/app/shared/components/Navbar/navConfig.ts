@@ -1,7 +1,6 @@
 export type CheckableRole =
   | "rower"
   | "coach"
-  | "host"
   | "admin"
   | "clubAdmin"
   | "federationAdmin"
@@ -23,9 +22,9 @@ export const NAV_CONFIG: NavItemDef[] = [
   { to: "/coach/sessions",    label: "Sessions",    roles: ["coach"],                         group: "Coach"   },
   { to: "/rower/my-sessions", label: "My Sessions", roles: ["rower"],                         group: "Athlete" },
 
-  { to: "/timing",            label: "Timing",      roles: ["host", "admin"],                 group: "Host"    },
-  { to: "/host/events",       label: "Manage Races",roles: ["host"],                          group: "Host"    },
-  { to: "/host/events/new",   label: "Create Race", roles: ["host"],                          group: "Host"    },
+  { to: "/timing",            label: "Timing",      roles: ["clubAdmin", "admin"],            group: "Host"    },
+  { to: "/host/events",       label: "Manage Races",roles: ["clubAdmin"],                     group: "Host"    },
+  { to: "/host/events/new",   label: "Create Race", roles: ["clubAdmin"],                     group: "Host"    },
 
   { to: "/admin/platform",    label: "Platform",    roles: ["platformAdmin"],                 group: "Admin"   },
   { to: "/admin/federation",  label: "Federation",  roles: ["federationAdmin"],               group: "Admin"   },

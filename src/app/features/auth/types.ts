@@ -15,7 +15,6 @@ import type {ClubMemberRole} from "./club.ts";
 
 export type Role =
     | "rower"
-    | "host"
     | "admin"
     | "coach"
     | "guardian"
@@ -140,12 +139,6 @@ export type UserProfile = {
              */
             clubMemberships: ClubRef[];
             openAssignment?: boolean; // defaults to true when absent
-        };
-
-        host?: {
-            name?: string;
-            email?: string;
-            location: string;
         };
 
         admin?: {

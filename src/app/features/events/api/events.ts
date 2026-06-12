@@ -83,6 +83,7 @@ export type CreateEventInput = {
 
     status: EventStatus;
 
+    clubId: string;
     createdByUid: string;
     createdByName: string;
 };
@@ -106,7 +107,7 @@ export async function createEvent(input: CreateEventInput): Promise<string> {
 
     const ref = await addDoc(collection(db, "events"), {
         ...input,
-        hostId: auth.currentUser!.uid,
+        hostId: auth.currentUser!.uid,  // kept for isTimingAdmin Firestore rule
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     });
@@ -153,6 +154,13 @@ export async function listEvents(): Promise<EventWithId[]> {
     }
 
     const q = query(collection(db, "events"), orderBy("startAt", "desc"));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => mapEvent(d.id, d.data() as FirestoreEventDoc));
+}
+
+export async function getEventsByClub(clubId: string): Promise<EventWithId[]> {
+    if (!clubId) return [];
+    const q = query(collection(db, "events"), where("clubId", "==", clubId));
     const snap = await getDocs(q);
     return snap.docs.map((d) => mapEvent(d.id, d.data() as FirestoreEventDoc));
 }

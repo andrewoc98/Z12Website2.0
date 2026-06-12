@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useAuth } from "../../../providers/AuthProvider";
+import { useAdminClaims } from "../../admin/hooks/useAdminClaims";
 import CategoryPicker from "../components/CategoryPicker";
 import { buildDefaultCategories } from "../lib/categories";
 import { categoriesFromIds, createEvent, dateInputToTimestampStartOfDay,dateInputToTimestampEndOfDay } from "../api/events";
@@ -10,6 +11,7 @@ import InfoTooltip from "../../../shared/components/Infotooltip/Infotooltip.tsx"
 
 export default function EventCreatePage() {
     const { user, profile } = useAuth() as any;
+    const { clubId } = useAdminClaims();
     const navigate = useNavigate();
 
     const [name, setName] = useState("");
@@ -96,7 +98,7 @@ export default function EventCreatePage() {
             );
 
             const eventId = await createEvent({
-                bowsAssigned:false,
+                bowsAssigned: false,
                 name: name.trim(),
                 description: description.trim(),
                 location: location.trim(),
@@ -106,12 +108,13 @@ export default function EventCreatePage() {
                 lengthMeters: Number(lengthMeters),
                 categories: categoriesFromIds(categories),
                 status,
+                clubId: clubId ?? "",
                 createdByUid: user.uid,
                 createdByName:
                     profile?.displayName ||
                     user.displayName ||
                     user.email ||
-                    "Host",
+                    "Club Admin",
             });
 
             navigate(`/host/events/${eventId}`);

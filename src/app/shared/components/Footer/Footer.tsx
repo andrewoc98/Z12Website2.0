@@ -23,8 +23,11 @@ const Footer: React.FC = () => {
 
     const handleHostRace = () => {
         if (loading) return;
-        if (!hasRole("host")) {
-            setModalConfig({ title: "Host Access Required", message: "Please sign in as a host to create an event." });
+        if (!hasRole("clubAdmin")) {
+            setModalConfig({
+                title: "Club Admins Only",
+                message: "Hosting races is only available to verified club admins. To get started, register your club using the link below.",
+            });
             return;
         }
         navigate("/host/events/new");
@@ -64,7 +67,7 @@ const Footer: React.FC = () => {
                     <a href="/privacy"  className="text-[11px] text-muted no-underline my-[2px] transition-colors duration-150 hover:text-text">PRIVACY SETTINGS</a>
                     <a href="#"         className="text-[11px] text-muted no-underline my-[2px] transition-colors duration-150 hover:text-text">MANAGE COOKIES</a>
                     {!loading && !hasRole("clubAdmin") && (
-                        <a href="/club/request" className="text-[11px] text-muted no-underline my-[2px] transition-colors duration-150 hover:text-text">START A CLUB</a>
+                        <a href="/club/request" className="text-[11px] text-muted no-underline my-[2px] transition-colors duration-150 hover:text-text">REGISTER A CLUB</a>
                     )}
                 </div>
             </div>
@@ -75,8 +78,7 @@ const Footer: React.FC = () => {
                     message={modalConfig.message}
                     onClose={() => setModalConfig(null)}
                     actions={[
-                        { label: "Close", onClick: () => setModalConfig(null) },
-                        { label: "Go to Sign In", variant: "primary", onClick: () => { setModalConfig(null); navigate("/auth"); } },
+                        { label: "Got it", variant: "primary", onClick: () => setModalConfig(null) },
                     ]}
                 />
             )}

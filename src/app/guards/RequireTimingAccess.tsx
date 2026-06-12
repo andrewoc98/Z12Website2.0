@@ -7,12 +7,12 @@ import { useMockRoles } from "../providers/MockRoleProvider";
 export default function RequireTimingAccess({ children }: { children: React.ReactElement }) {
     if (DEV_MODE) {
         const { hasRole } = useMockRoles();
-        const hasAccess = hasRole("host") || hasRole("admin");
+        const hasAccess = hasRole("clubAdmin") || hasRole("admin");
         return <RequireAuth>{hasAccess ? children : <Navigate to="/" replace />}</RequireAuth>;
     }
 
     const { loading, hasRole } = useRoles();
-    const hasAccess = hasRole("host") || hasRole("admin");
+    const hasAccess = hasRole("clubAdmin") || hasRole("admin");
 
     return (
         <RequireAuth>

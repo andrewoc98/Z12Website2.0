@@ -407,14 +407,14 @@ const FEDERATION_ADMIN_STEPS: TourStep[] = [
 ];
 
 // ── Role resolution ───────────────────────────────────────────────────────────
-// Priority order: federationAdmin > host > admin > coach > rower
+// Priority order: federationAdmin > clubAdmin > admin > coach > rower
 // Multi-role users get all matching step arrays concatenated in priority order.
 // The welcome step is kept only from the highest-priority role; the closing
 // "You're all set!" step is kept only from the lowest-priority role.
 
 const ROLE_PRIORITY: Array<{ key: keyof UserProfile["roles"]; steps: TourStep[] }> = [
     { key: "federationAdmin", steps: FEDERATION_ADMIN_STEPS },
-    { key: "host",            steps: HOST_STEPS },
+    { key: "clubAdmin",       steps: HOST_STEPS },
     { key: "admin",           steps: ADMIN_STEPS },
     { key: "coach",           steps: COACH_STEPS },
     { key: "rower",           steps: ROWER_STEPS },

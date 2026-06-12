@@ -125,10 +125,10 @@ function validatePerf(key: PerfKey, value: string): { suggestion: string | null;
     return { suggestion: null, warning: null };
 }
 
-type RoleKey = "rower" | "coach" | "host";
+type RoleKey = "rower" | "coach";
 type TabKey  = "personal" | RoleKey | "roles";
 
-const ALL_ROLES: RoleKey[] = ["rower", "coach", "host"];
+const ALL_ROLES: RoleKey[] = ["rower", "coach"];
 
 // ─── Small shared components ──────────────────────────────────────────────────
 
@@ -169,14 +169,12 @@ function AddRoleForm({ role, onSave, onCancel }: {
     onSave:   (data: any) => Promise<void>;
     onCancel: () => void;
 }) {
-    const [location,    setLocation]    = useState("");
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [gender,      setGender]      = useState("");
     const [saving,      setSaving]      = useState(false);
     const [err,         setErr]         = useState<string | null>(null);
 
     const canSubmit =
-        (role === "host"  && location.trim().length >= 2) ||
         (role === "coach") ||
         (role === "rower" && dateOfBirth.trim().length > 0 && gender !== "");
 
@@ -185,8 +183,7 @@ function AddRoleForm({ role, onSave, onCancel }: {
         setSaving(true);
         try {
             const data =
-                role === "host"  ? { location: location.trim() }
-              : role === "rower" ? { gender, clubMemberships: [], dateOfBirth, stats: {}, performances: {} }
+                role === "rower" ? { gender, clubMemberships: [], dateOfBirth, stats: {}, performances: {} }
               :                    { clubMemberships: [] };
             await onSave(data);
         } catch (e: any) {
@@ -197,16 +194,6 @@ function AddRoleForm({ role, onSave, onCancel }: {
 
     return (
         <div className="add-role-form">
-            {role === "host" && (
-                <Field label="Location">
-                    <input
-                        value={location}
-                        onChange={e => setLocation(e.target.value)}
-                        placeholder="Event location"
-                    />
-                </Field>
-            )}
-
             {role === "rower" && (
                 <>
                     <Field label="Date of birth">
@@ -544,62 +531,6 @@ function CoachPanel({ coach, onSave, onRemove, onClubJoined, onClubLeft }: {
     );
 }
 
-function HostPanel({ host, onSave, onRemove }: {
-    host:     NonNullable<UserProfile["roles"]["host"]>;
-    onSave:   (data: NonNullable<UserProfile["roles"]["host"]>) => Promise<void>;
-    onRemove: () => Promise<void>;
-}) {
-    const [location, setLocation] = useState(host.location ?? "");
-    const [saving,   setSaving]   = useState(false);
-    const [removing, setRemoving] = useState(false);
-    const { msg, msgType, notify } = useNotify();
-
-    async function handleSave() {
-        setSaving(true);
-        try {
-            await onSave({ location: location.trim() });
-            notify("Host saved.");
-        } catch (e: any) {
-            notify(e?.message ?? "Save failed.", "error");
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function handleRemove() {
-        if (!confirm("Remove host role?")) return;
-        setRemoving(true);
-        try {
-            await onRemove();
-        } catch (e: any) {
-            notify(e?.message ?? "Remove failed.", "error");
-            setRemoving(false);
-        }
-    }
-
-    return (
-        <div className="role-panel">
-            <Field label="Location">
-                <input value={location} onChange={e => setLocation(e.target.value)} placeholder="-" />
-            </Field>
-            {msg && <Toast msg={msg} type={msgType} />}
-            <div className="role-panel-actions">
-                <button type="button" className="btn btn--brand" onClick={handleSave} disabled={saving}>
-                    {saving ? "Saving…" : "Save host"}
-                </button>
-                <button
-                    type="button"
-                    className="btn btn--danger btn--sm role-panel-remove"
-                    onClick={handleRemove}
-                    disabled={removing}
-                >
-                    {removing ? "Removing…" : "Remove role"}
-                </button>
-            </div>
-        </div>
-    );
-}
-
 // ─── Core fields panel ────────────────────────────────────────────────────────
 
 function CoreFields({ profile, uid }: { profile: UserProfile; uid: string }) {
@@ -670,7 +601,6 @@ export function ProfileEditor({ profile, unit, onProfileChange }: {
         { key: "personal", label: "Personal" },
         ...(roles.rower  ? [{ key: "rower"  as TabKey, label: "Rower"    }] : []),
         ...(roles.coach  ? [{ key: "coach"  as TabKey, label: "Coach"    }] : []),
-        ...(roles.host   ? [{ key: "host"   as TabKey, label: "Host"     }] : []),
         ...(availableRoles.length > 0 ? [{ key: "roles" as TabKey, label: "Add Role" }] : []),
     ];
 
@@ -812,14 +742,6 @@ export function ProfileEditor({ profile, unit, onProfileChange }: {
                         onRemove={() => handleRemoveRole("coach")}
                         onClubJoined={handleCoachClubJoined}
                         onClubLeft={handleCoachClubLeft}
-                    />
-                )}
-
-                {validTab === "host" && roles.host && (
-                    <HostPanel
-                        host={roles.host}
-                        onSave={data => handleSaveRole("host", data)}
-                        onRemove={() => handleRemoveRole("host")}
                     />
                 )}
 
