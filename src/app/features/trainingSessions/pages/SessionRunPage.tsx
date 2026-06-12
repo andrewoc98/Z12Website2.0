@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useBlocker, useSearchParams } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot, Timestamp } from 'firebase/firestore';
 import { signInWithCustomToken, signOut } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { db, auth, functions } from '../../../shared/lib/firebase';
@@ -260,6 +260,93 @@ export default function SessionRunPage() {
             setShowAssistantConfirm(true);
         }
     }, [session, user, inviteToken, assistantClaim, sessionId]);
+
+    // ── Live piece-result sync ─────────────────────────────────────────────────
+    // Subscribes to pieceResults while a piece is running so the other screen
+    // (coach or assistant) sees stops / DNFs / TT starts in real time.
+    useEffect(() => {
+        if (!sessionId || !session || phase !== 'running') return;
+        const piece = session.pieces[pieceIdx];
+        if (!piece) return;
+        const isTimeTrial = (session.sessionType ?? 'race') === 'time_trial';
+
+        const q = query(
+            collection(db, 'pieceResults'),
+            where('sessionId', '==', sessionId),
+            where('pieceNumber', '==', piece.pieceNumber),
+            where('coachId', '==', session.coachId),
+        );
+
+        const unsub = onSnapshot(q, (snap) => {
+            const dbResults = snap.docs.map(d => ({
+                resultId:       d.id,
+                boatId:         d.data().boatId         as string,
+                displayName:    d.data().displayName    as string,
+                status:         d.data().status          as 'running' | 'finished' | 'dnf',
+                elapsedMs:      d.data().elapsedMs       as number | null,
+                split500mMs:    d.data().split500mMs     as number | null,
+                startTimestamp: d.data().startTimestamp  as Timestamp | null,
+            }));
+
+            setLiveResults(prev => {
+                let changed = false;
+                const updated = prev.map(r => {
+                    const fromDb = dbResults.find(d => d.boatId === r.boatId);
+                    if (!fromDb) return r;
+                    let next = r;
+                    if (!r.resultId && fromDb.resultId) {
+                        boatResultIds.current[r.boatId] = fromDb.resultId;
+                        next = { ...next, resultId: fromDb.resultId };
+                        changed = true;
+                    }
+                    // Accept a remote terminal state for a boat still marked running locally
+                    if (r.status === 'running' && fromDb.status !== 'running') {
+                        next = { ...next, status: fromDb.status, elapsedMs: fromDb.elapsedMs, split500mMs: fromDb.split500mMs };
+                        changed = true;
+                    }
+                    return next;
+                });
+                // TT: pick up boats started on the other device
+                for (const fromDb of dbResults) {
+                    if (updated.find(r => r.boatId === fromDb.boatId)) continue;
+                    updated.push({ resultId: fromDb.resultId, boatId: fromDb.boatId, displayName: fromDb.displayName, status: fromDb.status, elapsedMs: fromDb.elapsedMs, split500mMs: fromDb.split500mMs });
+                    boatResultIds.current[fromDb.boatId] = fromDb.resultId;
+                    changed = true;
+                }
+                return changed ? updated : prev;
+            });
+
+            // TT: sync per-boat timers for boats started on the other device
+            if (isTimeTrial) {
+                for (const fromDb of dbResults) {
+                    if (fromDb.status === 'running' && fromDb.startTimestamp && !ttBoatStartTimes.current[fromDb.boatId]) {
+                        ttBoatStartTimes.current[fromDb.boatId] = fromDb.startTimestamp.toMillis();
+                        ttBoatOriginalStartTimes.current[fromDb.boatId] = fromDb.startTimestamp.toMillis();
+                    }
+                    if (fromDb.status !== 'running') delete ttBoatStartTimes.current[fromDb.boatId];
+                }
+                if (Object.keys(ttBoatStartTimes.current).length > 0) startTTTimers();
+            }
+        });
+
+        return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionId, session?.id, pieceIdx, phase]);
+
+    // Transition to results when all remote stops/DNFs have landed
+    useEffect(() => {
+        if (phase !== 'running' || liveResults.length === 0) return;
+        const isTimeTrial = (session?.sessionType ?? 'race') === 'time_trial';
+        const boatCount = session?.pieces[pieceIdx]?.boats.length ?? 0;
+        if (
+            liveResults.every(r => r.status !== 'running') &&
+            (!isTimeTrial || liveResults.length >= boatCount)
+        ) {
+            stopTimer();
+            setPhase('results');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [liveResults, phase]);
 
     async function restoreActivePiece(s: Session, idx: number) {
         const piece = s.pieces[idx];
