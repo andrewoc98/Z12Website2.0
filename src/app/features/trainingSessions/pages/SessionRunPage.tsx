@@ -262,10 +262,11 @@ export default function SessionRunPage() {
     }, [session, user, inviteToken, assistantClaim, sessionId]);
 
     // ── Live piece-result sync ─────────────────────────────────────────────────
-    // Subscribes to pieceResults while a piece is running so the other screen
-    // (coach or assistant) sees stops / DNFs / TT starts in real time.
+    // Subscribes to pieceResults while a piece is running OR showing results so
+    // the other screen sees stops, DNFs, TT starts, and undos in real time.
+    // Kept alive in 'results' phase so undos from the other device are picked up.
     useEffect(() => {
-        if (!sessionId || !session || phase !== 'running') return;
+        if (!sessionId || !session || phase === 'ready') return;
         const piece = session.pieces[pieceIdx];
         if (!piece) return;
         const isTimeTrial = (session.sessionType ?? 'race') === 'time_trial';
@@ -288,6 +289,8 @@ export default function SessionRunPage() {
                 startTimestamp: d.data().startTimestamp  as Timestamp | null,
             }));
 
+            // Track whether any boat was reverted from terminal → running (undo)
+            let needsReactivation = false;
             setLiveResults(prev => {
                 let changed = false;
                 const updated = prev.map(r => {
@@ -302,6 +305,12 @@ export default function SessionRunPage() {
                     // Accept a remote terminal state for a boat still marked running locally
                     if (r.status === 'running' && fromDb.status !== 'running') {
                         next = { ...next, status: fromDb.status, elapsedMs: fromDb.elapsedMs, split500mMs: fromDb.split500mMs };
+                        changed = true;
+                    }
+                    // Accept undo — remote reverted a terminal boat back to running
+                    if (r.status !== 'running' && fromDb.status === 'running') {
+                        next = { ...next, status: 'running', elapsedMs: null, split500mMs: null };
+                        needsReactivation = true;
                         changed = true;
                     }
                     return next;
@@ -326,6 +335,24 @@ export default function SessionRunPage() {
                     if (fromDb.status !== 'running') delete ttBoatStartTimes.current[fromDb.boatId];
                 }
                 if (Object.keys(ttBoatStartTimes.current).length > 0) startTTTimers();
+            }
+
+            // An undo on the other device reverted a boat to running while we were
+            // on the results screen — restart the timer and go back to running.
+            if (needsReactivation && phase === 'results') {
+                if (!isTimeTrial && startTimeRef.current != null) startTimer(startTimeRef.current);
+                if (isTimeTrial) {
+                    for (const fromDb of dbResults) {
+                        if (fromDb.status === 'running' && fromDb.startTimestamp) {
+                            ttBoatStartTimes.current[fromDb.boatId] = fromDb.startTimestamp.toMillis();
+                            if (!ttBoatOriginalStartTimes.current[fromDb.boatId]) {
+                                ttBoatOriginalStartTimes.current[fromDb.boatId] = fromDb.startTimestamp.toMillis();
+                            }
+                        }
+                    }
+                    startTTTimers();
+                }
+                setPhase('running');
             }
         });
 
@@ -403,10 +430,13 @@ export default function SessionRunPage() {
                 clearUndo();
             }
 
-            // Start running if the piece was started on the other device
-            if ((phase !== 'running' || pieceChanged) && activePiece.startTimestamp) {
+            // Only move ready→running (never results→running — that would cause a flicker
+            // loop because the piece stays 'active' in Firestore until Next Piece is clicked).
+            if ((pieceChanged || phase === 'ready') && activePiece.startTimestamp) {
                 if (!isTimeTrial) startTimer(activePiece.startTimestamp.toMillis());
                 setPhase('running');
+            } else if (pieceChanged) {
+                setPhase('ready');
             }
         } else {
             // No active piece — check if the other device called completePiece
@@ -414,6 +444,17 @@ export default function SessionRunPage() {
             const currentPieceCompleted = session.pieces[pieceIdx]?.status === 'completed';
             if (nextPendingIdx >= 0 && nextPendingIdx !== pieceIdx && currentPieceCompleted) {
                 setPieceIdx(nextPendingIdx);
+                setLiveResults([]);
+                setDisplayMs(0);
+                stopTimer();
+                ttBoatStartTimes.current = {};
+                setPerBoatElapsed({});
+                boatResultIds.current = {};
+                clearUndo();
+                setPhase('ready');
+            }
+            // Piece start was undone on the other device (active → pending)
+            if (session.pieces[pieceIdx]?.status === 'pending' && phase !== 'ready') {
                 setLiveResults([]);
                 setDisplayMs(0);
                 stopTimer();
