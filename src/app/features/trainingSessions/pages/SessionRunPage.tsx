@@ -888,6 +888,14 @@ export default function SessionRunPage() {
                                 ))}
                             </div>
                         </div>
+                        {isCoach && (
+                            <button
+                                className="ts-prestart__edit-btn"
+                                onClick={() => { intentionalNavRef.current = true; navigate(`/coach/sessions/${sessionId}/edit`); }}
+                            >
+                                ✏ Edit Session
+                            </button>
+                        )}
                         <button className="ts-btn-start" onClick={handleActivateSession} disabled={activating}>
                             {activating ? 'STARTING…' : 'START SESSION'}
                         </button>

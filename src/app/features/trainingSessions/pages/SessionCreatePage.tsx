@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
 import Navbar from '../../../shared/components/Navbar/Navbar';
 import { useAuth } from '../../../providers/AuthProvider';
+import { db } from '../../../shared/lib/firebase';
 import { useClubRowers } from '../../coaches/hooks/useClubRowers';
-import { createSession } from '../services/sessionService';
+import { createSession, updateSession } from '../services/sessionService';
 import {
     BOAT_CLASSES, BOAT_CLASS_LABELS, BOAT_CLASS_SEATS,
-    type BoatClass, type BoatEntry, type SessionType,
+    type BoatClass, type BoatEntry, type SessionType, type Session,
 } from '../types/session';
 
 interface BoatForm {
@@ -38,6 +40,8 @@ function resizeSlots(slots: string[], newClass: BoatClass): string[] {
 export default function SessionCreatePage() {
     const { profile } = useAuth();
     const navigate    = useNavigate();
+    const { sessionId } = useParams<{ sessionId?: string }>();
+    const isEdit = !!sessionId;
 
     const coachClubs = profile?.roles?.coach?.clubMemberships?.filter(m => m.membershipStatus === 'active') ?? [];
     const { rowers } = useClubRowers(coachClubs);
@@ -48,7 +52,31 @@ export default function SessionCreatePage() {
     const [assistantEmail, setAssistantEmail] = useState('');
     const [pieces, setPieces]           = useState<PieceForm[]>([emptyPiece()]);
     const [saving, setSaving]           = useState(false);
+    const [loadingSession, setLoadingSession] = useState(isEdit);
     const [error, setError]             = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!sessionId) return;
+        setLoadingSession(true);
+        getDoc(doc(db, 'sessions', sessionId))
+            .then(snap => {
+                if (!snap.exists()) return;
+                const s = { id: snap.id, ...snap.data() } as Session;
+                setName(s.name);
+                setDate(s.date.toDate().toISOString().slice(0, 10));
+                setSessionType(s.sessionType ?? 'race');
+                setAssistantEmail(s.timingAssistantEmail ?? '');
+                setPieces(s.pieces.map(p => ({
+                    distanceMeters: String(p.distanceMeters),
+                    boats: p.boats.map(b => ({
+                        boatId: b.boatId,
+                        boatClass: b.boatClass,
+                        rowerSlots: b.rowerIds,
+                    })),
+                })));
+            })
+            .finally(() => setLoadingSession(false));
+    }, [sessionId]);
 
     // collect all rowerIds already used in a piece (for disabling duplicates)
     function usedInPiece(pieceIdx: number, excludeBoatIdx: number, excludeSlotIdx: number): Set<string> {
@@ -170,18 +198,19 @@ export default function SessionCreatePage() {
 
             const trimmedEmail = assistantEmail.trim() || null;
             const finalName = name.trim() || generateSessionName();
-            const sessionId = await createSession(
-                profile.uid,
-                finalName,
-                new Date(date),
-                sessionType,
-                trimmedEmail,
-                null,
-                pieces.map(p => ({ distanceMeters: Number(p.distanceMeters), boats: boatEntries(p) })),
-            );
-            navigate(`/coach/sessions/${sessionId}/run`);
+            const pieceData = pieces.map(p => ({ distanceMeters: Number(p.distanceMeters), boats: boatEntries(p) }));
+
+            if (isEdit && sessionId) {
+                await updateSession(sessionId, finalName, new Date(date), sessionType, trimmedEmail, pieceData);
+                navigate(`/coach/sessions/${sessionId}/run`);
+            } else {
+                const newSessionId = await createSession(
+                    profile.uid, finalName, new Date(date), sessionType, trimmedEmail, null, pieceData,
+                );
+                navigate(`/coach/sessions/${newSessionId}/run`);
+            }
         } catch (err: unknown) {
-            console.error('[SessionCreate] createSession failed:', err);
+            console.error('[SessionCreate] save failed:', err);
             const msg = err instanceof Error ? err.message : String(err);
             setError(`Failed to save session: ${msg}`);
         } finally {
@@ -189,12 +218,16 @@ export default function SessionCreatePage() {
         }
     }
 
+    if (loadingSession) {
+        return (<><Navbar /><div className="ts-page page shell ts-loading">Loading session…</div></>);
+    }
+
     return (
         <>
             <Navbar />
             <div className="ts-page page shell">
                 <div className="ts-page__header">
-                    <h1 className="ts-page__title">New Session</h1>
+                    <h1 className="ts-page__title">{isEdit ? 'Edit Session' : 'New Session'}</h1>
                 </div>
 
                 <form className="ts-create-form" onSubmit={handleSubmit}>
@@ -372,11 +405,11 @@ export default function SessionCreatePage() {
                     {error && <p className="ts-error">{error}</p>}
 
                     <div className="ts-create-form__actions">
-                        <button type="button" className="btn-ghost" onClick={() => navigate('/coach/sessions')}>
+                        <button type="button" className="btn-ghost" onClick={() => navigate(isEdit && sessionId ? `/coach/sessions/${sessionId}/run` : '/coach/sessions')}>
                             Cancel
                         </button>
                         <button type="submit" className="btn-primary" disabled={saving}>
-                            {saving ? 'Saving…' : 'Save Session'}
+                            {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save Session'}
                         </button>
                     </div>
                 </form>

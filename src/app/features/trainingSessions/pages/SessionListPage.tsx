@@ -10,7 +10,7 @@ function statusLabel(status: Session['status']) {
     return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function SessionCard({ session, onClick, onDelete }: { session: Session; onClick: () => void; onDelete: () => void }) {
+function SessionCard({ session, onClick, onEdit, onDelete }: { session: Session; onClick: () => void; onEdit: () => void; onDelete: () => void }) {
     const date = session.date.toDate().toLocaleDateString('en-GB', {
         day: 'numeric', month: 'short', year: 'numeric',
     });
@@ -29,6 +29,16 @@ function SessionCard({ session, onClick, onDelete }: { session: Session; onClick
                     {statusLabel(session.status)}
                 </span>
             </button>
+            {session.status === 'draft' && (
+                <button
+                    className="ts-session-card__edit"
+                    onClick={e => { e.stopPropagation(); onEdit(); }}
+                    aria-label="Edit session"
+                    title="Edit session"
+                >
+                    ✏
+                </button>
+            )}
             <button
                 className="ts-session-card__delete"
                 onClick={e => { e.stopPropagation(); onDelete(); }}
@@ -131,6 +141,7 @@ export default function SessionListPage() {
                                     key={s.id}
                                     session={s}
                                     onClick={() => !deleting && handleClick(s)}
+                                    onEdit={() => navigate(`/coach/sessions/${s.id}/edit`)}
                                     onDelete={() => !deleting && handleDelete(s)}
                                 />
                             ))}

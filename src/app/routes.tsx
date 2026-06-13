@@ -173,6 +173,14 @@ export const router = createBrowserRouter([
                 ),
             },
             {
+                path: "/coach/sessions/:sessionId/edit",
+                element: (
+                    <RequireRole role="coach">
+                        <SessionCreatePage />
+                    </RequireRole>
+                ),
+            },
+            {
                 path: "/coach/sessions/:sessionId/run",
                 element: (
                     <RequireRole role="coach">

@@ -1404,6 +1404,13 @@
            cursor-pointer text-left text-text !normal-case !tracking-normal min-h-0
            bg-transparent border-none rounded-l-[12px];
   }
+  .ts-session-card__edit {
+    @apply flex items-center justify-center w-[44px] flex-shrink-0
+           bg-transparent border-none border-l border-border text-muted cursor-pointer
+           !normal-case !tracking-normal min-h-0
+           transition-[color,background] duration-150
+           hover:text-brand-warm hover:bg-[rgba(255,212,0,0.08)] hover:shadow-none;
+  }
   .ts-session-card__delete {
     @apply flex items-center justify-center w-[44px] flex-shrink-0
            bg-transparent border-none border-l border-border text-muted cursor-pointer
@@ -1501,6 +1508,12 @@
   .ts-prestart__piece-num { @apply text-[0.75rem] font-bold tracking-[0.08em] uppercase text-brand-warm font-heading w-[28px] flex-shrink-0; }
   .ts-prestart__piece-dist { @apply text-[1rem] font-bold font-heading text-text flex-1; }
   .ts-prestart__piece-boats { @apply text-[0.8rem] text-muted; }
+  .ts-prestart__edit-btn  {
+    @apply self-center text-[0.8rem] text-muted border border-border rounded-lg px-5 py-2
+           bg-transparent cursor-pointer tracking-[0.03em]
+           transition-[color,border-color] duration-150
+           hover:text-text hover:border-text;
+  }
 
   .ts-run-ready          { @apply flex-1 flex flex-col items-center justify-center gap-[40px] px-6 py-[40px] max-w-[480px] mx-auto w-full; }
   .ts-run-ready__athletes { @apply w-full flex flex-col gap-2; }
@@ -1572,8 +1585,8 @@
 
   .ts-undo-float-wrap   { @apply fixed bottom-[24px] left-[20px] pointer-events-none z-[200]; }
   .ts-undo-float        {
-    @apply pointer-events-auto w-[60px] h-[60px] rounded-full bg-surface border border-border
-           flex items-center justify-center text-[1.5rem] cursor-pointer
+    @apply pointer-events-auto w-[72px] h-[72px] rounded-full bg-surface border border-border
+           flex items-center justify-center text-[1.8rem] cursor-pointer
            [box-shadow:0_4px_16px_rgba(0,0,0,0.4)] text-muted
            transition-[border-color,color,box-shadow] duration-150
            disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none;
@@ -1587,9 +1600,9 @@
            [box-shadow:0_2px_8px_rgba(0,0,0,0.5)] whitespace-nowrap text-center min-w-[70px];
   }
   .ts-spm-btn {
-    @apply w-[60px] h-[60px] rounded-full bg-surface border border-[rgba(255,212,0,0.35)]
+    @apply w-[72px] h-[72px] rounded-full bg-surface border border-[rgba(255,212,0,0.35)]
            flex items-center justify-center text-brand-warm cursor-pointer
-           font-heading font-bold text-[0.7rem] tracking-[0.06em] uppercase
+           font-heading font-bold text-[0.84rem] tracking-[0.06em] uppercase
            [box-shadow:0_4px_16px_rgba(0,0,0,0.4)]
            transition-[background,transform] duration-100
            active:scale-95 active:bg-[rgba(255,212,0,0.1)];

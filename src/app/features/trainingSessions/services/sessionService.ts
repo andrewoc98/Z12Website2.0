@@ -208,6 +208,31 @@ export async function undoBoatResult(resultId: string): Promise<void> {
     });
 }
 
+export async function updateSession(
+    sessionId: string,
+    name: string,
+    date: Date,
+    sessionType: SessionType,
+    timingAssistantEmail: string | null,
+    pieces: Array<{ distanceMeters: number; boats: BoatEntry[] }>,
+): Promise<void> {
+    const pieceDefs: PieceDefinition[] = pieces.map((p, i) => ({
+        pieceNumber: i + 1,
+        distanceMeters: p.distanceMeters,
+        boats: p.boats,
+        status: 'pending',
+        startTimestamp: null,
+    }));
+    await updateDoc(doc(db, SESSIONS, sessionId), {
+        name,
+        date: Timestamp.fromDate(date),
+        sessionType,
+        timingAssistantEmail,
+        pieces: pieceDefs,
+        updatedAt: Timestamp.now(),
+    });
+}
+
 export async function activateSession(sessionId: string): Promise<void> {
     await updateDoc(doc(db, SESSIONS, sessionId), {
         status: 'active',
