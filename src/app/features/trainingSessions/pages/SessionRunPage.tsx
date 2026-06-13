@@ -348,6 +348,85 @@ export default function SessionRunPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [liveResults, phase]);
 
+    // ── Session document live sync ─────────────────────────────────────────────
+    // Keeps `session` state current while the page is mounted (after initial load).
+    useEffect(() => {
+        if (!sessionId || !user || loading) return;
+        const unsub = onSnapshot(doc(db, 'sessions', sessionId), (snap) => {
+            if (!snap.exists()) return;
+            setSession({ id: snap.id, ...snap.data() } as Session);
+        });
+        return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionId, user?.uid, loading]);
+
+    // Drive phase / piece transitions from session document changes so both
+    // devices (coach and assistant) stay in sync automatically.
+    useEffect(() => {
+        if (!session || loading) return;
+        const isTimeTrial = (session.sessionType ?? 'race') === 'time_trial';
+
+        // Other device finished the session
+        if (session.status === 'completed' && !intentionalNavRef.current) {
+            intentionalNavRef.current = true;
+            navigate(user?.uid === session.coachId
+                ? `/coach/sessions/${sessionId}/results`
+                : '/');
+            return;
+        }
+
+        // Other device activated the session from pre-start
+        if (showPreStart && session.status === 'active') {
+            setShowPreStart(false);
+            const firstPendingIdx = session.pieces.findIndex(p => p.status === 'pending');
+            if (firstPendingIdx >= 0) { setPieceIdx(firstPendingIdx); setPhase('ready'); }
+            return;
+        }
+
+        if (showPreStart) return;
+
+        const activePieceIdx = session.pieces.findIndex(p => p.status === 'active');
+
+        if (activePieceIdx >= 0) {
+            const activePiece = session.pieces[activePieceIdx];
+            const pieceChanged = activePieceIdx !== pieceIdx;
+
+            // Sync to a different active piece (e.g., other device rapidly advanced)
+            if (pieceChanged) {
+                setPieceIdx(activePieceIdx);
+                setLiveResults([]);
+                setDisplayMs(0);
+                stopTimer();
+                ttBoatStartTimes.current = {};
+                setPerBoatElapsed({});
+                boatResultIds.current = {};
+                clearUndo();
+            }
+
+            // Start running if the piece was started on the other device
+            if ((phase !== 'running' || pieceChanged) && activePiece.startTimestamp) {
+                if (!isTimeTrial) startTimer(activePiece.startTimestamp.toMillis());
+                setPhase('running');
+            }
+        } else {
+            // No active piece — check if the other device called completePiece
+            const nextPendingIdx = session.pieces.findIndex(p => p.status === 'pending');
+            const currentPieceCompleted = session.pieces[pieceIdx]?.status === 'completed';
+            if (nextPendingIdx >= 0 && nextPendingIdx !== pieceIdx && currentPieceCompleted) {
+                setPieceIdx(nextPendingIdx);
+                setLiveResults([]);
+                setDisplayMs(0);
+                stopTimer();
+                ttBoatStartTimes.current = {};
+                setPerBoatElapsed({});
+                boatResultIds.current = {};
+                clearUndo();
+                setPhase('ready');
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [session, loading, showPreStart, phase, pieceIdx]);
+
     async function restoreActivePiece(s: Session, idx: number) {
         const piece = s.pieces[idx];
         const isTimeTrial = (s.sessionType ?? 'race') === 'time_trial';
