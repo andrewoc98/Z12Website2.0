@@ -106,15 +106,13 @@ function ClubAdminContent() {
                     <section className="card pa-section">
                         <div className="pa-section__header">
                             <h3 className="pa-section__title">Admins</h3>
-                            {canManageAdmins && (
-                                <button
-                                    className="pa-btn pa-btn--primary"
-                                    onClick={() => setShowInviteAdmin(true)}
-                                    disabled={loading || !club}
-                                >
-                                    + Invite admin
-                                </button>
-                            )}
+                            <button
+                                className="pa-btn pa-btn--primary"
+                                onClick={() => setShowInviteAdmin(true)}
+                                disabled={loading || !club}
+                            >
+                                + Invite admin
+                            </button>
                         </div>
 
                         {clubId && club && user && (
