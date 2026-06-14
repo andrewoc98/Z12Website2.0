@@ -84,6 +84,9 @@ export type CreateEventInput = {
     status: EventStatus;
 
     clubId: string;
+    federationId?: string;
+    seriesType?: import("../types").EventSeriesType;
+    seriesGroupId?: string;
     createdByUid: string;
     createdByName: string;
 };
@@ -113,6 +116,23 @@ export async function createEvent(input: CreateEventInput): Promise<string> {
     });
 
     return ref.id;
+}
+
+/** Update only the feeCents field on existing categories without touching membership. */
+export async function updateCategoryFees(
+    eventId: string,
+    fees: Record<string, number>       // categoryId → feeCents (0 = free)
+): Promise<void> {
+    const snap = await getDoc(doc(db, "events", eventId));
+    if (!snap.exists()) throw new Error("Event not found.");
+    const existing: EventCategory[] = snap.data().categories ?? [];
+    const updated = existing.map((c) =>
+        c.id in fees ? { ...c, feeCents: fees[c.id] } : c
+    );
+    await updateDoc(doc(db, "events", eventId), {
+        categories: updated,
+        updatedAt:  serverTimestamp(),
+    });
 }
 
 export async function updateEventCategories(
@@ -296,4 +316,44 @@ export async function fetchAdminsByHost(hostId: string): Promise<Admin[]> {
         console.error("Error fetching admins:", error);
         return [];
     }
+}
+
+// --------------------
+// Series Groups
+// --------------------
+export type SeriesGroup = {
+    id: string;
+    federationId: string;
+    name: string;
+    clubIds: string[];
+    createdAt: string;
+    updatedAt: string;
+};
+
+export async function listSeriesGroups(federationId: string): Promise<SeriesGroup[]> {
+    if (!federationId) return [];
+    const snap = await getDocs(collection(db, "federations", federationId, "seriesGroups"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as SeriesGroup));
+}
+
+export async function createSeriesGroup(federationId: string, name: string): Promise<string> {
+    const ref = await addDoc(collection(db, "federations", federationId, "seriesGroups"), {
+        federationId,
+        name,
+        clubIds: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+    return ref.id;
+}
+
+export async function updateSeriesGroupClubs(
+    federationId: string,
+    groupId: string,
+    clubIds: string[]
+): Promise<void> {
+    await updateDoc(doc(db, "federations", federationId, "seriesGroups", groupId), {
+        clubIds,
+        updatedAt: serverTimestamp(),
+    });
 }

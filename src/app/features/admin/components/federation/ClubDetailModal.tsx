@@ -1,8 +1,9 @@
 import { useState } from "react";
 import type { Club } from "../../../auth/club";
-import { suspendClub, reactivateClub, inviteClubAdmin } from "../../services/clubAdminService";
+import type { EventSeriesType } from "../../../events/types";
+import { suspendClub, reactivateClub, inviteClubAdmin, setClubSeriesPermissions } from "../../services/clubAdminService";
 
-type Tab = "details" | "invite" | "status";
+type Tab = "details" | "invite" | "status" | "series";
 
 type Props = {
     club:     Club;
@@ -46,7 +47,7 @@ export default function ClubDetailModal({ club, onClose, onAction, onReload }: P
                 </div>
 
                 <div className="editor-tabs">
-                    {(["details", "invite", "status"] as Tab[]).map(t => (
+                    {(["details", "invite", "series", "status"] as Tab[]).map(t => (
                         <button
                             key={t}
                             className={`editor-tab${tab === t ? " editor-tab--active" : ""}`}
@@ -54,6 +55,7 @@ export default function ClubDetailModal({ club, onClose, onAction, onReload }: P
                         >
                             {t === "details" ? "Details"
                              : t === "invite" ? "Invite Admin"
+                             : t === "series" ? "Series"
                              : "Status"}
                         </button>
                     ))}
@@ -62,6 +64,7 @@ export default function ClubDetailModal({ club, onClose, onAction, onReload }: P
                 <div className="pa-modal__body">
                     {tab === "details" && <DetailsTab club={club} />}
                     {tab === "invite"  && <InviteTab  club={club} onClose={onClose} onAction={onAction} onReload={onReload} />}
+                    {tab === "series"  && <SeriesTab  club={club} onClose={onClose} onAction={onAction} onReload={onReload} />}
                     {tab === "status"  && <StatusTab  club={club} onClose={onClose} onAction={onAction} onReload={onReload} />}
                 </div>
 
@@ -190,6 +193,78 @@ function InviteTab({ club, onClose, onAction, onReload }: Omit<Props, "club"> & 
                 </button>
             </div>
         </form>
+    );
+}
+
+// ── Series tab ────────────────────────────────────────────────────────────────
+
+const ALL_SERIES: { value: EventSeriesType; label: string }[] = [
+    { value: "regional_series",  label: "Regional Series (3000m)" },
+    { value: "national_series",  label: "National Series (6000m)" },
+    { value: "national_event",   label: "National Event (6000m)"  },
+];
+
+function SeriesTab({ club, onClose, onAction, onReload }: Omit<Props, "club"> & { club: Club }) {
+    const [selected, setSelected] = useState<Set<EventSeriesType>>(
+        new Set(club.allowedSeriesTypes ?? [])
+    );
+    const [busy,  setBusy]  = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    function toggle(value: EventSeriesType) {
+        setSelected(prev => {
+            const next = new Set(prev);
+            next.has(value) ? next.delete(value) : next.add(value);
+            return next;
+        });
+    }
+
+    async function handleSave() {
+        setBusy(true);
+        setError(null);
+        try {
+            await setClubSeriesPermissions(club.id, [...selected]);
+            onReload();
+            onAction(`Series permissions updated for ${club.name}.`);
+            onClose();
+        } catch (err: any) {
+            setError(err?.message ?? "Failed to save series permissions.");
+            setBusy(false);
+        }
+    }
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+                Select which series types this club is permitted to create events for.
+                Clubs with no selection can only create standard events.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {ALL_SERIES.map(({ value, label }) => (
+                    <label key={value} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 0 }}>
+                        <input
+                            type="checkbox"
+                            checked={selected.has(value)}
+                            onChange={() => toggle(value)}
+                            style={{ width: 16, height: 16, flexShrink: 0 }}
+                        />
+                        {label}
+                    </label>
+                ))}
+            </div>
+
+            {error && <div className="pa-error">{error}</div>}
+
+            <div className="pa-modal__footer" style={{ padding: 0 }}>
+                <button className="pa-btn pa-btn--ghost" type="button" onClick={onClose} disabled={busy}>
+                    Cancel
+                </button>
+                <button className="pa-btn pa-btn--primary" onClick={handleSave} disabled={busy}>
+                    {busy ? "Saving…" : "Save permissions"}
+                </button>
+            </div>
+        </div>
     );
 }
 

@@ -1,3 +1,5 @@
+import type { EventSeriesType } from "../events/types";
+
 /**
  * club.types.ts
  *
@@ -115,6 +117,9 @@ export type Club = {
 
     /** When true, excluded from club search — used for internal/platform clubs */
     hidden?: boolean;
+
+    /** Series types this club is permitted to create events for — set by federation admin */
+    allowedSeriesTypes?: EventSeriesType[];
 
     createdAt: ISOTimestamp;
     updatedAt: ISOTimestamp;

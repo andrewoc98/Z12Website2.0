@@ -6,6 +6,7 @@ import {
 } from "firebase/firestore";
 import { functions, db } from "../../../shared/lib/firebase";
 import type { Club } from "../../auth/club";
+import type { EventSeriesType } from "../../events/types";
 import type { ClubCreationRequest, AdminNotification, ClubInvite } from "../types/admin.types";
 
 // ── Callable helper ───────────────────────────────────────────────────────────
@@ -250,6 +251,21 @@ export async function updateClubInfo(
     }
 
     await updateDoc(doc(db, "clubs", clubId), payload);
+}
+
+/**
+ * Sets the series types a club is permitted to use when creating events.
+ * Callable by federationAdmin (their own federation's clubs) or platformAdmin.
+ * Uses a direct Firestore update — permitted by the existing security rules.
+ */
+export async function setClubSeriesPermissions(
+    clubId: string,
+    allowedSeriesTypes: EventSeriesType[]
+): Promise<void> {
+    await updateDoc(doc(db, "clubs", clubId), {
+        allowedSeriesTypes,
+        updatedAt: serverTimestamp(),
+    });
 }
 
 /** Unread in-app admin notifications for the given user. */

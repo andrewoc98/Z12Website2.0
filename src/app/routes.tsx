@@ -27,6 +27,10 @@ const HostEventManagePage     = lazy(() => import("./features/events/pages/HostE
 const RowerEventListPage      = lazy(() => import("./features/signup/pages/RowerEventListPage"));
 const ProfilePage             = lazy(() => import("./features/profile/pages/ProfilePage"));
 const InviteJoinPage          = lazy(() => import("./features/signup/pages/InviteJoinPage"));
+const BookingConfirmPage      = lazy(() => import("./features/signup/pages/BookingConfirmPage"));
+const MyBookingsPage          = lazy(() => import("./features/signup/pages/MyBookingsPage"));
+const StripeConnectComplete   = lazy(() => import("./features/admin/pages/StripeConnectComplete"));
+const StripeConnectRefresh    = lazy(() => import("./features/admin/pages/StripeConnectRefresh"));
 const HostEventListPage       = lazy(() => import("./features/events/pages/HostEventListPage"));
 const ForgotPasswordPage      = lazy(() => import("./features/auth/pages/ForgotPasswordPage"));
 const AboutPage               = lazy(() => import("./features/about/pages/AboutPage"));
@@ -229,6 +233,17 @@ export const router = createBrowserRouter([
             { path: "/privacy", element: <Privacy /> },
             { path: "/reset-password", element: <ResetPasswordPage /> },
             { path: "/events/:eventId/view", element: <RedirectToEntries /> },
+            { path: "/booking/confirm", element: <BookingConfirmPage /> },
+            { path: "/admin/stripe/complete", element: <StripeConnectComplete /> },
+            { path: "/admin/stripe/refresh",  element: <StripeConnectRefresh /> },
+            {
+                path: "/rower/my-bookings",
+                element: (
+                    <RequireRole role="rower">
+                        <MyBookingsPage />
+                    </RequireRole>
+                ),
+            },
             {
                 path: "/accept-invite",
                 element: (

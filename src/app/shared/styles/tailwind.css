@@ -804,6 +804,7 @@
 
   .cat-chip        { @apply inline-flex items-center gap-[6px] px-3 py-1 rounded-pill text-[12px] font-medium bg-surface-2 text-muted border border-border whitespace-nowrap; }
   .cat-chip__count { @apply inline-flex items-center justify-center px-[7px] py-[1px] rounded-pill text-[11px] font-semibold bg-brand-soft text-brand border border-[rgba(255,212,0,0.3)]; }
+  .cat-chip__fee   { @apply inline-flex items-center justify-center px-[7px] py-[1px] rounded-pill text-[11px] font-semibold text-[#48c78e] bg-[rgba(72,199,142,0.1)] border border-[rgba(72,199,142,0.3)]; }
 
   .card-header { @apply flex items-start justify-between gap-3; }
   .btn-cancel  {
@@ -1896,6 +1897,24 @@
 @keyframes ts-pulse    { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 @keyframes ts-hold-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
+@keyframes gradPan {
+  0%   { background-position: 0%   40%; }
+  100% { background-position: 100% 60%; }
+}
+@keyframes selGold {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(254,185,89,0.55); }
+  50%       { box-shadow: 0 0 0 10px rgba(254,185,89,0);   }
+}
+@keyframes avPop {
+  0%  { opacity: 0; transform: scale(0.15); }
+  72% {             transform: scale(1.18); }
+  100%{ opacity: 1; transform: scale(1);    }
+}
+@keyframes heroZoom {
+  0%   { transform: scale(1)    translate(0, 0);   }
+  100% { transform: scale(1.06) translate(1%, 1%); }
+}
+
 .ts-tab:hover:not(.ts-tab--active) { color: var(--color-text); box-shadow: none; }
 .ts-type-toggle__btn + .ts-type-toggle__btn { border-left: 1px solid var(--color-border); }
 .ts-type-toggle__btn:hover:not(.ts-type-toggle__btn--active) { background: var(--color-surface-2); color: var(--color-text); box-shadow: none; }
@@ -1919,3 +1938,156 @@
   .ts-boat-btn__tap { flex-direction: row; align-items: center; justify-content: space-between; min-height: 80px; }
   .ts-results-table__th, .ts-results-table__td { padding: 10px 14px; }
 }
+
+/* ── Stripe checkout modal (sco-) — Dice.fm black & gold ── */
+.sco-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.82);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.sco-modal {
+  background: #111114;
+  border: 1px solid rgba(254,185,89,0.18);
+  border-radius: 18px;
+  width: 100%; max-width: 480px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(254,185,89,0.08);
+  display: flex; flex-direction: column;
+}
+.sco-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.sco-header-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: #FEB959; margin-bottom: 6px;
+}
+.sco-header-title {
+  font-size: 18px; font-weight: 600; color: #f0eee8; line-height: 1.2; margin-bottom: 4px;
+}
+.sco-header-category {
+  font-size: 13px; color: rgba(255,255,255,0.45);
+}
+.sco-close-btn {
+  background: rgba(255,255,255,0.06); border: none; color: rgba(255,255,255,0.5);
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
+  font-size: 13px; transition: background 0.15s, color 0.15s; display: flex;
+  align-items: center; justify-content: center; min-height: 0; padding: 0;
+}
+.sco-close-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.sco-body { padding: 20px 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+
+/* Price breakdown */
+.sco-breakdown {
+  background: rgba(254,185,89,0.06); border: 1px solid rgba(254,185,89,0.14);
+  border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.sco-breakdown-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 14px; color: rgba(255,255,255,0.65);
+}
+.sco-breakdown-row--sub {
+  font-size: 12px; color: rgba(255,255,255,0.35);
+}
+.sco-breakdown-row--total {
+  font-size: 16px; font-weight: 700; color: #f0eee8;
+  border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; margin-top: 2px;
+}
+.sco-breakdown-row--total span:last-child { color: #FEB959; }
+
+/* Payment Element wrapper */
+.sco-payment-element-wrap { flex: 1; min-height: 140px; }
+
+/* Refund policy */
+.sco-refund-policy {
+  font-size: 11px; color: rgba(255,255,255,0.3); line-height: 1.6; margin: 0;
+}
+
+/* Error */
+.sco-error {
+  font-size: 13px; color: #ff6b6b;
+  background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.2);
+  border-radius: 8px; padding: 10px 14px;
+}
+
+/* Pay button */
+.sco-pay-btn {
+  width: 100%; padding: 14px 20px;
+  background: #FEB959; color: #111; border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 0.02em;
+  transition: opacity 0.15s, transform 0.1s; min-height: 0;
+}
+.sco-pay-btn:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+.sco-pay-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Loading spinner */
+.sco-loading {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 28px 0; color: rgba(255,255,255,0.4); font-size: 14px;
+}
+.sco-spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid rgba(254,185,89,0.15);
+  border-top-color: #FEB959;
+  animation: sco-spin 0.7s linear infinite;
+}
+.sco-spinner--lg { width: 44px; height: 44px; }
+@keyframes sco-spin { to { transform: rotate(360deg); } }
+
+/* Error state inside modal */
+.sco-err-state {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 16px 0; text-align: center;
+}
+.sco-err-icon { font-size: 28px; opacity: 0.6; }
+
+/* ── Stripe checkout form ── */
+.sco-form { display: flex; flex-direction: column; gap: 18px; }
+
+/* ── Entry fee badge in signup card ── */
+.esu-fee-badge {
+  @apply flex items-center justify-between bg-[rgba(254,185,89,0.08)]
+         border border-[rgba(254,185,89,0.2)] rounded-[10px] px-4 py-3 mb-1;
+}
+.esu-fee-label  { @apply text-[0.8rem] font-medium text-white/50; }
+.esu-fee-amount { @apply text-[1.15rem] font-bold text-brand-warm; }
+
+/* ── Booking confirm page ── */
+.sco-confirm-page {
+  display: flex; align-items: center; justify-content: center;
+  min-height: calc(100dvh - 120px); padding: 32px 16px;
+}
+.sco-confirm-card {
+  background: #111114; border: 1px solid rgba(254,185,89,0.15);
+  border-radius: 20px; padding: 40px 32px;
+  max-width: 420px; width: 100%; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+.sco-confirm-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 700;
+}
+.sco-confirm-icon--success { background: rgba(52,199,89,0.15); color: #4cd964; }
+.sco-confirm-icon--pending { background: rgba(10,132,255,0.12); color: #4da6ff; }
+.sco-confirm-icon--error   { background: rgba(255,77,109,0.12); color: #ff4d6d; }
+.sco-confirm-heading { font-size: 22px; font-weight: 700; color: #f0eee8; margin: 0; }
+.sco-confirm-subtitle { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; margin: 0; max-width: 320px; }
+.sco-confirm-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 8px; }
+.sco-confirm-btn {
+  display: block; width: 100%; padding: 13px 20px;
+  border-radius: 12px; font-size: 14px; font-weight: 600; text-decoration: none;
+  text-align: center; transition: opacity 0.15s;
+}
+.sco-confirm-btn--primary { background: #FEB959; color: #111; border: none; }
+.sco-confirm-btn--primary:hover { opacity: 0.9; }
+.sco-confirm-btn--ghost {
+  background: transparent; color: rgba(255,255,255,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.sco-confirm-btn--ghost:hover { color: #f0eee8; border-color: rgba(255,255,255,0.25); }

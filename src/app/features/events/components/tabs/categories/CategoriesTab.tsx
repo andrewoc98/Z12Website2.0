@@ -9,7 +9,8 @@ import type {Gender as GENDER_ID} from "../../../lib/categories.ts";
 type Props = {
     event: any;
     boats: any[];
-    onSave?: (added: string[], removed: string[]) => Promise<void>;
+    onSave?:     (added: string[], removed: string[]) => Promise<void>;
+    onSaveFees?: (fees: Record<string, number>) => Promise<void>;
 };
 
 type GenderFilter = "All" | Gender;
@@ -69,7 +70,7 @@ function buildFullUniverse(): ParsedCat[] {
 
 /* ─── main component ──────────────────────────────────── */
 
-export default function CategoriesTab({ event, boats, onSave }: Props) {
+export default function CategoriesTab({ event, boats, onSave, onSaveFees }: Props) {
     const [genderFilter, setGenderFilter] = useState<GenderFilter>("All");
     const [isEditing, setIsEditing]       = useState(false);
     const [reviewData, setReviewData]     = useState<{
@@ -81,6 +82,7 @@ export default function CategoriesTab({ event, boats, onSave }: Props) {
     const [isSaving, setIsSaving]         = useState(false);
     const [saveError, setSaveError]       = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess]   = useState(false);
+    const [editingFees, setEditingFees]   = useState(false);
 
     const categories: any[] = event.categories ?? [];
 
@@ -230,6 +232,7 @@ export default function CategoriesTab({ event, boats, onSave }: Props) {
                                         key={cat.id}
                                         label={cat.name.replace(/ • /g, " ")}
                                         boatCount={boatCountMap.get(cat.id) ?? 0}
+                                        feeCents={cat.feeCents}
                                     />
                                 ))}
                             </div>
@@ -237,6 +240,55 @@ export default function CategoriesTab({ event, boats, onSave }: Props) {
                     ))}
                 </div>
             </div>
+
+            {/* ── Fees card ── */}
+            {onSaveFees && parsedCategories.length > 0 && (
+                <div className="card">
+                    <div className="card-header">
+                        <div>
+                            <h2 className="categories-title">Entry Fees</h2>
+                            <p className="categories-subtitle">Per-category fees charged to athletes at registration</p>
+                        </div>
+                        <button className="btn-primary categories-edit-btn" onClick={() => setEditingFees(true)}>
+                            ✎ Edit fees
+                        </button>
+                    </div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
+                        <thead>
+                            <tr>
+                                <th style={{ textAlign: "left", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--muted)", padding: "4px 0 8px", borderBottom: "1px solid var(--border)" }}>Category</th>
+                                <th style={{ textAlign: "right", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--muted)", padding: "4px 0 8px", borderBottom: "1px solid var(--border)" }}>Fee</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {parsedCategories.map((cat) => (
+                                <tr key={cat.id}>
+                                    <td style={{ fontSize: 13, color: "var(--text)", padding: "7px 0", borderBottom: "1px solid var(--border)" }}>
+                                        {cat.name.replace(/ • /g, " ")}
+                                    </td>
+                                    <td style={{ textAlign: "right", fontSize: 13, fontWeight: 600, padding: "7px 0", borderBottom: "1px solid var(--border)", color: (cat.feeCents ?? 0) > 0 ? "var(--brand-warm, #FEB959)" : "var(--muted)" }}>
+                                        {(cat.feeCents ?? 0) > 0
+                                            ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cat.feeCents / 100)
+                                            : "Free"}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* ── Fees panel ── */}
+            {editingFees && onSaveFees && (
+                <FeesPanel
+                    categories={parsedCategories}
+                    onDiscard={() => setEditingFees(false)}
+                    onSave={async (fees) => {
+                        await onSaveFees(fees);
+                        setEditingFees(false);
+                    }}
+                />
+            )}
 
             {/* ── Edit panel ── */}
             {isEditing && (
@@ -705,11 +757,141 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
     );
 }
 
-function CategoryChip({ label, boatCount }: { label: string; boatCount: number }) {
+function CategoryChip({ label, boatCount, feeCents }: { label: string; boatCount: number; feeCents?: number }) {
+    const fmtFee = feeCents && feeCents > 0
+        ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(feeCents / 100)
+        : null;
     return (
         <span className="cat-chip">
             {label}
             {boatCount > 0 && <span className="cat-chip__count">{boatCount}</span>}
+            {fmtFee && <span className="cat-chip__fee">{fmtFee}</span>}
         </span>
+    );
+}
+
+/* ─── fees panel ───────────────────────────────────────── */
+
+function FeesPanel({ categories, onDiscard, onSave }: {
+    categories: ParsedCat[];
+    onDiscard: () => void;
+    onSave: (fees: Record<string, number>) => Promise<void>;
+}) {
+    const fmt = (cents: number) => cents > 0 ? String(cents / 100) : "";
+
+    const [drafts, setDrafts] = useState<Record<string, string>>(() =>
+        Object.fromEntries(categories.map((c) => [c.id, fmt(c.feeCents ?? 0)]))
+    );
+    const [bulkVal, setBulkVal] = useState("");
+    const [saving, setSaving]   = useState(false);
+    const [error,  setError]    = useState<string | null>(null);
+
+    function applyBulk() {
+        const cents = dollarToCents(bulkVal);
+        if (cents === null) return;
+        setDrafts(Object.fromEntries(categories.map((c) => [c.id, cents > 0 ? String(cents / 100) : ""])));
+        setBulkVal("");
+    }
+
+    function dollarToCents(val: string): number | null {
+        const n = parseFloat(val.replace(/[$,]/g, ""));
+        if (isNaN(n) || n < 0) return null;
+        return Math.round(n * 100);
+    }
+
+    async function handleSave() {
+        setError(null);
+        const fees: Record<string, number> = {};
+        for (const [id, raw] of Object.entries(drafts)) {
+            if (!raw.trim()) { fees[id] = 0; continue; }
+            const cents = dollarToCents(raw);
+            if (cents === null) { setError("Please enter valid dollar amounts (e.g. 25 or 25.50)."); return; }
+            fees[id] = cents;
+        }
+        setSaving(true);
+        try { await onSave(fees); }
+        catch (e: any) { setError(e?.message ?? "Failed to save fees."); }
+        finally { setSaving(false); }
+    }
+
+    return (
+        <>
+            <div className="edit-panel-overlay" onClick={onDiscard} />
+            <div className="edit-panel">
+                <div className="edit-panel-header">
+                    <div>
+                        <h3 className="edit-panel-title">Edit entry fees</h3>
+                        <p className="edit-panel-subtitle">Leave blank or enter 0 for free registration</p>
+                    </div>
+                    <button className="edit-panel-close" onClick={onDiscard} aria-label="Close">✕</button>
+                </div>
+
+                <div className="edit-panel-body">
+                    {/* Apply to all */}
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, padding: "10px 14px", background: "var(--surface-2)", borderRadius: 8 }}>
+                        <span style={{ fontSize: 13, color: "var(--muted)", flexShrink: 0 }}>Apply to all:</span>
+                        <div style={{ position: "relative", flex: 1 }}>
+                            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--muted)", fontSize: 13 }}>$</span>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={bulkVal}
+                                onChange={(e) => setBulkVal(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && applyBulk()}
+                                style={{ width: "100%", paddingLeft: 22, paddingRight: 8, paddingTop: 7, paddingBottom: 7, fontSize: 13, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <button
+                            onClick={applyBulk}
+                            style={{ padding: "7px 14px", fontSize: 12, fontWeight: 700, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", cursor: "pointer", flexShrink: 0 }}
+                        >
+                            Apply
+                        </button>
+                    </div>
+
+                    {/* Per-category fee inputs */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {categories.map((cat) => (
+                            <div key={cat.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+                                <span style={{ flex: 1, fontSize: 13, color: "var(--text)" }}>
+                                    {cat.name.replace(/ • /g, " ")}
+                                </span>
+                                <div style={{ position: "relative", width: 110, flexShrink: 0 }}>
+                                    <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "var(--muted)", fontSize: 13, pointerEvents: "none" }}>$</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={drafts[cat.id] ?? ""}
+                                        onChange={(e) => setDrafts((p) => ({ ...p, [cat.id]: e.target.value }))}
+                                        style={{ width: "100%", paddingLeft: 22, paddingRight: 8, paddingTop: 6, paddingBottom: 6, fontSize: 13, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", boxSizing: "border-box" }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="review-error">
+                        <span className="review-error__icon">✕</span>
+                        {error}
+                    </div>
+                )}
+
+                <div className="edit-panel-footer">
+                    <div className="edit-panel-diff" />
+                    <div className="edit-panel-actions">
+                        <button className="btn-cancel" onClick={onDiscard} disabled={saving}>Discard</button>
+                        <button className="btn-primary" onClick={handleSave} disabled={saving}>
+                            {saving ? <span className="btn-spinner" /> : "Save fees"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </>
     );
 }
