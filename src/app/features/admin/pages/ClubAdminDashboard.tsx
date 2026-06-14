@@ -38,11 +38,9 @@ function ClubAdminContent() {
     const { clubId }                       = useAdminClaims();
     const { club, loading, error, reload } = useClubAdminData(clubId);
     const { toast, notify }                = useToast();
-    const { user, profile }                = useAuth();
+    const { user }                         = useAuth();
     const [showInviteMember, setShowInviteMember] = useState(false);
     const [showInviteAdmin,  setShowInviteAdmin]  = useState(false);
-
-    const canManageAdmins = (profile as any)?.roles?.clubAdmin?.canManageAdmins === true;
 
     function onMemberAdded(msg: string) {
         setShowInviteMember(false);
@@ -120,7 +118,7 @@ function ClubAdminContent() {
                                 clubId={clubId}
                                 adminUids={club.adminUids ?? []}
                                 currentUid={user.uid}
-                                onAction={(msg, type) => { notify(msg, type); reload(); }}
+                                onAction={(msg: string, type?: "success" | "error") => { notify(msg, type); reload(); }}
                             />
                         )}
                     </section>
