@@ -24,11 +24,11 @@ function SkeletonRows() {
 }
 
 export default function MemberList({ clubId, onAction }: Props) {
-    const [members,    setMembers]    = useState<ClubMembership[]>([]);
-    const [loading,    setLoading]    = useState(true);
-    const [filter,     setFilter]     = useState<Filter>("all");
-    const [removing,   setRemoving]   = useState<ClubMembership | null>(null);
-    const [tick,       setTick]       = useState(0);
+    const [members,  setMembers]  = useState<ClubMembership[]>([]);
+    const [loading,  setLoading]  = useState(true);
+    const [filter,   setFilter]   = useState<Filter>("all");
+    const [removing, setRemoving] = useState<ClubMembership | null>(null);
+    const [tick,     setTick]     = useState(0);
 
     const reload = useCallback(() => setTick(t => t + 1), []);
 

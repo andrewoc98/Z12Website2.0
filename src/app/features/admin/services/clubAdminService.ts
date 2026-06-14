@@ -54,6 +54,16 @@ export const inviteClubAdmin = call<
     { success: true; isExistingUser: boolean }
 >("inviteClubAdmin");
 
+export const appointClubAdmin = call<
+    { targetEmail: string; canManageAdmins: boolean },
+    { success: true; isExistingUser: boolean }
+>("appointClubAdmin");
+
+export const removeClubAdmin = call<
+    { targetUid: string },
+    { success: true }
+>("removeClubAdmin");
+
 export const claimClubAdminInvite = call<
     { inviteId: string },
     { success: true }
@@ -204,6 +214,30 @@ function chunk<T>(arr: T[], size: number): T[][] {
     const out: T[][] = [];
     for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
     return out;
+}
+
+export type ClubAdminProfile = {
+    uid:             string;
+    displayName:     string;
+    email:           string;
+    canManageAdmins: boolean;
+};
+
+/** Fetches display info for each UID in the club's adminUids array. */
+export async function getClubAdminProfiles(adminUids: string[]): Promise<ClubAdminProfile[]> {
+    if (!adminUids.length) return [];
+    const snaps = await Promise.all(adminUids.map(uid => getDoc(doc(db, "users", uid))));
+    return snaps
+        .filter(s => s.exists())
+        .map(s => {
+            const d = s.data()!;
+            return {
+                uid:             s.id,
+                displayName:     d.displayName ?? "",
+                email:           d.email       ?? "",
+                canManageAdmins: d.roles?.clubAdmin?.canManageAdmins === true,
+            };
+        });
 }
 
 /** Active members of a club, ordered by role then displayName. */

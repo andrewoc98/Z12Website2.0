@@ -3,9 +3,12 @@ import Navbar from "../../../shared/components/Navbar/Navbar";
 import AdminGuard from "../components/AdminGuard";
 import ClubInfoEditor from "../components/club/ClubInfoEditor";
 import MemberList from "../components/club/MemberList";
+import AdminList from "../components/club/AdminList";
 import InviteMemberModal from "../components/club/InviteMemberModal";
+import InviteAdminModal from "../components/club/InviteAdminModal";
 import { useClubAdminData } from "../hooks/useClubAdminData";
 import { useAdminClaims } from "../hooks/useAdminClaims";
+import { useAuth } from "../../../providers/AuthProvider";
 
 type ToastState = { msg: string; type: "success" | "error" } | null;
 
@@ -32,14 +35,24 @@ export default function ClubAdminDashboard() {
 }
 
 function ClubAdminContent() {
-    const { clubId }                           = useAdminClaims();
-    const { club, loading, error, reload }     = useClubAdminData(clubId);
-    const { toast, notify }                    = useToast();
-    const [showInvite, setShowInvite]          = useState(false);
+    const { clubId }                       = useAdminClaims();
+    const { club, loading, error, reload } = useClubAdminData(clubId);
+    const { toast, notify }                = useToast();
+    const { user, profile }                = useAuth();
+    const [showInviteMember, setShowInviteMember] = useState(false);
+    const [showInviteAdmin,  setShowInviteAdmin]  = useState(false);
+
+    const canManageAdmins = (profile as any)?.roles?.clubAdmin?.canManageAdmins === true;
 
     function onMemberAdded(msg: string) {
-        setShowInvite(false);
+        setShowInviteMember(false);
         notify(msg);
+    }
+
+    function onAdminInvited(msg: string) {
+        setShowInviteAdmin(false);
+        notify(msg);
+        reload();
     }
 
     return (
@@ -89,13 +102,38 @@ function ClubAdminContent() {
                         ) : null}
                     </section>
 
+                    {/* Admins section — visible to all club admins; actions gated by canManageAdmins */}
+                    <section className="card pa-section">
+                        <div className="pa-section__header">
+                            <h3 className="pa-section__title">Admins</h3>
+                            {canManageAdmins && (
+                                <button
+                                    className="pa-btn pa-btn--primary"
+                                    onClick={() => setShowInviteAdmin(true)}
+                                    disabled={loading || !club}
+                                >
+                                    + Invite admin
+                                </button>
+                            )}
+                        </div>
+
+                        {clubId && club && user && (
+                            <AdminList
+                                clubId={clubId}
+                                adminUids={club.adminUids ?? []}
+                                currentUid={user.uid}
+                                onAction={(msg, type) => { notify(msg, type); reload(); }}
+                            />
+                        )}
+                    </section>
+
                     {/* Member list */}
                     <section className="card pa-section">
                         <div className="pa-section__header">
                             <h3 className="pa-section__title">Members</h3>
                             <button
                                 className="pa-btn pa-btn--primary"
-                                onClick={() => setShowInvite(true)}
+                                onClick={() => setShowInviteMember(true)}
                                 disabled={loading || !club}
                             >
                                 + Invite member
@@ -113,10 +151,18 @@ function ClubAdminContent() {
                 </div>
             </main>
 
-            {showInvite && (
+            {showInviteMember && (
                 <InviteMemberModal
-                    onClose={() => setShowInvite(false)}
+                    onClose={() => setShowInviteMember(false)}
                     onInvited={onMemberAdded}
+                />
+            )}
+
+            {showInviteAdmin && club && (
+                <InviteAdminModal
+                    clubName={club.name}
+                    onClose={() => setShowInviteAdmin(false)}
+                    onInvited={onAdminInvited}
                 />
             )}
 
