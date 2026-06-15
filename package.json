@@ -13,14 +13,19 @@
     "seed": "ts-node --esm scripts/seedEmulator.ts"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^6.6.0",
+    "@stripe/stripe-js": "^9.8.0",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-virtual": "^3.13.18",
+    "@types/leaflet": "^1.9.21",
     "dayjs": "^1.11.19",
     "driver.js": "^1.4.0",
     "firebase": "^12.7.0",
+    "leaflet": "^1.9.4",
     "playwright": "^1.60.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.11.0",
     "react-window": "^2.2.7",
     "tailwindcss": "^4.3.0"

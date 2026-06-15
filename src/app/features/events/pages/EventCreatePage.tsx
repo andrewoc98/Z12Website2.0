@@ -1,13 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useAdminClaims } from "../../admin/hooks/useAdminClaims";
+import { getClub } from "../../admin/services/clubAdminService";
 import CategoryPicker from "../components/CategoryPicker";
-import { buildDefaultCategories } from "../lib/categories";
+import { buildDefaultCategories, parseBoatClassFromCategory } from "../lib/categories";
+import type { BoatClass } from "../lib/categories";
 import { categoriesFromIds, createEvent, dateInputToTimestampStartOfDay,dateInputToTimestampEndOfDay } from "../api/events";
-import type { EventStatus } from "../types";
+import type { EventStatus, EventSeriesType } from "../types";
+import { SERIES_LENGTH_METERS } from "../types";
 import InfoTooltip from "../../../shared/components/Infotooltip/Infotooltip.tsx";
+import { Link } from "react-router-dom";
 
 export default function EventCreatePage() {
     const { user, profile } = useAuth() as any;
@@ -21,11 +25,47 @@ export default function EventCreatePage() {
     const [endDate, setEndDate] = useState("");
     const [closingDate, setClosingDate] = useState("");
     const [lengthMeters, setLengthMeters] = useState<number>(3000);
+    const [seriesType, setSeriesType] = useState<EventSeriesType | "">("");
 
     const [categories, setCategories] = useState<string[]>(() => buildDefaultCategories());
 
+    const [allowedSeriesTypes, setAllowedSeriesTypes] = useState<EventSeriesType[]>([]);
+
+    const stripeOnboarded: boolean = profile?.roles?.clubAdmin?.stripeOnboarded ?? false;
+
+    // Per-boat-class fees: globalFeeUsd applies to all; boatFees[boatClass] overrides a specific class
+    const [globalFeeUsd, setGlobalFeeUsd] = useState("");
+    const [boatFees, setBoatFees] = useState<Partial<Record<BoatClass, string>>>({});
+
+    const BOAT_CLASS_ORDER: BoatClass[] = ["1x", "2x", "2-", "4x+"];
+    const BOAT_CLASS_LABEL: Record<BoatClass, string> = {
+        "1x":  "Single (1x)",
+        "2x":  "Double (2x)",
+        "2-":  "Pair (2-)",
+        "4x+": "Quad (4x+)",
+    };
+
+    const selectedBoatClasses = useMemo((): BoatClass[] => {
+        const found = new Set<BoatClass>();
+        for (const catId of categories) {
+            const bc = parseBoatClassFromCategory(catId);
+            if (bc) found.add(bc);
+        }
+        return BOAT_CLASS_ORDER.filter(bc => found.has(bc));
+    }, [categories]);
+
+    const overrideCount = Object.values(boatFees).filter(v => v?.trim()).length;
+    const anyFeeSet = !!globalFeeUsd.trim() || overrideCount > 0;
+
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!clubId) return;
+        getClub(clubId).then(club => {
+            setAllowedSeriesTypes(club?.allowedSeriesTypes ?? []);
+        }).catch(() => {});
+    }, [clubId]);
 
     const canSubmit = useMemo(() => {
         return (
@@ -97,6 +137,23 @@ export default function EventCreatePage() {
                 closeMillis
             );
 
+            const resolvedLength = seriesType
+                ? SERIES_LENGTH_METERS[seriesType]
+                : Number(lengthMeters);
+
+            const globalFeeCents = globalFeeUsd.trim()
+                ? Math.round(parseFloat(globalFeeUsd) * 100)
+                : 0;
+
+            const builtCategories = categoriesFromIds(categories).map(c => {
+                const bc = parseBoatClassFromCategory(c.id);
+                const overrideStr = bc ? boatFees[bc] : undefined;
+                const feeCents = overrideStr?.trim()
+                    ? Math.round(parseFloat(overrideStr) * 100)
+                    : globalFeeCents;
+                return feeCents > 0 ? { ...c, feeCents } : c;
+            });
+
             const eventId = await createEvent({
                 bowsAssigned: false,
                 name: name.trim(),
@@ -105,10 +162,11 @@ export default function EventCreatePage() {
                 startAt,
                 endAt,
                 closeAt,
-                lengthMeters: Number(lengthMeters),
-                categories: categoriesFromIds(categories),
+                lengthMeters: resolvedLength,
+                categories: builtCategories,
                 status,
                 clubId: clubId ?? "",
+                ...(seriesType ? { seriesType } : {}),
                 createdByUid: user.uid,
                 createdByName:
                     profile?.displayName ||
@@ -131,6 +189,33 @@ export default function EventCreatePage() {
             <Navbar />
             <main>
                 <h1>Create Event</h1>
+
+                {/* Stripe guard banner */}
+                {!stripeOnboarded && (
+                    <div style={{
+                        background: "rgba(254,185,89,0.06)",
+                        border: "1px solid rgba(254,185,89,0.22)",
+                        borderRadius: 10,
+                        padding: "12px 16px",
+                        marginBottom: 16,
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "flex-start",
+                    }}>
+                        <span style={{ color: "#FEB959", fontSize: 18, flexShrink: 0 }}>⚡</span>
+                        <div>
+                            <div style={{ color: "#FEB959", fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+                                Stripe not connected
+                            </div>
+                            <div className="muted" style={{ fontSize: 13 }}>
+                                To charge entry fees, connect your Stripe account first.{" "}
+                                <Link to="/admin/club" style={{ color: "#FEB959" }}>
+                                    Go to Club Dashboard →
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="card">
                     <label>
@@ -157,7 +242,7 @@ export default function EventCreatePage() {
                         <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
                     </label>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-[10px] [&>label]:mt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-[10px] items-start [&>label]:mt-0">
                         <label>
                             <span className="inline-flex items-center">
                                 Start Date
@@ -185,14 +270,119 @@ export default function EventCreatePage() {
                         <label>
                             <span className="inline-flex items-center">
                                 Length (meters)
-                                <InfoTooltip text="The total race distance in meters, e.g. 5000 for a 5K." position="right" />
+                                <InfoTooltip text="The total race distance in meters. Locked to 3000m for Regional Series and 6000m for National events." position="right" />
                             </span>
-                            <input type="number" value={lengthMeters} onChange={(e) => setLengthMeters(Number(e.target.value))} />
+                            <input
+                                type="number"
+                                value={seriesType ? SERIES_LENGTH_METERS[seriesType] : lengthMeters}
+                                onChange={(e) => setLengthMeters(Number(e.target.value))}
+                                disabled={!!seriesType}
+                            />
+                            {seriesType && (
+                                <p className="muted" style={{ fontSize: "0.8rem", marginTop: 4 }}>
+                                    Distance is fixed at {SERIES_LENGTH_METERS[seriesType]}m for {seriesType === "regional_series" ? "Regional Series" : "National events"}.
+                                </p>
+                            )}
                         </label>
                     </div>
+
+                    {allowedSeriesTypes.length > 0 && (
+                        <label style={{ marginTop: "1rem" }}>
+                            <span className="inline-flex items-center">
+                                Series Type
+                                <InfoTooltip text="Designate this event as part of a Regional Series, National Series, or National Event. Distance requirements are enforced automatically." position="right" />
+                            </span>
+                            <select
+                                value={seriesType}
+                                onChange={(e) => setSeriesType(e.target.value as EventSeriesType | "")}
+                            >
+                                <option value="">Standard Event</option>
+                                {allowedSeriesTypes.includes("regional_series") && (
+                                    <option value="regional_series">Regional Series (3000m)</option>
+                                )}
+                                {allowedSeriesTypes.includes("national_series") && (
+                                    <option value="national_series">National Series (6000m)</option>
+                                )}
+                                {allowedSeriesTypes.includes("national_event") && (
+                                    <option value="national_event">National Event (6000m)</option>
+                                )}
+                            </select>
+                        </label>
+                    )}
                 </div>
 
                 <CategoryPicker value={categories} onChange={setCategories} />
+
+                {/* Entry fees */}
+                <div className="card mt-[14px]">
+                    <h3>Entry Fees <span className="muted" style={{ fontWeight: 400, fontSize: 14 }}>(optional)</span></h3>
+                    <p className="muted mt-1" style={{ fontSize: 13 }}>
+                        Set a default fee for all boat types, or override per boat class. Leave blank for a free event.
+                    </p>
+
+                    <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: "8px 12px" }}>
+                        {/* Default / apply-to-all row */}
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>
+                            All boat types
+                            <InfoTooltip text="Default fee applied to every boat class that doesn't have its own override." position="right" />
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span className="muted">$</span>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={globalFeeUsd}
+                                onChange={(e) => setGlobalFeeUsd(e.target.value)}
+                                style={{ width: 90, textAlign: "right" }}
+                            />
+                        </div>
+
+                        {/* Per-boat-class rows — only for classes present in selected categories */}
+                        {selectedBoatClasses.map((bc) => (
+                            <>
+                                <span key={`label-${bc}`} style={{ fontSize: 13, color: "var(--muted)", paddingLeft: 10 }}>
+                                    {BOAT_CLASS_LABEL[bc]}
+                                </span>
+                                <div key={`input-${bc}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span className="muted">$</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder={globalFeeUsd || "0.00"}
+                                        value={boatFees[bc] ?? ""}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setBoatFees(prev => {
+                                                if (!v.trim()) {
+                                                    const next = { ...prev };
+                                                    delete next[bc];
+                                                    return next;
+                                                }
+                                                return { ...prev, [bc]: v };
+                                            });
+                                        }}
+                                        style={{ width: 90, textAlign: "right" }}
+                                    />
+                                </div>
+                            </>
+                        ))}
+                    </div>
+
+                    {selectedBoatClasses.length === 0 && (
+                        <p className="muted" style={{ fontSize: 12, marginTop: 10 }}>
+                            Select categories above to see per-boat-class fee options.
+                        </p>
+                    )}
+
+                    {anyFeeSet && !stripeOnboarded && (
+                        <p style={{ color: "#FEB959", fontSize: 12, marginTop: 10 }}>
+                            Connect Stripe in your Club Dashboard before athletes can pay this fee.
+                        </p>
+                    )}
+                </div>
 
                 <div className="card mt-[14px]">
                     <div className="space-between">

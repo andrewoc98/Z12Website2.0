@@ -25,9 +25,16 @@ export default function ClubOverviewCard({ club, onClick }: Props) {
                         </div>
                     )}
                 </div>
-                <span className={`pa-status pa-status--${club.status === "pending_approval" ? "pending" : club.status}`}>
-                    {club.status === "pending_approval" ? "pending" : club.status}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {club.hidden && (
+                        <span className="pa-status" style={{ background: "rgba(255,255,255,0.08)", color: "var(--muted)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                            hidden
+                        </span>
+                    )}
+                    <span className={`pa-status pa-status--${club.status === "pending_approval" ? "pending" : club.status}`}>
+                        {club.status === "pending_approval" ? "pending" : club.status}
+                    </span>
+                </div>
             </div>
 
             <div className="fa-club-card__counts">

@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+
+const StripeCheckoutModal = lazy(() => import("../../signup/components/StripeCheckoutModal"));
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
-import type { EventDoc, EventCategory, FirestoreEventDoc } from "../types";
+import type { EventDoc, EventCategory, FirestoreEventDoc, EventSeriesType } from "../types";
 import type { BoatSize } from "../../signup/types";
 import { createBoat, listBoatsForEvent } from "../../signup/api/boats";
 import { parseBoatClassFromCategory, boatSizeFromBoatClass, formatDate } from "../lib/categories";
@@ -128,6 +130,55 @@ function toTimestamp(value: number | Date | string | null | undefined): number |
     return isNaN(parsed.getTime()) ? null : parsed.getTime();
 }
 
+// ---------- Series strip ----------
+const SERIES_TIER: Record<EventSeriesType, {
+    label: string;
+    icon: string;
+    stripBg: string;
+    stripText: string;
+    stripPadding: string;
+    stripFontSize: string;
+    stripFontWeight: number;
+    stripLetterSpacing: string;
+    borderColor: string;
+    cardShadow?: string;
+}> = {
+    regional_series: {
+        label:              "Regional Series",
+        icon:               "◈",
+        stripBg:            "rgba(255,212,0,0.07)",
+        stripText:          "rgba(255,212,0,0.5)",
+        stripPadding:       "4px 24px",
+        stripFontSize:      "0.62rem",
+        stripFontWeight:    700,
+        stripLetterSpacing: "0.10em",
+        borderColor:        "rgba(255,212,0,0.35)",
+    },
+    national_series: {
+        label:              "National Series",
+        icon:               "◉",
+        stripBg:            "rgba(255,212,0,0.14)",
+        stripText:          "#ffd400",
+        stripPadding:       "7px 24px",
+        stripFontSize:      "0.68rem",
+        stripFontWeight:    800,
+        stripLetterSpacing: "0.13em",
+        borderColor:        "rgba(255,212,0,0.65)",
+    },
+    national_event: {
+        label:              "National Event",
+        icon:               "★",
+        stripBg:            "#ffd400",
+        stripText:          "#141414",
+        stripPadding:       "9px 24px",
+        stripFontSize:      "0.75rem",
+        stripFontWeight:    800,
+        stripLetterSpacing: "0.15em",
+        borderColor:        "#ffd400",
+        cardShadow:         "0 0 0 1px rgba(255,212,0,0.25), 0 0 24px rgba(255,212,0,0.1)",
+    },
+};
+
 // ---------- Sub-components ----------
 function EsuStatusPill({ status }: { status: string }) {
     const map: Record<string, { label: string; cls: string }> = {
@@ -251,6 +302,7 @@ export default function EventPage() {
     const [filterCategory, setFilterCategory] = useState("all");
     const [filterClub, setFilterClub] = useState("all");
     const [expandedBoats, setExpandedBoats] = useState<Set<string>>(new Set());
+    const [showCheckout, setShowCheckout] = useState(false);
 
     // ── Results tab state ──
     const [resultsTab, setResultsTab] = useState<"overall" | "category">("overall");
@@ -346,6 +398,8 @@ export default function EventPage() {
     }, [event]);
 
     const selectedCategory = categoryId ? categoryById.get(categoryId) ?? null : null;
+    const selectedCategoryFee = selectedCategory?.feeCents ?? 0;
+    const requiresPayment = selectedCategoryFee > 0;
 
     const derivedBoatSize: BoatSize | null = useMemo(() => {
         if (!selectedCategory) return null;
@@ -652,12 +706,30 @@ export default function EventPage() {
                                     {alreadySignedUp && <span className="esu-already-tag">✓ Already entered</span>}
                                     {!clubName && <span className="esu-error-text">⚠ No club set on your profile</span>}
                                 </div>
+                                {selectedCategoryFee > 0 && (
+                                    <div className="esu-fee-badge">
+                                        <span className="esu-fee-label">Entry fee</span>
+                                        <span className="esu-fee-amount">
+                                            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(selectedCategoryFee / 100)}
+                                        </span>
+                                    </div>
+                                )}
                                 {successMsg && <div className="esu-success-banner">{successMsg}</div>}
                                 {signupErr && <div className="esu-error-banner">{signupErr}</div>}
-                                <button className="esu-btn-primary esu-signup-btn" disabled={!canCreate || busy} onClick={onCreateBoat}>
-                                    {busy ? <span className="esu-btn-loading">Signing up…</span>
-                                        : derivedBoatSize && derivedBoatSize > 1 ? "Create crew & get invite link"
-                                        : "Register →"}
+                                <button
+                                    className="esu-btn-primary esu-signup-btn"
+                                    disabled={!canCreate || busy}
+                                    onClick={requiresPayment ? () => setShowCheckout(true) : onCreateBoat}
+                                >
+                                    {busy ? (
+                                        <span className="esu-btn-loading">Signing up…</span>
+                                    ) : requiresPayment ? (
+                                        `Pay & Enter — ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(selectedCategoryFee / 100)}`
+                                    ) : derivedBoatSize && derivedBoatSize > 1 ? (
+                                        "Create crew & get invite link"
+                                    ) : (
+                                        "Register →"
+                                    )}
                                 </button>
                             </>
                         )}
@@ -899,6 +971,16 @@ export default function EventPage() {
     // ── Render ──
     return (
         <>
+            {showCheckout && event && selectedCategory && (
+                <Suspense fallback={null}>
+                    <StripeCheckoutModal
+                        eventId={eventId!}
+                        categoryId={selectedCategory.id}
+                        categoryName={selectedCategory.name}
+                        onClose={() => setShowCheckout(false)}
+                    />
+                </Suspense>
+            )}
             <Navbar />
             <main className="esu-page">
                 <div className="esu-container">
@@ -921,17 +1003,86 @@ export default function EventPage() {
                         <div className="esu-card"><h2>Event not found</h2></div>
                     ) : (
                         <>
-                            <div className="esu-event-header">
-                                <div className="esu-header-top-row">
-                                    <h1>{event.name}</h1>
-                                    <EsuStatusPill status={event.status} />
-                                </div>
-                                <div className="esu-event-meta">
-                                    <span className="esu-meta-item">{event.location}</span>
-                                    <span className="esu-meta-item">{formatDate(event.startDate)}</span>
-                                    <span className="esu-meta-item">{event.lengthMeters}m</span>
-                                </div>
-                            </div>
+                            {(() => {
+                                const tier = event.seriesType ? SERIES_TIER[event.seriesType] : null;
+                                const isNationalEvent = event.seriesType === "national_event";
+                                const borderCol = tier?.borderColor ?? "rgba(254,185,89,0.4)";
+                                return (
+                                    <div style={{
+                                        borderRadius: 14,
+                                        overflow: "hidden",
+                                        background: "var(--surface)",
+                                        border: `1px solid ${borderCol}`,
+                                        boxShadow: tier?.cardShadow ?? "0 4px 24px rgba(0,0,0,0.4)",
+                                        marginBottom: 20,
+                                    }}>
+                                        {/* Hero gradient area — full-width, 100px */}
+                                        <div style={{ position: "relative", height: 100, overflow: "hidden" }}>
+                                            <div style={{
+                                                position: "absolute", inset: 0,
+                                                background: "linear-gradient(155deg, #32302a 0%, #2a2a30 45%, #1e1e22 100%)",
+                                                backgroundSize: "220% 220%",
+                                                animation: "gradPan 11s ease-in-out infinite alternate, heroZoom 14s ease-in-out infinite alternate",
+                                            }} />
+                                            <div style={{
+                                                position: "absolute", inset: 0,
+                                                background: "linear-gradient(to top, var(--surface) 0%, transparent 55%)",
+                                            }} />
+
+                                            {/* Top-right: tier badge (pulsing for national events) */}
+                                            {tier && (
+                                                <div style={{
+                                                    position: "absolute", top: 10, right: 12,
+                                                    background: "rgba(254,185,89,0.10)",
+                                                    border: "1px solid rgba(254,185,89,0.22)",
+                                                    color: "#FEB959",
+                                                    fontSize: "10px", fontWeight: 500,
+                                                    letterSpacing: "0.06em", textTransform: "uppercase",
+                                                    padding: "3px 9px", borderRadius: 4,
+                                                    whiteSpace: "nowrap",
+                                                    animation: isNationalEvent ? "selGold 2.4s ease-in-out infinite" : undefined,
+                                                }}>
+                                                    {tier.icon} {tier.label}
+                                                </div>
+                                            )}
+
+                                            {/* Bottom-left: location label + event name */}
+                                            <div style={{ position: "absolute", bottom: 10, left: 14, right: tier ? 140 : 14 }}>
+                                                <div style={{
+                                                    fontSize: "10px", fontWeight: 500,
+                                                    letterSpacing: "0.10em", textTransform: "uppercase",
+                                                    color: "rgba(254,185,89,0.45)", marginBottom: 4,
+                                                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                                                }}>
+                                                    {event.location}
+                                                </div>
+                                                <div style={{
+                                                    fontSize: "20px", fontWeight: 500,
+                                                    color: "#f0eee8", lineHeight: 1.15,
+                                                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                                                }}>
+                                                    {event.name}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Card body: date / distance / status */}
+                                        <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                                            <div>
+                                                <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
+                                                    {formatDate(event.startDate)} · {event.lengthMeters}m
+                                                </div>
+                                                {event.closingDate && (
+                                                    <div style={{ fontSize: "11px", color: "rgba(254,185,89,0.65)", marginTop: 2 }}>
+                                                        Closes {formatDate(event.closingDate)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <EsuStatusPill status={event.status} />
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             <div className="esu-tab-bar">
                                 {(["overview", "entries", "results"] as Tab[]).map(t => (

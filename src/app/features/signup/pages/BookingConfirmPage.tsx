@@ -1,0 +1,222 @@
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { loadStripe } from "@stripe/stripe-js";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "../../../shared/lib/firebase";
+import Navbar from "../../../shared/components/Navbar/Navbar";
+import Footer from "../../../shared/components/Footer/Footer.tsx";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? "");
+
+type Phase = "loading" | "succeeded" | "processing" | "failed";
+
+type FulfillResult = {
+    success:          boolean;
+    alreadyFulfilled: boolean;
+    boatId:           string | null;
+    needsCrew:        boolean;
+    inviteCode:       string | null;
+};
+
+function CopyInviteRow({ url }: { url: string }) {
+    const [copied, setCopied] = useState(false);
+    async function copy() {
+        try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+    }
+    return (
+        <div style={{
+            background: "rgba(254,185,89,0.07)",
+            border: "1px solid rgba(254,185,89,0.25)",
+            borderRadius: 10,
+            padding: "12px 14px",
+            marginTop: 16,
+            textAlign: "left",
+        }}>
+            <div style={{ fontSize: 12, color: "rgba(254,185,89,0.7)", marginBottom: 6, fontWeight: 600 }}>
+                Share this invite link with your crew:
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", flex: 1, wordBreak: "break-all" }}>
+                    {url}
+                </span>
+                <button
+                    onClick={copy}
+                    style={{
+                        background: copied ? "rgba(72,199,142,0.15)" : "rgba(254,185,89,0.1)",
+                        border: "1px solid " + (copied ? "rgba(72,199,142,0.4)" : "rgba(254,185,89,0.35)"),
+                        color: copied ? "#48c78e" : "#FEB959",
+                        borderRadius: 6, padding: "5px 12px", fontSize: 12,
+                        cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap",
+                    }}
+                >
+                    {copied ? "Copied!" : "Copy link"}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+export default function BookingConfirmPage() {
+    const [params] = useSearchParams();
+    const [phase,   setPhase]   = useState<Phase>("loading");
+    const [message, setMessage] = useState<string | null>(null);
+    const [fulfill, setFulfill] = useState<FulfillResult | null>(null);
+    const didFulfill = useRef(false);
+
+    const eventId    = params.get("eventId")    ?? "";
+    const categoryId = params.get("categoryId") ?? "";
+    const piId       = params.get("payment_intent") ?? "";
+
+    useEffect(() => {
+        if (didFulfill.current) return;
+        didFulfill.current = true;
+
+        const piClientSecret = params.get("payment_intent_client_secret");
+        const redirectStatus = params.get("redirect_status");
+
+        if (!piClientSecret) {
+            setPhase("failed");
+            setMessage("No payment reference found.");
+            return;
+        }
+
+        async function run() {
+            // Determine payment outcome
+            let succeeded = false;
+            if (redirectStatus === "succeeded") {
+                succeeded = true;
+            } else if (redirectStatus === "failed") {
+                setPhase("failed");
+                setMessage("Your payment did not go through. Please try again.");
+                return;
+            } else {
+                // Retrieve from Stripe to check
+                const stripe = await stripePromise;
+                if (!stripe) { setPhase("failed"); return; }
+                const { paymentIntent } = await stripe.retrievePaymentIntent(piClientSecret!);
+                if (paymentIntent?.status === "succeeded") {
+                    succeeded = true;
+                } else if (paymentIntent?.status === "processing") {
+                    setPhase("processing");
+                    return;
+                } else {
+                    setPhase("failed");
+                    setMessage(paymentIntent?.last_payment_error?.message ?? "Payment failed.");
+                    return;
+                }
+            }
+
+            if (!succeeded || !piId) {
+                setPhase("failed");
+                return;
+            }
+
+            // Call fulfillBooking to create the boat/booking atomically
+            try {
+                const functions    = getFunctions(app);
+                const fulfillFn    = httpsCallable<{ paymentIntentId: string }, FulfillResult>(
+                    functions, "fulfillBooking"
+                );
+                const { data } = await fulfillFn({ paymentIntentId: piId });
+                setFulfill(data);
+                setPhase("succeeded");
+            } catch (e: any) {
+                // Even if fulfillment fails, the payment succeeded — show partial success
+                console.error("fulfillBooking error:", e);
+                setPhase("succeeded");
+                setMessage("Payment confirmed but your entry could not be fully created. Please contact support.");
+            }
+        }
+
+        void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const inviteUrl = fulfill?.inviteCode && eventId
+        ? `${window.location.origin}/invite/${eventId}/${fulfill.inviteCode}`
+        : null;
+
+    return (
+        <>
+            <Navbar />
+            <main className="sco-confirm-page">
+                <div className="sco-confirm-card">
+                    {phase === "loading" && (
+                        <>
+                            <div className="sco-spinner sco-spinner--lg" />
+                            <p className="sco-confirm-subtitle">Confirming your entry…</p>
+                        </>
+                    )}
+
+                    {phase === "succeeded" && (
+                        <>
+                            <div className="sco-confirm-icon sco-confirm-icon--success">✓</div>
+                            <h1 className="sco-confirm-heading">
+                                {fulfill?.needsCrew ? "Crew created!" : "You're entered!"}
+                            </h1>
+                            <p className="sco-confirm-subtitle">
+                                {message ?? (
+                                    fulfill?.needsCrew
+                                        ? "Your payment is confirmed. Share the invite link below with your crew members."
+                                        : "Your registration is confirmed. A receipt has been sent to your email."
+                                )}
+                            </p>
+                            {inviteUrl && <CopyInviteRow url={inviteUrl} />}
+                            <div className="sco-confirm-actions" style={{ marginTop: inviteUrl ? 20 : undefined }}>
+                                {eventId && (
+                                    <Link to={`/events/${eventId}?tab=entries`} className="sco-confirm-btn sco-confirm-btn--primary">
+                                        View entries
+                                    </Link>
+                                )}
+                                <Link to="/rower/my-bookings" className="sco-confirm-btn sco-confirm-btn--ghost">
+                                    My bookings
+                                </Link>
+                            </div>
+                        </>
+                    )}
+
+                    {phase === "processing" && (
+                        <>
+                            <div className="sco-confirm-icon sco-confirm-icon--pending">⏳</div>
+                            <h1 className="sco-confirm-heading">Payment processing</h1>
+                            <p className="sco-confirm-subtitle">
+                                Your payment is being processed. Your entry will be confirmed shortly — check your email for updates.
+                            </p>
+                            <div className="sco-confirm-actions">
+                                <Link to="/events" className="sco-confirm-btn sco-confirm-btn--ghost">
+                                    Back to events
+                                </Link>
+                            </div>
+                        </>
+                    )}
+
+                    {phase === "failed" && (
+                        <>
+                            <div className="sco-confirm-icon sco-confirm-icon--error">✕</div>
+                            <h1 className="sco-confirm-heading">Payment failed</h1>
+                            <p className="sco-confirm-subtitle">
+                                {message ?? "Something went wrong. Your card was not charged."}
+                            </p>
+                            <div className="sco-confirm-actions">
+                                {eventId && categoryId && (
+                                    <Link
+                                        to={`/events/${eventId}?tab=entries`}
+                                        className="sco-confirm-btn sco-confirm-btn--primary"
+                                    >
+                                        Try again
+                                    </Link>
+                                )}
+                                <Link to="/events" className="sco-confirm-btn sco-confirm-btn--ghost">
+                                    Back to events
+                                </Link>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </main>
+            <Footer />
+        </>
+    );
+}
