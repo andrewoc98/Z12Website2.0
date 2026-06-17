@@ -2,7 +2,7 @@ name: Deploy FE to QA
 
 on:
   push:
-    branches: [qa]
+    branches: [QA]
 
 jobs:
   deploy:
