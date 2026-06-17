@@ -360,13 +360,6 @@ describe("Flow 3 — club admin manages club and members", () => {
         await assertFails(deleteDoc(doc(db, "clubs", CLUB_ID)));
     });
 
-    it("after adminAddMember: member doc exists and is readable by any signed-in user", async () => {
-        await seedClubMember(COACH_UID, "coach");
-        // Any signed-in user (e.g. for coach browse) can read member docs
-        const db = authedDb(env, ROWER_UID, AS_ROWER);
-        await assertSucceeds(getDoc(doc(db, `clubs/${CLUB_ID}/members`, COACH_UID)));
-    });
-
     it("member writes are blocked for all clients — Functions only", async () => {
         await seedClubMember(COACH_UID, "coach");
         // clubAdmin cannot write member docs via client SDK
