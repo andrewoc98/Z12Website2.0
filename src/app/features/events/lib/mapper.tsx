@@ -36,6 +36,7 @@ export function mapEvent(id: string, data: any): EventDoc {
         createdByName: data.createdByName ?? "",
         hostId: data.hostId,
         categories: data.categories ?? [],
+        excludedBowNumbers: data.excludedBowNumbers ?? [],
         resultsPublishMode: data.resultsPublishMode
     };
 }

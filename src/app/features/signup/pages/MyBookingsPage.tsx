@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-    collection, query, where, orderBy, onSnapshot,
+    collection, collectionGroup, query, where, orderBy, onSnapshot,
+    getDocs, getDoc, doc,
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { db, app } from "../../../shared/lib/firebase";
@@ -38,6 +39,14 @@ type Booking = {
     rescheduleOldEndAt?:        any;
     rescheduleNewStartAt?:      any;
     rescheduleNewEndAt?:        any;
+};
+
+type CrewEntry = {
+    boatId:        string;
+    eventId:       string;
+    eventName:     string;
+    categoryName?: string;
+    bowNumber?:    number;
 };
 
 function fmt(cents: number) {
@@ -272,8 +281,10 @@ function InviteLinkRow({ url }: { url: string }) {
 
 export default function MyBookingsPage() {
     const { user } = useAuth() as any;
-    const [bookings, setBookings] = useState<Booking[]>([]);
-    const [loading,  setLoading]  = useState(true);
+    const [bookings,     setBookings]     = useState<Booking[]>([]);
+    const [loading,      setLoading]      = useState(true);
+    const [crewEntries,  setCrewEntries]  = useState<CrewEntry[]>([]);
+    const [crewLoading,  setCrewLoading]  = useState(true);
 
     useEffect(() => {
         if (!user) { setLoading(false); return; }
@@ -292,8 +303,50 @@ export default function MyBookingsPage() {
         return unsub;
     }, [user]);
 
+    useEffect(() => {
+        if (!user) { setCrewLoading(false); return; }
+
+        async function loadCrewEntries() {
+            try {
+                const q = query(
+                    collectionGroup(db, "boats"),
+                    where("rowerUids", "array-contains", user.uid)
+                );
+                const snap = await getDocs(q);
+                const boats = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+
+                const uniqueEventIds = [...new Set(
+                    boats.map((b: any) => b.eventId as string).filter(Boolean)
+                )];
+                const nameMap: Record<string, string> = {};
+                await Promise.all(uniqueEventIds.map(async (eid) => {
+                    const eSnap = await getDoc(doc(db, "events", eid));
+                    nameMap[eid] = eSnap.data()?.name ?? "Unknown Event";
+                }));
+
+                setCrewEntries(boats.map((b: any) => ({
+                    boatId:       b.id,
+                    eventId:      b.eventId ?? "",
+                    eventName:    nameMap[b.eventId] ?? "Unknown Event",
+                    categoryName: b.categoryName,
+                    bowNumber:    b.bowNumber,
+                })));
+            } catch (e) {
+                console.error("Failed to load crew entries:", e);
+            } finally {
+                setCrewLoading(false);
+            }
+        }
+
+        void loadCrewEntries();
+    }, [user?.uid]);
+
     const upcoming  = bookings.filter(b => b.status !== "refunded" && b.status !== "cancelled");
     const past      = bookings.filter(b => b.status === "refunded" || b.status === "cancelled");
+
+    // Exclude boats the user already has a paid booking for
+    const paidBoatIds = new Set(bookings.map(b => b.boatId).filter(Boolean));
+    const crewOnly = crewEntries.filter(e => !paidBoatIds.has(e.boatId));
 
     return (
         <>
@@ -316,9 +369,9 @@ export default function MyBookingsPage() {
                         </div>
                     )}
 
-                    {!loading && bookings.length === 0 && (
+                    {!loading && !crewLoading && bookings.length === 0 && crewOnly.length === 0 && (
                         <div style={{ marginTop: 40, textAlign: "center" }}>
-                            <p className="muted" style={{ marginBottom: 16 }}>No paid bookings yet.</p>
+                            <p className="muted" style={{ marginBottom: 16 }}>No bookings or entries yet.</p>
                             <Link to="/events">
                                 <button className="btn-primary">Browse events</button>
                             </Link>
@@ -343,6 +396,65 @@ export default function MyBookingsPage() {
                             </h2>
                             <div style={{ display: "grid", gap: 10 }}>
                                 {past.map(b => <BookingCard key={b.id} b={b} onRefunded={() => {}} />)}
+                            </div>
+                        </section>
+                    )}
+
+                    {crewLoading && (
+                        <div style={{ display: "grid", gap: 12, marginTop: 24 }}>
+                            {[1, 2].map(i => (
+                                <div key={i} style={{
+                                    height: 80, borderRadius: 12,
+                                    background: "linear-gradient(90deg,var(--surface) 25%,var(--surface-2) 50%,var(--surface) 75%)",
+                                    backgroundSize: "600px 100%",
+                                    animation: "sk-shimmer 1.4s infinite linear",
+                                }} />
+                            ))}
+                        </div>
+                    )}
+
+                    {!crewLoading && crewOnly.length > 0 && (
+                        <section style={{ marginTop: 28 }}>
+                            <h2 style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 12 }}>
+                                Your Entries — {crewOnly.length}
+                            </h2>
+                            <div style={{ display: "grid", gap: 10 }}>
+                                {crewOnly.map(e => (
+                                    <div key={e.boatId} style={{
+                                        background: "var(--surface)",
+                                        border: "1px solid var(--border)",
+                                        borderRadius: 12,
+                                        padding: "14px 18px",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 8,
+                                    }}>
+                                        <Link
+                                            to={`/events/${e.eventId}`}
+                                            style={{ color: "#f0eee8", fontWeight: 600, fontSize: 15, textDecoration: "none" }}
+                                        >
+                                            {e.eventName}
+                                        </Link>
+                                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                                            {e.categoryName && (
+                                                <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>
+                                                    {e.categoryName}
+                                                </div>
+                                            )}
+                                            {e.bowNumber != null && (
+                                                <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>
+                                                    Bow #{e.bowNumber}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Link
+                                            to={`/events/${e.eventId}?tab=entries`}
+                                            style={{ fontSize: 12, color: "#FEB959", textDecoration: "none", alignSelf: "flex-start" }}
+                                        >
+                                            View event →
+                                        </Link>
+                                    </div>
+                                ))}
                             </div>
                         </section>
                     )}

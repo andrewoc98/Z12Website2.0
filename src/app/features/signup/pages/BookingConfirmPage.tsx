@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
+import { doc, onSnapshot } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { app } from "../../../shared/lib/firebase";
+import { app, db } from "../../../shared/lib/firebase";
+import { useAuth } from "../../../providers/AuthProvider";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? "");
 
 type Phase = "loading" | "succeeded" | "processing" | "failed";
+
+const PROCESSING_TIMEOUT_MS = 3 * 60 * 1_000; // 3 min — standard UX window before "we'll email you"
 
 type FulfillResult = {
     success:          boolean;
@@ -59,10 +63,12 @@ function CopyInviteRow({ url }: { url: string }) {
 }
 
 export default function BookingConfirmPage() {
+    const { user } = useAuth() as any;
     const [params] = useSearchParams();
-    const [phase,   setPhase]   = useState<Phase>("loading");
-    const [message, setMessage] = useState<string | null>(null);
-    const [fulfill, setFulfill] = useState<FulfillResult | null>(null);
+    const [phase,              setPhase]              = useState<Phase>("loading");
+    const [message,            setMessage]            = useState<string | null>(null);
+    const [fulfill,            setFulfill]            = useState<FulfillResult | null>(null);
+    const [processingTimedOut, setProcessingTimedOut] = useState(false);
     const didFulfill = useRef(false);
 
     const eventId    = params.get("eventId")    ?? "";
@@ -134,6 +140,49 @@ export default function BookingConfirmPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // When Stripe returns "processing", watch the fulfillment guard doc — it
+    // appears once the payment_intent.succeeded webhook fires server-side.
+    // After 3 min (industry-standard UX window) fall back to "check your email".
+    useEffect(() => {
+        if (phase !== "processing" || !user?.uid || !eventId || !categoryId || !piId) return;
+
+        const guardRef = doc(db, "events", eventId, "rowerCategorySignups", `${user.uid}__${categoryId}`);
+        let resolved = false;
+        let unsubscribe: (() => void) | undefined;
+
+        const timer = setTimeout(() => {
+            if (!resolved) {
+                resolved = true;
+                unsubscribe?.();
+                setProcessingTimedOut(true);
+            }
+        }, PROCESSING_TIMEOUT_MS);
+
+        unsubscribe = onSnapshot(guardRef, async (snap) => {
+            if (!snap.exists() || resolved) return;
+            resolved = true;
+            clearTimeout(timer);
+            unsubscribe?.();
+
+            try {
+                const fulfillFn = httpsCallable<{ paymentIntentId: string }, FulfillResult>(
+                    getFunctions(app), "fulfillBooking"
+                );
+                const { data } = await fulfillFn({ paymentIntentId: piId });
+                setFulfill(data);
+            } catch {
+                // Webhook already fulfilled; proceed to succeeded
+            }
+            setPhase("succeeded");
+        });
+
+        return () => {
+            clearTimeout(timer);
+            unsubscribe?.();
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, user?.uid]);
+
     const inviteUrl = fulfill?.inviteCode && eventId
         ? `${window.location.origin}/invite/${eventId}/${fulfill.inviteCode}`
         : null;
@@ -179,12 +228,23 @@ export default function BookingConfirmPage() {
 
                     {phase === "processing" && (
                         <>
-                            <div className="sco-confirm-icon sco-confirm-icon--pending">⏳</div>
+                            {processingTimedOut
+                                ? <div className="sco-confirm-icon sco-confirm-icon--pending">⏳</div>
+                                : <div className="sco-spinner sco-spinner--lg" />
+                            }
                             <h1 className="sco-confirm-heading">Payment processing</h1>
                             <p className="sco-confirm-subtitle">
-                                Your payment is being processed. Your entry will be confirmed shortly — check your email for updates.
+                                {processingTimedOut
+                                    ? "Your payment is still being processed — this can take a few hours for some card types. We'll send a confirmation email the moment it clears. You don't need to pay again."
+                                    : "Your payment is being processed. Your entry will be confirmed shortly…"
+                                }
                             </p>
                             <div className="sco-confirm-actions">
+                                {processingTimedOut && eventId && (
+                                    <Link to={`/rower/my-bookings`} className="sco-confirm-btn sco-confirm-btn--primary">
+                                        My bookings
+                                    </Link>
+                                )}
                                 <Link to="/events" className="sco-confirm-btn sco-confirm-btn--ghost">
                                     Back to events
                                 </Link>

@@ -37,6 +37,8 @@ const sectionHeadingCls = "text-[0.8rem] font-bold tracking-[0.1em] uppercase te
 
 const eventCardCls = "border-2 border-brand-warm rounded-[14px] px-5 py-4 bg-transparent cursor-pointer transition-[border-color,transform,box-shadow] duration-150 hover:-translate-y-[2px] hover:border-[#f5b457] hover:shadow-[0_4px_20px_rgba(254,185,89,0.15)]";
 
+const skeletonBar = "rounded-full [background:linear-gradient(90deg,var(--color-surface)_25%,var(--color-surface-2)_50%,var(--color-surface)_75%)] [background-size:600px_100%] animate-[sk-shimmer_1.4s_infinite_linear]";
+
 export default function TimingEventSelectPage() {
     const { events, loading } = useTimingEvents();
     const [search, setSearch] = useState("");
@@ -74,10 +76,10 @@ export default function TimingEventSelectPage() {
                         <div key={i} className={eventCardCls}>
                             <div className="grid grid-cols-[1fr_auto] items-center gap-4 max-sm:flex max-sm:flex-col max-sm:gap-3">
                                 <div className="flex flex-col gap-[6px]">
-                                    <div className="skeleton-bar" style={{ width: "55%", height: 24, borderRadius: 6 }} />
-                                    <div className="skeleton-bar" style={{ width: 130, height: 13, borderRadius: 999 }} />
+                                    <div className={skeletonBar} style={{ width: "55%", height: 24, borderRadius: 6 }} />
+                                    <div className={skeletonBar} style={{ width: 130, height: 13 }} />
                                 </div>
-                                <div className="skeleton-bar" style={{ width: 90, height: 70, borderRadius: 14 }} />
+                                <div className={skeletonBar} style={{ width: 90, height: 70, borderRadius: 14 }} />
                             </div>
                         </div>
                     ))}

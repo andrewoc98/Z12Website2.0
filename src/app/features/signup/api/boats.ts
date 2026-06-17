@@ -7,6 +7,7 @@ import {
     query,
     runTransaction,
     serverTimestamp,
+    setDoc,
     updateDoc,
     writeBatch,
     where,
@@ -69,7 +70,8 @@ export async function listBoatsForEvent(eventId: string): Promise<BoatDoc[]> {
             createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt ?? undefined,
             startedAt: data.startedAt ?? undefined,
             finishedAt: data.finishedAt ?? undefined,
-            adjustmentMs:data.adjustmentMs
+            adjustmentMs:data.adjustmentMs,
+            createdByUid: data.createdByUid ?? undefined,
         } as any satisfies BoatDoc;
     });
 }
@@ -116,6 +118,48 @@ export async function createBoat(boat: BoatDoc): Promise<string> {
     return newBoatId;
 }
 
+function randomInviteCode(len = 12) {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+/**
+ * Coach creates an empty crew entry — no per-category guard, rowerUids starts empty.
+ * Coaches may create multiple entries for the same category (for different athletes).
+ */
+export async function createBoatAsCoach(params: {
+    eventId: string;
+    categoryId: string;
+    categoryName: string;
+    category: string;
+    clubName: string;
+    boatSize: number;
+    coachUid: string;
+    adjustmentMs: number;
+}): Promise<string> {
+    const { eventId, categoryId, coachUid } = params;
+    if (!eventId) throw new Error("Missing eventId");
+    if (!categoryId) throw new Error("Missing categoryId");
+    if (!coachUid) throw new Error("Missing coachUid");
+
+    const newBoat = doc(boatsCol(eventId));
+    const newBoatId = newBoat.id;
+
+    await setDoc(newBoat, {
+        ...params,
+        id: newBoatId,
+        rowerUids: [],
+        inviteCode: randomInviteCode(),
+        status: "pending_crew",
+        invitedEmails: [],
+        createdByUid: coachUid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+
+    return newBoatId;
+}
+
 export async function updateBoat(boatId: string, patch: Partial<BoatDoc> & { eventId?: string }): Promise<void> {
     const eventId = patch.eventId;
     if (!eventId) throw new Error("updateBoat requires patch.eventId");
@@ -147,6 +191,15 @@ export async function joinBoatWithInviteCode(args: { eventId: string; code: stri
         if (!fresh.exists()) throw new Error("Boat not found.");
 
         const boat = fresh.data() as any;
+
+        // Check closing date before allowing crew join
+        const eventRef = doc(db, "events", eventId);
+        const eventSnap = await tx.get(eventRef);
+        const closingDate = eventSnap.data()?.closingDate;
+        if (closingDate) {
+            const closing = closingDate.toDate ? closingDate.toDate() : new Date(closingDate);
+            if (closing < new Date()) throw new Error("Registration has closed for this event.");
+        }
 
         const status = boat.status ?? "registered";
         if (status !== "pending_crew") throw new Error("This crew is no longer accepting invites.");
@@ -183,8 +236,16 @@ export async function getBoat(eventId: string, boatId: string): Promise<BoatDoc 
 
 export async function assignBowNumbersForEvent(
     eventId: string,
-    categoryOrder: string[]
+    categoryOrder: string[],
+    excludedBowNumbers: number[] = []
 ): Promise<void> {
+    const excluded = new Set(excludedBowNumbers);
+
+    function nextAvailable(from: number): number {
+        while (excluded.has(from)) from++;
+        return from;
+    }
+
     // Query only boats that are NOT pending_crew
     const snap = await getDocs(
         query(
@@ -212,15 +273,22 @@ export async function assignBowNumbersForEvent(
         list.sort((a, b) => a.createdAt - b.createdAt);
     }
 
-    // Assign bow numbers
-    let bow = 1;
+    // Assign bow numbers, skipping excluded values
+    let bow = nextAvailable(1);
     const updates: Array<{ boatId: string; bowNumber: number }> = [];
+
+    const assignList = (list: { id: string }[]) => {
+        for (const b of list) {
+            updates.push({ boatId: b.id, bowNumber: bow });
+            bow = nextAvailable(bow + 1);
+        }
+    };
 
     // First, assign by categoryOrder
     for (const cat of categoryOrder) {
         const list = byCategory.get(cat);
         if (!list || list.length === 0) continue;
-        for (const b of list) updates.push({ boatId: b.id, bowNumber: bow++ });
+        assignList(list);
         byCategory.delete(cat);
     }
 
@@ -229,8 +297,7 @@ export async function assignBowNumbersForEvent(
         a.localeCompare(b)
     );
     for (const cat of remainingCats) {
-        const list = byCategory.get(cat)!;
-        for (const b of list) updates.push({ boatId: b.id, bowNumber: bow++ });
+        assignList(byCategory.get(cat)!);
     }
 
     // Commit updates in a batch
@@ -242,6 +309,17 @@ export async function assignBowNumbersForEvent(
         });
     }
     await batch.commit();
+}
+
+export async function updateBowNumber(eventId: string, boatId: string, bowNumber: number | null): Promise<void> {
+    const patch: any = { updatedAt: serverTimestamp() };
+    if (bowNumber === null) {
+        const { deleteField } = await import("firebase/firestore");
+        patch.bowNumber = deleteField();
+    } else {
+        patch.bowNumber = bowNumber;
+    }
+    await updateDoc(boatRef(eventId, boatId), patch);
 }
 
 export async function startBoat(eventId: string, boatId: string): Promise<void> {
@@ -292,9 +370,10 @@ export async function getInviteRequirements(
     }
 
     return {
-        eventDate: eventSnap.data().date,
-        category: boat.category,
+        eventDate:   eventSnap.data().date,
+        closingDate: eventSnap.data().closingDate ?? null,
+        category:    boat.category,
         genderCategory: boat.genderCategory,
-        boatId: boatDoc.id,
+        boatId:      boatDoc.id,
     };
 }

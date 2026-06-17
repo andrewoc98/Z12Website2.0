@@ -1,6 +1,6 @@
 import type {BoatDoc} from "../signup/types.ts";
 
-export type EventStatus = "draft" | "open" | "closed" | "running" | "finished";
+export type EventStatus = "draft" | "open" | "closed" | "running" | "finished" | "cancelled";
 
 export type EventSeriesType = "regional_series" | "national_series" | "national_event";
 
@@ -22,7 +22,7 @@ export type EventDoc = {
     startDate: string;
     endDate: string;
     closingDate?: string;
-    status: "draft" | "open" | "closed" | "running" | "finished";
+    status: "draft" | "open" | "closed" | "running" | "finished" | "cancelled";
     location: string;
     description?: string;
     lengthMeters: number;
@@ -34,6 +34,7 @@ export type EventDoc = {
     createdByName?: string;
     hostId?: string;
     categories: EventCategory[];
+    excludedBowNumbers?: number[];
     resultsPublishMode:
         | "live"
         | "category_complete"
@@ -47,7 +48,7 @@ export type FirestoreEventDoc = {
     startAt: any;   // Timestamp
     endAt: any;     // Timestamp
     closeAt?: any;  // Timestamp
-    status: "draft" | "open" | "closed" | "running" | "finished";
+    status: "draft" | "open" | "closed" | "running" | "finished" | "cancelled";
     location: string;
     description?: string;
     lengthMeters: number;

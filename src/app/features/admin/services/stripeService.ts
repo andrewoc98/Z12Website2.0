@@ -21,3 +21,8 @@ export const removeCrewMember = call<
     { bookingId: string; targetUid: string },
     { success: boolean }
 >("removeCrewMember");
+
+export const submitReview = call<
+    { eventId: string; rating: number; comment: string },
+    { success: boolean }
+>("submitReview");

@@ -229,24 +229,38 @@ export default function RowerEventListPage() {
 
                 {loading && (
                     <div>
-                        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-                            <div className={skeletonBar} style={{ width: 120, height: 26 }} />
-                            <div className={skeletonBar} style={{ width: 90, height: 26 }} />
-                        </div>
-                        {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="border-2 border-brand-warm rounded-[14px] px-5 py-4 bg-transparent mb-[14px]">
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-                                    <div style={{ flex: 1 }}>
-                                        <div className={skeletonBar} style={{ width: "55%", height: 18, marginBottom: 10 }} />
-                                        <div className={skeletonBar} style={{ width: "30%", height: 14, marginBottom: 14 }} />
-                                        <div className={skeletonBar} style={{ width: "40%", height: 12, marginBottom: 6 }} />
-                                        <div className={skeletonBar} style={{ width: "36%", height: 12, marginBottom: 6 }} />
-                                        <div className={skeletonBar} style={{ width: "38%", height: 12 }} />
-                                    </div>
-                                    <div className={skeletonBar} style={{ width: 110, height: 38, borderRadius: 8, flexShrink: 0 }} />
+                        {/* Hero skeleton card */}
+                        <div style={{ borderRadius: 14, overflow: "hidden", background: "var(--surface)", border: "1px solid rgba(254,185,89,0.25)", marginBottom: 8 }}>
+                            {/* Gradient top area */}
+                            <div className={skeletonBar} style={{ height: 100, borderRadius: 0 }} />
+                            {/* Body row */}
+                            <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                                <div style={{ flex: 1 }}>
+                                    <div className={skeletonBar} style={{ width: "50%", height: 13, marginBottom: 6 }} />
+                                    <div className={skeletonBar} style={{ width: "35%", height: 11 }} />
                                 </div>
+                                <div className={skeletonBar} style={{ width: 110, height: 38, borderRadius: 6, flexShrink: 0 }} />
                             </div>
-                        ))}
+                        </div>
+
+                        {/* Secondary 2-column grid skeleton */}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                                    {/* 3px accent strip */}
+                                    <div className={skeletonBar} style={{ height: 3, borderRadius: 0 }} />
+                                    <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                                        <div className={skeletonBar} style={{ width: "80%", height: 13 }} />
+                                        <div className={skeletonBar} style={{ width: "60%", height: 11 }} />
+                                        <div className={skeletonBar} style={{ width: "50%", height: 11 }} />
+                                        <div className={skeletonBar} style={{ width: "30%", height: 11 }} />
+                                        <div style={{ marginTop: "auto", paddingTop: 8 }}>
+                                            <div className={skeletonBar} style={{ width: "100%", height: 32, borderRadius: 6 }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
                 {err && <p className="text-danger">{err}</p>}

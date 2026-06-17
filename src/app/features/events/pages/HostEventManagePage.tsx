@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
+import { useAuth } from "../../../providers/AuthProvider";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_HOST_EVENTS, TOUR_HOST_BOATS } from "../../home/components/tourMockData";
 import {getEvent, subscribeToEventBoats, updateEventCategories, updateCategoryFees} from "../api/events";
@@ -9,12 +10,14 @@ import OverviewTab from "../components/tabs/overview/OverviewTab";
 import RegistrationsTab from "../components/tabs/registrations/RegistrationsTab";
 import RaceTab from "../components/tabs/raceTab/RaceTab";
 import ContactsTab from "../components/tabs/contacts/ContactsTab.tsx";
+import BowNumbersTab from "../components/tabs/bowNumbers/BowNumbersTab.tsx";
 
-type Tab = "overview" | "categories" | "registrations"  | "race" | "contacts";
+type Tab = "overview" | "categories" | "registrations" | "bow numbers" | "race" | "contacts";
 
 export default function HostEventManagePage() {
 
     const { eventId } = useParams();
+    const { profile } = useAuth() as any;
     const { isTourActive } = useTourMock();
     const [event, setEvent] = useState<any>(null);
     const [tab, setTab] = useState<Tab>("overview");
@@ -92,10 +95,24 @@ export default function HostEventManagePage() {
 
     if (!event) return <div className="loading">Loading…</div>;
 
+    const adminClubId = profile?.roles?.clubAdmin?.clubId;
+    if (adminClubId && event.clubId && adminClubId !== event.clubId) {
+        return (
+            <>
+                <Navbar />
+                <main style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", gap: 12, color: "var(--text)" }}>
+                    <h1 style={{ fontSize: 24, margin: 0 }}>Access denied</h1>
+                    <p style={{ color: "var(--muted)", margin: 0 }}>This event belongs to a different club.</p>
+                </main>
+            </>
+        );
+    }
+
     const renderTab = () => {
         switch (tab) {
             case "overview":      return <OverviewTab event={event} boats={boats}/>;
             case "registrations": return <RegistrationsTab event={event} boats={boats} />;
+            case "bow numbers":   return <BowNumbersTab event={event} boats={boats} />;
             case "race":          return <RaceTab event={event} boats={boats}/>;
             case "contacts":      return <ContactsTab hostId={event.createdByUid}/>;
             case "categories":    return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} onSaveFees={handleSaveFees} />;
@@ -103,7 +120,7 @@ export default function HostEventManagePage() {
         }
     };
 
-    const tabs: Tab[] = ["overview","categories","registrations","race","contacts"];
+    const tabs: Tab[] = ["overview", "categories", "registrations", "bow numbers", "race", "contacts"];
 
     return (
         <>

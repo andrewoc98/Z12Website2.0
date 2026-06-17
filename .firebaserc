@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "z12-website-prod",
+    "qa": "z12-website"
+  }
+}

@@ -1,0 +1,29 @@
+name: Deploy FE to QA
+
+on:
+  push:
+    branches: [qa]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (QA env)
+        run: npm run build
+        env:
+          VITE_API_URL: https://us-central1-my-app-qa.cloudfunctions.net
+          VITE_ENV: qa
+
+      - name: Deploy to QA
+        run: npx firebase-tools deploy --only hosting --project qa --config firebase.qa.json
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

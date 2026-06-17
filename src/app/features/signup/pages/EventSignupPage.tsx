@@ -184,6 +184,7 @@ export default function EventPageSignUp() {
     const [err, setErr] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [showCheckout, setShowCheckout] = useState(false);
+    const [clubCountry, setClubCountry] = useState<string | null>(null);
 
     const clubName = useMemo(() => p?.roles?.rower?.clubMemberships?.[0]?.clubName ?? "", [p]);
     const inviteLink = (eid: string, code: string) => `${window.location.origin}/invite/${eid}/${code}`;
@@ -202,7 +203,12 @@ export default function EventPageSignUp() {
             try {
                 const snap = await getDoc(doc(db, "events", eventId));
                 if (!snap.exists()) return setSelectedEvent(null);
-                setSelectedEvent(mapEvent(snap.id, snap.data() as FirestoreEventDoc));
+                const eventData = mapEvent(snap.id, snap.data() as FirestoreEventDoc);
+                setSelectedEvent(eventData);
+                if (eventData.clubId) {
+                    const clubSnap = await getDoc(doc(db, "clubs", eventData.clubId));
+                    setClubCountry(clubSnap.data()?.location?.country ?? null);
+                }
             } catch (e: any) {
                 setErr(e?.message ?? "Failed to load event");
             } finally {
@@ -278,7 +284,7 @@ export default function EventPageSignUp() {
         !alreadySignedUpForCategory && !!clubName;
 
     const selectedCategoryFee = selectedCategory?.feeCents ?? 0;
-    const requiresPayment = selectedCategoryFee > 0;
+    const requiresPayment = selectedCategoryFee > 0 && clubCountry === "US";
 
     const myPendingCrews = useMemo(() => {
         if (!user) return [];

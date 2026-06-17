@@ -30,6 +30,7 @@ export default function EventCreatePage() {
     const [categories, setCategories] = useState<string[]>(() => buildDefaultCategories());
 
     const [allowedSeriesTypes, setAllowedSeriesTypes] = useState<EventSeriesType[]>([]);
+    const [clubCountry, setClubCountry] = useState<string | null>(null);
 
     const stripeOnboarded: boolean = profile?.roles?.clubAdmin?.stripeOnboarded ?? false;
 
@@ -38,6 +39,8 @@ export default function EventCreatePage() {
     const [boatFees, setBoatFees] = useState<Partial<Record<BoatClass, string>>>({});
 
     const BOAT_CLASS_ORDER: BoatClass[] = ["1x", "2x", "2-", "4x+"];
+
+    const skeletonBar = "rounded-full [background:linear-gradient(90deg,var(--color-surface)_25%,var(--color-surface-2)_50%,var(--color-surface)_75%)] [background-size:600px_100%] animate-[sk-shimmer_1.4s_infinite_linear]";
     const BOAT_CLASS_LABEL: Record<BoatClass, string> = {
         "1x":  "Single (1x)",
         "2x":  "Double (2x)",
@@ -57,6 +60,8 @@ export default function EventCreatePage() {
     const overrideCount = Object.values(boatFees).filter(v => v?.trim()).length;
     const anyFeeSet = !!globalFeeUsd.trim() || overrideCount > 0;
 
+    const [autoAssignBowNumbers, setAutoAssignBowNumbers] = useState(false);
+
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
@@ -64,6 +69,7 @@ export default function EventCreatePage() {
         if (!clubId) return;
         getClub(clubId).then(club => {
             setAllowedSeriesTypes(club?.allowedSeriesTypes ?? []);
+            setClubCountry(club?.location?.country ?? null);
         }).catch(() => {});
     }, [clubId]);
 
@@ -146,6 +152,7 @@ export default function EventCreatePage() {
                 : 0;
 
             const builtCategories = categoriesFromIds(categories).map(c => {
+                if (clubCountry !== "US") return c; // entry fees only permitted for US clubs
                 const bc = parseBoatClassFromCategory(c.id);
                 const overrideStr = bc ? boatFees[bc] : undefined;
                 const feeCents = overrideStr?.trim()
@@ -156,6 +163,7 @@ export default function EventCreatePage() {
 
             const eventId = await createEvent({
                 bowsAssigned: false,
+                autoAssignBowNumbers,
                 name: name.trim(),
                 description: description.trim(),
                 location: location.trim(),
@@ -311,10 +319,47 @@ export default function EventCreatePage() {
                     )}
                 </div>
 
+                <div className="card mt-[14px]">
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+                        <input
+                            type="checkbox"
+                            checked={autoAssignBowNumbers}
+                            onChange={(e) => setAutoAssignBowNumbers(e.target.checked)}
+                            style={{ marginTop: 3, flexShrink: 0 }}
+                        />
+                        <span>
+                            <span className="inline-flex items-center" style={{ fontWeight: 600, fontSize: 14 }}>
+                                Auto-assign bow numbers
+                                <InfoTooltip
+                                    text="When enabled, bow numbers are assigned automatically once the registration closing date passes. Numbers are allocated in category order (as listed below), with entries within each category ordered by registration time. Excluded bow numbers are always skipped. You can also assign or adjust numbers manually at any time in the Bow Numbers tab."
+                                    position="right"
+                                />
+                            </span>
+                            <span className="muted" style={{ display: "block", fontSize: 13, marginTop: 3 }}>
+                                Off by default — enable only if you want the system to assign numbers automatically after closing.
+                            </span>
+                        </span>
+                    </label>
+                </div>
+
                 <CategoryPicker value={categories} onChange={setCategories} />
 
-                {/* Entry fees */}
-                <div className="card mt-[14px]">
+                {/* Entry fees — US clubs only */}
+                {clubCountry === null && (
+                    <div className="card mt-[14px]">
+                        <div className={`${skeletonBar} mb-3`} style={{ width: 120, height: 18 }} />
+                        <div className={skeletonBar} style={{ width: "60%", height: 14 }} />
+                    </div>
+                )}
+                {clubCountry !== null && clubCountry !== "US" && (
+                    <div className="card mt-[14px]" style={{ opacity: 0.7 }}>
+                        <h3>Entry Fees</h3>
+                        <p className="muted mt-1" style={{ fontSize: 13 }}>
+                            Entry fees are only available for US-based events.
+                        </p>
+                    </div>
+                )}
+                {clubCountry === "US" && <div className="card mt-[14px]">
                     <h3>Entry Fees <span className="muted" style={{ fontWeight: 400, fontSize: 14 }}>(optional)</span></h3>
                     <p className="muted mt-1" style={{ fontSize: 13 }}>
                         Set a default fee for all boat types, or override per boat class. Leave blank for a free event.
@@ -382,7 +427,7 @@ export default function EventCreatePage() {
                             Connect Stripe in your Club Dashboard before athletes can pay this fee.
                         </p>
                     )}
-                </div>
+                </div>}
 
                 <div className="card mt-[14px]">
                     <div className="space-between">

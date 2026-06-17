@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { db } from "../../../shared/lib/firebase";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import AdminGuard from "../components/AdminGuard";
 import ClubInfoEditor from "../components/club/ClubInfoEditor";
@@ -32,6 +35,137 @@ export default function ClubAdminDashboard() {
         <AdminGuard role="clubAdmin">
             <ClubAdminContent />
         </AdminGuard>
+    );
+}
+
+type Payment = {
+    id:                    string;
+    eventId:               string;
+    eventName?:            string;
+    payerId:               string;
+    hostId:                string | null;
+    stripePaymentIntentId: string;
+    eventFeeCents:         number;
+    processingFeeCents:    number;
+    totalChargedCents:     number;
+    status:                "held" | "succeeded" | "refunded" | "disputed";
+    createdAt:             any;
+};
+
+const PAYMENT_STATUS: Record<Payment["status"], { label: string; color: string }> = {
+    held:      { label: "Held",     color: "#FEB959" },
+    succeeded: { label: "Paid out", color: "#48c78e" },
+    refunded:  { label: "Refunded", color: "#a0a0b0" },
+    disputed:  { label: "Disputed", color: "#ff6b6b" },
+};
+
+function fmtCents(cents: number) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+function fmtDate(ts: any): string {
+    if (!ts) return "—";
+    try {
+        const d: Date = ts.toDate ? ts.toDate() : new Date(ts);
+        return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+    } catch { return "—"; }
+}
+
+function PaymentsSection() {
+    const { user } = useAuth() as any;
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [loading,  setLoading]  = useState(true);
+
+    useEffect(() => {
+        if (!user?.uid) { setLoading(false); return; }
+
+        const q = query(
+            collection(db, "payments"),
+            where("hostId", "==", user.uid),
+            orderBy("createdAt", "desc")
+        );
+
+        const unsub = onSnapshot(q, (snap) => {
+            setPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payment)));
+            setLoading(false);
+        }, () => setLoading(false));
+
+        return unsub;
+    }, [user?.uid]);
+
+    const totalCollected = payments
+        .filter(p => p.status !== "refunded")
+        .reduce((sum, p) => sum + p.totalChargedCents, 0);
+
+    return (
+        <section className="card pa-section" style={{ borderColor: "rgba(254,185,89,0.15)" }}>
+            <div className="pa-section__header">
+                <h3 className="pa-section__title">Entry Payments</h3>
+                {!loading && payments.length > 0 && (
+                    <span style={{ color: "#FEB959", fontWeight: 700, fontSize: 14 }}>
+                        {fmtCents(totalCollected)} collected
+                    </span>
+                )}
+            </div>
+
+            {loading && (
+                <div style={{ display: "grid", gap: 8 }}>
+                    {[1, 2, 3].map(i => (
+                        <div key={i} style={{
+                            height: 44, borderRadius: 8,
+                            background: "linear-gradient(90deg,var(--surface) 25%,var(--surface-2) 50%,var(--surface) 75%)",
+                            backgroundSize: "600px 100%",
+                            animation: "sk-shimmer 1.4s infinite linear",
+                        }} />
+                    ))}
+                </div>
+            )}
+
+            {!loading && payments.length === 0 && (
+                <p className="muted" style={{ margin: 0 }}>No payments received yet.</p>
+            )}
+
+            {!loading && payments.length > 0 && (
+                <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                        <thead>
+                            <tr style={{ color: "rgba(255,255,255,0.35)", textTransform: "uppercase", fontSize: 11, letterSpacing: "0.05em" }}>
+                                <th style={{ textAlign: "left", padding: "6px 8px 10px 0", fontWeight: 600 }}>Event</th>
+                                <th style={{ textAlign: "right", padding: "6px 8px 10px", fontWeight: 600 }}>Amount</th>
+                                <th style={{ textAlign: "right", padding: "6px 8px 10px", fontWeight: 600 }}>Date</th>
+                                <th style={{ textAlign: "right", padding: "6px 0 10px 8px", fontWeight: 600 }}>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {payments.map(p => {
+                                const s = PAYMENT_STATUS[p.status] ?? PAYMENT_STATUS.held;
+                                return (
+                                    <tr key={p.id} style={{ borderTop: "1px solid var(--border)" }}>
+                                        <td style={{ padding: "10px 8px 10px 0" }}>
+                                            <Link
+                                                to={`/events/${p.eventId}`}
+                                                style={{ color: "#f0eee8", textDecoration: "none" }}
+                                            >
+                                                {p.eventName || p.eventId}
+                                            </Link>
+                                        </td>
+                                        <td style={{ textAlign: "right", padding: "10px 8px", color: "#FEB959", fontWeight: 600 }}>
+                                            {fmtCents(p.totalChargedCents)}
+                                        </td>
+                                        <td style={{ textAlign: "right", padding: "10px 8px", color: "rgba(255,255,255,0.45)" }}>
+                                            {fmtDate(p.createdAt)}
+                                        </td>
+                                        <td style={{ textAlign: "right", padding: "10px 0 10px 8px", color: s.color, fontWeight: 700 }}>
+                                            {s.label}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </section>
     );
 }
 
@@ -119,7 +253,7 @@ function ClubAdminContent() {
     const { clubId }                       = useAdminClaims();
     const { club, loading, error, reload } = useClubAdminData(clubId);
     const { toast, notify }                = useToast();
-    const { user }                         = useAuth();
+    const { user, profile }                 = useAuth() as any;
     const [showInviteMember, setShowInviteMember] = useState(false);
     const [showInviteAdmin,  setShowInviteAdmin]  = useState(false);
 
@@ -183,6 +317,9 @@ function ClubAdminContent() {
 
                     {/* Stripe payments */}
                     <StripeSection notify={notify} />
+
+                    {/* Payment history — only shown once Stripe is connected */}
+                    {profile?.roles?.clubAdmin?.stripeOnboarded && <PaymentsSection />}
 
                     {/* Admins section — visible to all club admins; actions gated by canManageAdmins */}
                     <section className="card pa-section">
