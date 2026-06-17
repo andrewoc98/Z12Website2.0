@@ -1,0 +1,455 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && uid() == userId;
+    }
+
+    // ── Role helpers ──────────────────────────────────────────────────────────
+    function isPlatformAdmin() {
+      return signedIn() && request.auth.token.get("role", "") == "platformAdmin";
+    }
+
+    function isFederationAdmin() {
+      return signedIn() && request.auth.token.get("role", "") == "federationAdmin";
+    }
+
+    function isClubAdmin() {
+      return signedIn() && request.auth.token.get("role", "") == "clubAdmin";
+    }
+
+    function hasFederationClaim(federationId) {
+      return request.auth.token.get("federationId", "") == federationId;
+    }
+
+    function hasClubClaim(clubId) {
+      return request.auth.token.get("clubId", "") == clubId;
+    }
+
+    function isEventHost(eventId) {
+      let eventDoc = exists(/databases/$(database)/documents/events/$(eventId))
+        ? get(/databases/$(database)/documents/events/$(eventId)).data
+        : null;
+      let clubId = eventDoc == null ? "" : eventDoc.get("clubId", "");
+      let clubFedId = (clubId != "" && exists(/databases/$(database)/documents/clubs/$(clubId)))
+        ? get(/databases/$(database)/documents/clubs/$(clubId)).data.get("federationId", "")
+        : "";
+      return eventDoc != null && (
+        isPlatformAdmin() ||
+        (signedIn() && isClubAdmin() && clubId != "" && hasClubClaim(clubId)) ||
+        (isFederationAdmin() && clubId != "" && clubFedId != "" && hasFederationClaim(clubFedId))
+      );
+    }
+
+    // Timing admin: a user whose roles.admin.hostIds contains the event's host uid.
+    function isTimingAdmin(eventId) {
+      let eventDoc = exists(/databases/$(database)/documents/events/$(eventId))
+        ? get(/databases/$(database)/documents/events/$(eventId)).data
+        : null;
+      let hostId = eventDoc != null
+        ? eventDoc.get("hostId", eventDoc.get("createdByUid", ""))
+        : "";
+      return signedIn()
+        && hostId != ""
+        && exists(/databases/$(database)/documents/users/$(uid()))
+        && get(/databases/$(database)/documents/users/$(uid())).data
+             .get("roles", {}).get("admin", {}).get("hostIds", []).hasAny([hostId]);
+    }
+
+    function isEventOpen(eventId) {
+      let ed = get(/databases/$(database)/documents/events/$(eventId)).data;
+      return !("closingDate" in ed) || ed.closingDate > request.time;
+    }
+
+    function writesProtectedFieldsOnCreate() {
+      let d = request.resource.data;
+      // Protect both the legacy `primaryRole` field and the new `role` claim-backing field
+      return "primaryRole" in d || "role" in d;
+    }
+
+    function writesProtectedFieldsOnUpdate() {
+      let d = request.resource.data;
+      let e = resource.data;
+      return (
+        ("primaryRole" in d && d.primaryRole != e.get("primaryRole", null)) ||
+        ("role"        in d && d.role        != e.get("role", null))
+      );
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      allow get:  if true;
+      allow list: if signedIn();
+
+      allow create: if isOwner(userId)
+        && !writesProtectedFieldsOnCreate();
+
+      allow update: if isOwner(userId)
+        && !writesProtectedFieldsOnUpdate();
+
+      allow write:  if isPlatformAdmin();
+      allow delete: if isOwner(userId);
+    }
+
+    // Admin notifications — user reads own; Functions write
+    match /users/{userId}/adminNotifications/{notificationId} {
+      allow read:  if signedIn() && uid() == userId;
+      allow write: if false;
+    }
+
+    // coachAssignments — rower's assigned coaches
+    match /users/{rowerId}/coachAssignments/{assignmentId} {
+      allow read: if signedIn() && uid() == rowerId;
+      allow write: if false; // Cloud Functions only (admin SDK)
+    }
+
+    // athleteRoster — coach's mirror index of assigned rowers
+    match /users/{coachId}/athleteRoster/{rosterEntryId} {
+      allow read: if signedIn() && uid() == coachId;
+      allow write: if false; // Cloud Functions only (admin SDK)
+    }
+
+    // ── Federations ───────────────────────────────────────────────────────────
+
+    match /federations/{federationId} {
+      // platformAdmin: full access
+      allow read, write: if isPlatformAdmin();
+
+      // federationAdmin: read own federation
+      allow read: if isFederationAdmin() && hasFederationClaim(federationId);
+
+      // federationAdmin: update own federation — cannot touch adminUids, createdBy, createdAt, status
+      allow update: if isFederationAdmin()
+        && hasFederationClaim(federationId)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(["adminUids", "createdBy", "createdAt", "status"]);
+
+      match /seriesGroups/{groupId} {
+        allow read, write: if isPlatformAdmin();
+        allow read, write: if isFederationAdmin() && hasFederationClaim(federationId);
+      }
+    }
+
+    // ── Clubs ─────────────────────────────────────────────────────────────────
+
+    match /clubs/{clubId} {
+      // platformAdmin: read and update only — create/delete are Function-only
+      allow read, update: if isPlatformAdmin();
+
+      // federationAdmin: read clubs in their federation; limited updates
+      allow read: if isFederationAdmin()
+        && resource.data.get("federationId", "") == request.auth.token.get("federationId", "");
+
+      allow update: if isFederationAdmin()
+        && resource.data.get("federationId", "") == request.auth.token.get("federationId", "")
+        && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(["adminUids", "federationId", "createdBy", "status"]);
+
+      // clubAdmin: read and update their own club
+      allow read: if isClubAdmin() && hasClubClaim(clubId);
+
+      allow update: if isClubAdmin()
+        && hasClubClaim(clubId)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(["adminUids", "federationId", "createdBy", "status", "approvedAt", "approvedBy"]);
+
+      // Club info (name, location, status) is public — needed for unauthenticated event pages
+      allow get: if true;
+
+      // All creates and destructive updates go through Functions only
+      allow create, delete: if false;
+    }
+
+    // Club members readable by any signed-in user (for coach browse)
+    match /clubs/{clubId}/members/{memberId} {
+      allow get:  if signedIn();
+      allow list: if signedIn();
+      allow write: if false;
+    }
+
+    // ── Club creation requests ────────────────────────────────────────────────
+
+    match /clubCreationRequests/{requestId} {
+      // Any authenticated user can submit a request
+      allow create: if signedIn()
+        && request.resource.data.requestedBy == uid()
+        && request.resource.data.status == "pending";
+
+      // Requester can read their own request
+      allow read: if signedIn() && resource.data.requestedBy == uid();
+
+      // federationAdmin can read requests for their federation
+      allow read: if isFederationAdmin()
+        && resource.data.get("federationId", "") == request.auth.token.get("federationId", "");
+
+      // platformAdmin can read all
+      allow read: if isPlatformAdmin();
+
+      // Approve/reject via Functions only — no direct client updates
+      allow update, delete: if false;
+    }
+
+    // ── Club member invites ───────────────────────────────────────────────────
+
+    match /clubInvites/{inviteId} {
+      // Target user can read their own invite (by uid or by email for external invites)
+      allow read: if signedIn() && (
+        resource.data.get("targetUid", "") == uid() ||
+        resource.data.get("targetEmail", "") == request.auth.token.email ||
+        (isClubAdmin() && hasClubClaim(resource.data.get("clubId", "")))
+      );
+      allow write: if false; // Cloud Functions only
+    }
+
+    // ── Federation invites ────────────────────────────────────────────────────
+
+    match /federationInvites/{inviteId} {
+      // platformAdmin only — all other access via callable Functions
+      allow read, write: if isPlatformAdmin();
+    }
+
+    // ── Admin invites (timing admin invite flow) ──────────────────────────────
+
+    match /adminInvites/{inviteId} {
+      allow get:  if signedIn();
+      allow list: if false;
+
+      allow create: if signedIn()
+        && exists(/databases/$(database)/documents/users/$(uid()))
+        && isClubAdmin()
+        && request.resource.data.hostId == uid()
+        && request.resource.data.used   == false;
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ── Pending users ─────────────────────────────────────────────────────────
+
+    match /pendingUsers/{pendingId} {
+      allow get:    if true;
+      allow create: if false;
+      allow list:   if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ── Events ────────────────────────────────────────────────────────────────
+
+    match /events/{eventId} {
+      allow get:  if true;
+      allow list: if true;
+
+      allow create: if (
+        isClubAdmin()
+          && request.resource.data.get("clubId", "") == request.auth.token.get("clubId", "")
+          && request.resource.data.get("clubId", "") != ""
+          && request.resource.data.get("hostId", "") == uid()
+      ) || (
+        isPlatformAdmin()
+          && request.resource.data.get("clubId", "") != ""
+          && request.resource.data.get("hostId", "") == uid()
+      ) || (
+        isFederationAdmin()
+          && request.resource.data.get("clubId", "") != ""
+          && request.resource.data.get("hostId", "") == uid()
+          && exists(/databases/$(database)/documents/clubs/$(request.resource.data.get("clubId", "")))
+          && get(/databases/$(database)/documents/clubs/$(request.resource.data.get("clubId", ""))).data.get("federationId", "") == request.auth.token.get("federationId", "")
+      );
+
+      allow update: if isEventHost(eventId);
+      allow delete: if false; // Events cannot be deleted — use cancellation with refunds
+    }
+
+    match /events/{eventId}/{subCollection}/{docId} {
+      allow get:  if true;
+      allow list: if true;
+      allow write: if isEventHost(eventId) || isTimingAdmin(eventId);
+    }
+
+    match /events/{eventId}/boats/{boatId} {
+      allow get:  if true;
+      allow list: if true;
+
+      // Rower creating their own boat (first rowerUid must be themselves)
+      // OR coach creating an empty crew entry (rowerUids empty, createdByUid is themselves)
+      allow create: if signedIn() && (
+        request.resource.data.get("rowerUids", [])[0] == uid()
+        || (request.resource.data.get("rowerUids", []).size() == 0
+            && request.resource.data.get("createdByUid", "") == uid())
+      );
+
+      // Host or timing admin can update any boat; rower can join a pending_crew boat before closing
+      allow update: if isEventHost(eventId)
+        || isTimingAdmin(eventId)
+        || (signedIn()
+          && resource.data.get("status", "") == "pending_crew"
+          && isEventOpen(eventId)
+          && request.resource.data.rowerUids.hasAll(resource.data.rowerUids)
+          && request.resource.data.rowerUids.hasAny([uid()])
+          && request.resource.data.rowerUids.size() == resource.data.rowerUids.size() + 1
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(["rowerUids", "status", "inviteCode", "updatedAt"]));
+
+      allow delete: if isEventHost(eventId) || isTimingAdmin(eventId);
+    }
+
+    match /events/{eventId}/rowerCategorySignups/{docId} {
+      allow get:  if true;
+      allow list: if isEventHost(eventId);
+
+      // Rower can only create their own guard doc
+      allow create: if signedIn()
+        && request.resource.data.uid == uid();
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ── Boats ─────────────────────────────────────────────────────────────────
+
+    // Collection-group rule required for collectionGroup("boats") queries.
+    // Firestore rejects collection group queries unless a /{path=**} rule explicitly covers them,
+    // even if the per-document rules would allow the individual reads.
+    match /{path=**}/boats/{boatId} {
+      allow read: if signedIn();
+    }
+
+    match /boats/{boatId} {
+      allow get:  if true;
+      allow list: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.get("createdBy", "") == uid();
+
+      allow update: if signedIn()
+        && (
+          resource.data.get("createdBy", "") == uid()
+          || isEventHost(resource.data.eventId)
+          || isTimingAdmin(resource.data.eventId)
+        );
+
+      allow delete: if signedIn()
+        && (
+          resource.data.get("createdBy", "") == uid()
+          || isEventHost(resource.data.eventId)
+          || isTimingAdmin(resource.data.eventId)
+        );
+    }
+
+    // ── Training Sessions ────────────────────────────────────────────────────
+
+    match /sessions/{sessionId} {
+      allow read: if signedIn() && (
+        resource.data.get('coachId', '') == uid() ||
+        request.auth.token.email == resource.data.get('timingAssistantEmail', '') ||
+        request.auth.token.get('assistantFor', '') == sessionId
+      );
+      allow create: if signedIn() && request.resource.data.coachId == uid();
+      allow update: if signedIn() && (
+        resource.data.get('coachId', '') == uid() ||
+        request.auth.token.get('assistantFor', '') == sessionId
+      );
+      allow delete: if signedIn() && resource.data.get('coachId', '') == uid();
+    }
+
+    match /pieceResults/{resultId} {
+      allow read: if signedIn() && (
+        resource.data.get('coachId', '') == uid() ||
+        resource.data.get('rowerIds', []).hasAny([uid()]) ||
+        request.auth.token.get('assistantFor', '') == resource.data.get('sessionId', '')
+      );
+      allow create: if signedIn() && (
+        request.resource.data.coachId == uid() ||
+        request.auth.token.get('assistantFor', '') == request.resource.data.get('sessionId', '')
+      );
+      allow update: if signedIn() && (
+        resource.data.get('coachId', '') == uid() ||
+        request.auth.token.get('assistantFor', '') == resource.data.get('sessionId', '')
+      );
+      allow delete: if signedIn() && (
+        resource.data.get('coachId', '') == uid() ||
+        resource.data.get('rowerIds', []).hasAny([uid()]) ||
+        request.auth.token.get('assistantFor', '') == resource.data.get('sessionId', '')
+      );
+    }
+
+    // ── Admin deductions ──────────────────────────────────────────────────────
+    // Processing-fee deduction records flagged when a host cancels an event.
+    // Platform admin read/write only — written by Cloud Functions.
+
+    match /adminDeductions/{docId} {
+      allow read:  if isPlatformAdmin();
+      allow write: if false;
+    }
+
+    // ── Bookings ──────────────────────────────────────────────────────────────
+    // Written only by Cloud Functions (fulfillBooking, stripeWebhook).
+    // Rower reads their own bookings; host reads bookings for their events.
+    // list is signed-in-only; the query's where() clause does the real filtering.
+
+    match /bookings/{bookingId} {
+      allow get: if signedIn() && (
+        resource.data.get("payerUid", "") == uid() ||
+        resource.data.get("hostId",  "") == uid() ||
+        isPlatformAdmin()
+      );
+      allow list: if signedIn();
+      allow write: if false;
+    }
+
+    // ── Payments ──────────────────────────────────────────────────────────────
+    // Written only by Cloud Functions (Stripe webhook + admin flows).
+    // Rower reads their own records; host reads payments for their events.
+    // The list rule allows the payerId/hostId-scoped queries in MyOrdersPage
+    // and PaymentsTab — the query's own where() clause does the real filtering.
+
+    match /payments/{paymentId} {
+      allow get:  if signedIn() && (
+        resource.data.get("payerId", "") == uid() ||
+        resource.data.get("hostId",  "") == uid() ||
+        isPlatformAdmin()
+      );
+      allow list: if signedIn();
+      allow write: if false;
+    }
+
+    // ── Reviews ───────────────────────────────────────────────────────────────
+    // Written only by the submitReview Cloud Function (Admin SDK).
+    // Reads are public — reviews appear on the event page for all visitors.
+    // The signed-in get is required for the "already reviewed?" check in ReviewsTab.
+
+    match /reviews/{reviewId} {
+      allow get:  if signedIn();
+      allow list: if true;
+      allow write: if false;
+    }
+
+    // ── Review Email Log ──────────────────────────────────────────────────────
+    // Written only by the sendReviewEmails Cloud Function (Admin SDK).
+    // No client access needed.
+
+    match /reviewEmailLog/{docId} {
+      allow read:  if false;
+      allow write: if false;
+    }
+
+    // ── Config ────────────────────────────────────────────────────────────────
+
+    match /config/{docId} {
+      allow get:  if true;
+      allow list: if false;
+      allow write: if false;
+    }
+  }
+}

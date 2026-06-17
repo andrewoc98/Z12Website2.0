@@ -24,6 +24,6 @@ jobs:
           VITE_ENV: qa
 
       - name: Deploy to QA
-        run: npx firebase-tools deploy --only hosting --project qa --config firebase.qa.json
+        run: npx firebase-tools deploy --only hosting --project qa --config firebase.json
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
