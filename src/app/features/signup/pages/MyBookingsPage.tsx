@@ -569,7 +569,7 @@ export default function MyBookingsPage() {
                         if (!snap.exists()) return null;
                         const data = snap.data() as BoatDetail;
                         data.rowerUids?.forEach(uid => rowerUidSet.add(uid));
-                        return { id: snap.id, ...data } as BoatDetail;
+                        return { ...data, id: snap.id } as BoatDetail;
                     })
                 );
                 newBoatsMap[booking.id] = boats.filter(Boolean) as BoatDetail[];
