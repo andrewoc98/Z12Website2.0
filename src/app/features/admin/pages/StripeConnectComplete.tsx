@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import { useAuth } from "../../../providers/AuthProvider";
 import Navbar from "../../../shared/components/Navbar/Navbar";
+
+const DRAFT_KEY = "z12_event_create_draft";
 
 type Phase = "waiting" | "confirmed" | "timeout";
 
@@ -11,7 +13,9 @@ const TIMEOUT_MS = 30_000;
 
 export default function StripeConnectComplete() {
     const { user } = useAuth() as any;
+    const navigate = useNavigate();
     const [phase, setPhase] = useState<Phase>("waiting");
+    const hasDraft = !!sessionStorage.getItem(DRAFT_KEY);
 
     useEffect(() => {
         if (!user?.uid) return;
@@ -55,9 +59,19 @@ export default function StripeConnectComplete() {
                                 Your payout account is set up. Entry fees will be transferred to your Stripe
                                 balance automatically when athletes register for your events.
                             </p>
-                            <Link to="/admin/club">
-                                <button className="btn-primary">Back to Club Dashboard</button>
-                            </Link>
+                            {hasDraft ? (
+                                <button
+                                    className="btn-primary"
+                                    style={{ width: "100%", marginBottom: 10 }}
+                                    onClick={() => navigate("/host/events/new")}
+                                >
+                                    Continue creating your event →
+                                </button>
+                            ) : (
+                                <Link to="/admin/club">
+                                    <button className="btn-primary">Back to Club Dashboard</button>
+                                </Link>
+                            )}
                         </>
                     )}
 
@@ -69,8 +83,17 @@ export default function StripeConnectComplete() {
                                 Stripe is still processing your account. Your connection will activate
                                 automatically — check your Club Dashboard in a few minutes.
                             </p>
+                            {hasDraft && (
+                                <button
+                                    className="btn-primary"
+                                    style={{ width: "100%", marginBottom: 10 }}
+                                    onClick={() => navigate("/host/events/new")}
+                                >
+                                    Go back to event creation
+                                </button>
+                            )}
                             <Link to="/admin/club">
-                                <button className="btn-primary">Go to Club Dashboard</button>
+                                <button className={hasDraft ? "btn" : "btn-primary"}>Go to Club Dashboard</button>
                             </Link>
                         </>
                     )}

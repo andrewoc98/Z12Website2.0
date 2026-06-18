@@ -22,6 +22,12 @@ type FulfillResult = {
     inviteCode:       string | null;
 };
 
+type CoachFulfillResult = {
+    success:          boolean;
+    alreadyFulfilled: boolean;
+    boatCount:        number;
+};
+
 function CopyInviteRow({ url }: { url: string }) {
     const [copied, setCopied] = useState(false);
     async function copy() {
@@ -68,12 +74,14 @@ export default function BookingConfirmPage() {
     const [phase,              setPhase]              = useState<Phase>("loading");
     const [message,            setMessage]            = useState<string | null>(null);
     const [fulfill,            setFulfill]            = useState<FulfillResult | null>(null);
+    const [coachFulfill,       setCoachFulfill]       = useState<CoachFulfillResult | null>(null);
     const [processingTimedOut, setProcessingTimedOut] = useState(false);
     const didFulfill = useRef(false);
 
     const eventId    = params.get("eventId")    ?? "";
     const categoryId = params.get("categoryId") ?? "";
     const piId       = params.get("payment_intent") ?? "";
+    const flow       = params.get("flow") ?? "";
 
     useEffect(() => {
         if (didFulfill.current) return;
@@ -119,18 +127,26 @@ export default function BookingConfirmPage() {
                 return;
             }
 
-            // Call fulfillBooking to create the boat/booking atomically
+            // Call the appropriate fulfill function based on the flow
             try {
-                const functions    = getFunctions(app);
-                const fulfillFn    = httpsCallable<{ paymentIntentId: string }, FulfillResult>(
-                    functions, "fulfillBooking"
-                );
-                const { data } = await fulfillFn({ paymentIntentId: piId });
-                setFulfill(data);
+                const functions = getFunctions(app);
+                if (flow === "coach") {
+                    const fulfillFn = httpsCallable<{ paymentIntentId: string }, CoachFulfillResult>(
+                        functions, "fulfillCoachBooking"
+                    );
+                    const { data } = await fulfillFn({ paymentIntentId: piId });
+                    setCoachFulfill(data);
+                } else {
+                    const fulfillFn = httpsCallable<{ paymentIntentId: string }, FulfillResult>(
+                        functions, "fulfillBooking"
+                    );
+                    const { data } = await fulfillFn({ paymentIntentId: piId });
+                    setFulfill(data);
+                }
                 setPhase("succeeded");
             } catch (e: any) {
                 // Even if fulfillment fails, the payment succeeded — show partial success
-                console.error("fulfillBooking error:", e);
+                console.error("fulfill error:", e);
                 setPhase("succeeded");
                 setMessage("Payment confirmed but your entry could not be fully created. Please contact support.");
             }
@@ -199,7 +215,31 @@ export default function BookingConfirmPage() {
                         </>
                     )}
 
-                    {phase === "succeeded" && (
+                    {phase === "succeeded" && flow === "coach" && (
+                        <>
+                            <div className="sco-confirm-icon sco-confirm-icon--success">✓</div>
+                            <h1 className="sco-confirm-heading">
+                                {coachFulfill
+                                    ? `${coachFulfill.boatCount} ${coachFulfill.boatCount === 1 ? "entry" : "entries"} created!`
+                                    : "Entries created!"}
+                            </h1>
+                            <p className="sco-confirm-subtitle">
+                                {message ?? "Payment confirmed. Share the invite links with your crews from the event page."}
+                            </p>
+                            <div className="sco-confirm-actions">
+                                {eventId && (
+                                    <Link to={`/events/${eventId}?tab=entries`} className="sco-confirm-btn sco-confirm-btn--primary">
+                                        View entries & invite links
+                                    </Link>
+                                )}
+                                <Link to="/events" className="sco-confirm-btn sco-confirm-btn--ghost">
+                                    Back to events
+                                </Link>
+                            </div>
+                        </>
+                    )}
+
+                    {phase === "succeeded" && flow !== "coach" && (
                         <>
                             <div className="sco-confirm-icon sco-confirm-icon--success">✓</div>
                             <h1 className="sco-confirm-heading">
@@ -219,7 +259,7 @@ export default function BookingConfirmPage() {
                                         View entries
                                     </Link>
                                 )}
-                                <Link to="/rower/my-bookings" className="sco-confirm-btn sco-confirm-btn--ghost">
+                                <Link to="/my-bookings" className="sco-confirm-btn sco-confirm-btn--ghost">
                                     My bookings
                                 </Link>
                             </div>
@@ -241,7 +281,7 @@ export default function BookingConfirmPage() {
                             </p>
                             <div className="sco-confirm-actions">
                                 {processingTimedOut && eventId && (
-                                    <Link to={`/rower/my-bookings`} className="sco-confirm-btn sco-confirm-btn--primary">
+                                    <Link to="/my-bookings" className="sco-confirm-btn sco-confirm-btn--primary">
                                         My bookings
                                     </Link>
                                 )}

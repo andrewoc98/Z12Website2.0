@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import type { EventDoc, EventCategory, FirestoreEventDoc } from "../../events/types";
+import { STRIPE_SUPPORTED_COUNTRIES } from "../../events/types";
 
 const StripeCheckoutModal = lazy(() => import("../components/StripeCheckoutModal"));
 import type { BoatSize } from "../types";
@@ -284,7 +285,7 @@ export default function EventPageSignUp() {
         !alreadySignedUpForCategory && !!clubName;
 
     const selectedCategoryFee = selectedCategory?.feeCents ?? 0;
-    const requiresPayment = selectedCategoryFee > 0 && clubCountry === "US";
+    const requiresPayment = selectedCategoryFee > 0 && STRIPE_SUPPORTED_COUNTRIES.has(clubCountry ?? "");
 
     const myPendingCrews = useMemo(() => {
         if (!user) return [];

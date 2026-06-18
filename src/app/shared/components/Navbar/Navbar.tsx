@@ -145,16 +145,19 @@ export default function Navbar() {
 
                     {navEntries.map(entry => {
                         if (entry.type === "link") {
+                            const isBookings = entry.to === "/my-bookings";
                             return (
-                                <Link key={entry.to} to={entry.to} className={linkCls} onClick={close}>
+                                <Link key={entry.to} to={entry.to} className={linkCls} onClick={close}
+                                    style={{ display: "flex", alignItems: "center" }}
+                                >
                                     {entry.label}
+                                    {isBookings && <NotifDot count={rescheduleCount} />}
                                 </Link>
                             );
                         }
                         const isOpen = openGroup === entry.label;
                         // Count reschedule notifications relevant to items in this group
-                        const groupHasNotif = rescheduleCount > 0 &&
-                            entry.items.some(i => i.to === "/rower/my-bookings");
+                        const groupHasNotif = false; // bookings moved to top-level nav
                         return (
                             <div
                                 key={entry.label}
@@ -178,7 +181,7 @@ export default function Navbar() {
                                             style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                                         >
                                             {sub.label}
-                                            {sub.to === "/rower/my-bookings" && <NotifDot count={rescheduleCount} />}
+                                            {sub.to === "/my-bookings" && <NotifDot count={rescheduleCount} />}
                                         </Link>
                                     ))}
                                 </div>

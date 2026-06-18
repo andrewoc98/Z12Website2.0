@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
-const StripeCheckoutModal = lazy(() => import("../../signup/components/StripeCheckoutModal"));
+const StripeCheckoutModal  = lazy(() => import("../../signup/components/StripeCheckoutModal"));
+const CoachCheckoutModal   = lazy(() => import("../../signup/components/CoachCheckoutModal"));
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 import type { EventDoc, EventCategory, FirestoreEventDoc, EventSeriesType } from "../types";
+import { STRIPE_SUPPORTED_COUNTRIES } from "../types";
 import type { BoatSize } from "../../signup/types";
 import { createBoat, createBoatAsCoach, listBoatsForEvent } from "../../signup/api/boats";
 import { parseBoatClassFromCategory, boatSizeFromBoatClass, formatDate } from "../lib/categories";
@@ -282,7 +284,8 @@ export default function EventPage() {
     const [filterCategory, setFilterCategory] = useState("all");
     const [filterClub, setFilterClub] = useState("all");
     const [expandedBoats, setExpandedBoats] = useState<Set<string>>(new Set());
-    const [showCheckout, setShowCheckout] = useState(false);
+    const [showCheckout,      setShowCheckout]      = useState(false);
+    const [showCoachCheckout, setShowCoachCheckout] = useState(false);
     const [clubCountry,  setClubCountry]  = useState<string | null>(null);
     const [hostClubName, setHostClubName] = useState<string | null>(null);
 
@@ -437,7 +440,7 @@ export default function EventPage() {
 
     const selectedCategory = categoryId ? categoryById.get(categoryId) ?? null : null;
     const selectedCategoryFee = selectedCategory?.feeCents ?? 0;
-    const requiresPayment = selectedCategoryFee > 0 && clubCountry === "US";
+    const requiresPayment = selectedCategoryFee > 0 && STRIPE_SUPPORTED_COUNTRIES.has(clubCountry ?? "");
 
     const derivedBoatSize: BoatSize | null = useMemo(() => {
         if (!selectedCategory) return null;
@@ -476,6 +479,20 @@ export default function EventPage() {
     const canCreateAsCoach = !!user && !!p?.roles?.coach &&
         !!event && totalCoachBoats > 0 && event.status === "open";
 
+    const coachEntries = useMemo(() => {
+        const result: { categoryId: string; categoryName: string; count: number; feeCents: number }[] = [];
+        for (const [catId, count] of coachSelectedCounts.entries()) {
+            if (count === 0) continue;
+            const cat = categoryById.get(catId);
+            if (!cat) continue;
+            result.push({ categoryId: cat.id, categoryName: cat.name, count, feeCents: cat.feeCents ?? 0 });
+        }
+        return result;
+    }, [coachSelectedCounts, categoryById]);
+
+    const coachRequiresPayment = STRIPE_SUPPORTED_COUNTRIES.has(clubCountry ?? "") && coachEntries.some(e => e.feeCents > 0);
+    const coachTotalFeeCents   = coachEntries.reduce((sum, e) => sum + e.feeCents * e.count, 0);
+
     const myPendingCrews = useMemo(() =>
         !user ? [] : boats.filter(b =>
             (b.status ?? "registered") === "pending_crew" &&
@@ -487,6 +504,12 @@ export default function EventPage() {
         !user ? [] : boats.filter(b =>
             b.status !== "pending_crew" &&
             ((b.rowerUids ?? []).includes(user.uid) || (b as any).createdByUid === user.uid)
+        ),
+    [boats, user]);
+
+    const hasEnteredEvent = useMemo(() =>
+        !!user && boats.some(b =>
+            (b.rowerUids ?? []).includes(user.uid) || (b as any).createdByUid === user.uid
         ),
     [boats, user]);
 
@@ -882,9 +905,11 @@ export default function EventPage() {
                         ? "Creating entries…"
                         : totalCoachBoats === 0
                             ? "Select categories above"
-                            : totalCoachBoats === 1
-                                ? "Create 1 entry & get invite link →"
-                                : `Create ${totalCoachBoats} entries & get invite links →`;
+                            : coachRequiresPayment
+                                ? `Pay & create ${totalCoachBoats} ${totalCoachBoats === 1 ? "entry" : "entries"} — ${fmtFee(coachTotalFeeCents)}`
+                                : totalCoachBoats === 1
+                                    ? "Create 1 entry & get invite link →"
+                                    : `Create ${totalCoachBoats} entries & get invite links →`;
 
                     return (
                         <div className="esu-card esu-signup-card" data-tour="signup-form">
@@ -1096,6 +1121,14 @@ export default function EventPage() {
                                 </div>
                             )}
 
+                            {/* Fee badge (coach mode, paid event) */}
+                            {mode === "coach" && coachRequiresPayment && coachTotalFeeCents > 0 && (
+                                <div className="esu-fee-badge">
+                                    <span className="esu-fee-label">Total entry fees</span>
+                                    <span className="esu-fee-amount">{fmtFee(coachTotalFeeCents)}</span>
+                                </div>
+                            )}
+
                             {successMsg && <div className="esu-success-banner">{successMsg}</div>}
                             {signupErr   && <div className="esu-error-banner">{signupErr}</div>}
 
@@ -1114,7 +1147,7 @@ export default function EventPage() {
                                 <button
                                     className="esu-btn-primary esu-signup-btn"
                                     disabled={!canCreateAsCoach || busy}
-                                    onClick={onCreateBoatAsCoach}
+                                    onClick={coachRequiresPayment ? () => setShowCoachCheckout(true) : onCreateBoatAsCoach}
                                 >
                                     {busy ? (
                                         <span className="esu-btn-loading">Creating entries…</span>
@@ -1400,7 +1433,19 @@ export default function EventPage() {
                 )}
 
                 {/* ── Write a review ── */}
-                {user && !myReview && !reviewDone && isFinished && (
+                {user && !myReview && !reviewDone && isFinished && !hasEnteredEvent && (
+                    <div className="esu-card esu-info-card" style={{ marginBottom: 4 }}>
+                        <div className="esu-info-icon">🚣</div>
+                        <div>
+                            <strong style={{ color: "rgba(255,255,255,0.8)", fontSize: 14 }}>You didn't enter this event</strong>
+                            <p className="esu-muted" style={{ margin: "4px 0 0" }}>
+                                Reviews are only open to athletes who competed. Enter a future event hosted by {hostClubName ?? "this club"} to leave a review.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {user && !myReview && !reviewDone && isFinished && hasEnteredEvent && (
                     <div className="esu-card" style={{ marginBottom: 4 }}>
                         <h3 className="esu-card-section-title">Leave a review</h3>
                         <p className="esu-muted" style={{ fontSize: 13, marginBottom: 12 }}>
@@ -1533,6 +1578,15 @@ export default function EventPage() {
                         categoryId={selectedCategory.id}
                         categoryName={selectedCategory.name}
                         onClose={() => setShowCheckout(false)}
+                    />
+                </Suspense>
+            )}
+            {showCoachCheckout && event && coachEntries.length > 0 && (
+                <Suspense fallback={null}>
+                    <CoachCheckoutModal
+                        eventId={eventId!}
+                        entries={coachEntries}
+                        onClose={() => setShowCoachCheckout(false)}
                     />
                 </Suspense>
             )}

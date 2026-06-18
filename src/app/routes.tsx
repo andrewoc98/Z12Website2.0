@@ -13,6 +13,7 @@ function RedirectToEntries() {
 import HomePage from "./features/home/pages/HomePage";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
 import RequireRole from "./guards/RequireRole";
+import RequireAnyRole from "./guards/RequireAnyRole";
 import RequireAuth from "./guards/RequiredAuth.tsx";
 import RequireTimingAccess from "./guards/RequireTimingAccess.tsx";
 import RequireMaintenance from "./guards/RequireMaintenance.tsx";
@@ -237,11 +238,11 @@ export const router = createBrowserRouter([
             { path: "/admin/stripe/complete", element: <StripeConnectComplete /> },
             { path: "/admin/stripe/refresh",  element: <StripeConnectRefresh /> },
             {
-                path: "/rower/my-bookings",
+                path: "/my-bookings",
                 element: (
-                    <RequireRole role="rower">
+                    <RequireAnyRole roles={["rower", "coach"]}>
                         <MyBookingsPage />
-                    </RequireRole>
+                    </RequireAnyRole>
                 ),
             },
             {

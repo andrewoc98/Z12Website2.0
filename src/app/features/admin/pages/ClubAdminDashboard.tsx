@@ -13,6 +13,7 @@ import { useClubAdminData } from "../hooks/useClubAdminData";
 import { useAdminClaims } from "../hooks/useAdminClaims";
 import { useAuth } from "../../../providers/AuthProvider";
 import { createConnectAccount } from "../services/stripeService";
+import { STRIPE_SUPPORTED_COUNTRIES } from "../../events/types";
 
 type ToastState = { msg: string; type: "success" | "error" } | null;
 
@@ -315,11 +316,13 @@ function ClubAdminContent() {
                         ) : null}
                     </section>
 
-                    {/* Stripe payments */}
-                    <StripeSection notify={notify} />
-
-                    {/* Payment history — only shown once Stripe is connected */}
-                    {profile?.roles?.clubAdmin?.stripeOnboarded && <PaymentsSection />}
+                    {/* Stripe payments — only shown for supported countries */}
+                    {STRIPE_SUPPORTED_COUNTRIES.has(club?.location?.country ?? "") && (
+                        <>
+                            <StripeSection notify={notify} />
+                            {profile?.roles?.clubAdmin?.stripeOnboarded && <PaymentsSection />}
+                        </>
+                    )}
 
                     {/* Admins section — visible to all club admins; actions gated by canManageAdmins */}
                     <section className="card pa-section">

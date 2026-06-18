@@ -12,6 +12,19 @@ import type { EventStatus, EventSeriesType } from "../types";
 import { SERIES_LENGTH_METERS, STRIPE_SUPPORTED_COUNTRIES } from "../types";
 import InfoTooltip from "../../../shared/components/Infotooltip/Infotooltip.tsx";
 import { Link } from "react-router-dom";
+import { createConnectAccount } from "../../admin/services/stripeService";
+
+const DRAFT_KEY = "z12_event_create_draft";
+
+function saveDraft(state: object) {
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(state)); } catch { /* quota */ }
+}
+function loadDraft(): Record<string, any> | null {
+    try { const r = sessionStorage.getItem(DRAFT_KEY); return r ? JSON.parse(r) : null; } catch { return null; }
+}
+function clearDraft() {
+    sessionStorage.removeItem(DRAFT_KEY);
+}
 
 export default function EventCreatePage() {
     const { user, profile } = useAuth() as any;
@@ -65,6 +78,26 @@ export default function EventCreatePage() {
 
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+    const [connectingStripe, setConnectingStripe] = useState(false);
+
+    // Restore any draft saved before a Stripe redirect
+    useEffect(() => {
+        const draft = loadDraft();
+        if (!draft) return;
+        clearDraft();
+        if (draft.name)            setName(draft.name);
+        if (draft.description)     setDescription(draft.description);
+        if (draft.location)        setLocation(draft.location);
+        if (draft.startDate)       setStartDate(draft.startDate);
+        if (draft.endDate)         setEndDate(draft.endDate);
+        if (draft.closingDate)     setClosingDate(draft.closingDate);
+        if (draft.lengthMeters)    setLengthMeters(draft.lengthMeters);
+        if (draft.seriesType)      setSeriesType(draft.seriesType);
+        if (draft.categories)      setCategories(draft.categories);
+        if (draft.globalFeeUsd)    setGlobalFeeUsd(draft.globalFeeUsd);
+        if (draft.boatFees)        setBoatFees(draft.boatFees);
+        if (draft.autoAssignBowNumbers != null) setAutoAssignBowNumbers(draft.autoAssignBowNumbers);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (!clubId) return;
@@ -73,6 +106,21 @@ export default function EventCreatePage() {
             setClubCountry(club?.location?.country ?? null);
         }).catch(() => {});
     }, [clubId]);
+
+    async function handleConnectStripe() {
+        setConnectingStripe(true);
+        saveDraft({ name, description, location, startDate, endDate, closingDate, lengthMeters, seriesType, categories, globalFeeUsd, boatFees, autoAssignBowNumbers });
+        try {
+            const { url } = await createConnectAccount({});
+            window.location.href = url;
+        } catch (e: any) {
+            clearDraft();
+            setErr(e?.message ?? "Could not start Stripe setup. Please try again.");
+            setConnectingStripe(false);
+        }
+    }
+
+    const needsStripeSetup = anyFeeSet && stripeSupported && !stripeOnboarded;
 
     const canSubmit = useMemo(() => {
         return (
@@ -83,9 +131,10 @@ export default function EventCreatePage() {
             endDate &&
             closingDate &&
             lengthMeters > 0 &&
-            categories.length > 0
+            categories.length > 0 &&
+            !needsStripeSetup
         );
-    }, [user, name, location, startDate, endDate, closingDate, lengthMeters, categories]);
+    }, [user, name, location, startDate, endDate, closingDate, lengthMeters, categories, needsStripeSetup]);
 
     function calculateInitialStatus(
         startAtMillis: number,
@@ -187,6 +236,7 @@ export default function EventCreatePage() {
                     "Club Admin",
             });
 
+            clearDraft();
             navigate(`/host/events/${eventId}`);
 
         } catch (e: any) {
@@ -419,10 +469,31 @@ export default function EventCreatePage() {
                         </p>
                     )}
 
-                    {anyFeeSet && !stripeOnboarded && (
-                        <p style={{ color: "#FEB959", fontSize: 12, marginTop: 10 }}>
-                            Connect Stripe in your Club Dashboard before athletes can pay this fee.
-                        </p>
+                    {needsStripeSetup && (
+                        <div style={{
+                            marginTop: 16,
+                            padding: "14px 16px",
+                            background: "rgba(254,185,89,0.07)",
+                            border: "1px solid rgba(254,185,89,0.30)",
+                            borderRadius: 10,
+                        }}>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: "#FEB959", marginBottom: 6 }}>
+                                Stripe setup required
+                            </div>
+                            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: "0 0 12px" }}>
+                                You've added entry fees, but your club doesn't have a Stripe account connected.
+                                Set it up now — your event details will be saved and you'll be brought straight back.
+                            </p>
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={handleConnectStripe}
+                                disabled={connectingStripe}
+                                style={{ width: "100%" }}
+                            >
+                                {connectingStripe ? "Opening Stripe…" : "Set up Stripe & continue →"}
+                            </button>
+                        </div>
                     )}
                 </div>}
 
