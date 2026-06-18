@@ -67,7 +67,7 @@ function CheckoutForm({
         setBusy(true);
         setErr(null);
 
-        const returnUrl = `${window.location.origin}/booking/confirm?eventId=${eventId}&categoryId=${categoryId}`;
+        const returnUrl = `${window.location.origin}/booking/confirm?eventId=${encodeURIComponent(eventId)}&categoryId=${encodeURIComponent(categoryId)}`;
 
         const { error } = await stripe.confirmPayment({
             elements,
