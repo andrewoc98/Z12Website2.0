@@ -1485,21 +1485,21 @@ export default function EventPage() {
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                                     <div>
                                         <div style={{ fontWeight: 600, fontSize: 14, color: "#f0eee8" }}>{r.reviewerName}</div>
-                                        <div style={{ color: "#FEB959", fontSize: 15, marginTop: 2 }}>
+                                        {(r.eventName || r.eventYear) && (
+                                            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>
+                                                {r.eventName}{r.eventName && r.eventYear ? ` · ${r.eventYear}` : r.eventYear ?? ""}
+                                            </div>
+                                        )}
+                                        <div style={{ color: "#FEB959", fontSize: 15, marginTop: 4 }}>
                                             {"★".repeat(r.rating ?? 0)}{"☆".repeat(5 - (r.rating ?? 0))}
                                         </div>
                                     </div>
-                                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", whiteSpace: "nowrap" }}>
+                                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", whiteSpace: "nowrap", marginTop: 2 }}>
                                         {r.createdAt?.toDate
-                                            ? r.createdAt.toDate().toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
+                                            ? r.createdAt.toDate().toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })
                                             : ""}
                                     </div>
                                 </div>
-                                {(r.eventName || r.eventYear) && (
-                                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 5 }}>
-                                        {r.eventName}{r.eventName && r.eventYear ? ` · ${r.eventYear}` : r.eventYear ?? ""}
-                                    </div>
-                                )}
                                 {r.comment && (
                                     <p style={{ margin: "8px 0 0", fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.5 }}>
                                         {r.comment}

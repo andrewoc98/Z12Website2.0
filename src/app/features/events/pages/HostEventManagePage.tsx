@@ -5,6 +5,8 @@ import { useAuth } from "../../../providers/AuthProvider";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_HOST_EVENTS, TOUR_HOST_BOATS } from "../../home/components/tourMockData";
 import {getEvent, subscribeToEventBoats, updateEventCategories, updateCategoryFees} from "../api/events";
+import { getClub } from "../../admin/services/clubAdminService";
+import { STRIPE_SUPPORTED_COUNTRIES } from "../types";
 import CategoriesTab from "../components/tabs/categories/CategoriesTab.tsx";
 import OverviewTab from "../components/tabs/overview/OverviewTab";
 import RegistrationsTab from "../components/tabs/registrations/RegistrationsTab";
@@ -22,7 +24,8 @@ export default function HostEventManagePage() {
     const [event, setEvent] = useState<any>(null);
     const [tab, setTab] = useState<Tab>("overview");
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [boats, setBoats] = useState<any>([])
+    const [boats, setBoats] = useState<any>([]);
+    const [stripeSupported, setStripeSupported] = useState(false);
 
     const handleSaveCategories = async (addedIds: string[], removedIds: string[]) => {
         if (!eventId || !event) return;
@@ -65,7 +68,13 @@ export default function HostEventManagePage() {
             return;
         }
 
-        getEvent(eventId).then(setEvent);
+        getEvent(eventId).then(async (ev) => {
+            setEvent(ev);
+            if (ev?.clubId) {
+                const club = await getClub(ev.clubId);
+                setStripeSupported(STRIPE_SUPPORTED_COUNTRIES.has(club?.location?.country ?? ""));
+            }
+        });
 
         const unsubscribe = subscribeToEventBoats(eventId, setBoats);
         return unsubscribe;
@@ -115,7 +124,7 @@ export default function HostEventManagePage() {
             case "bow numbers":   return <BowNumbersTab event={event} boats={boats} />;
             case "race":          return <RaceTab event={event} boats={boats}/>;
             case "contacts":      return <ContactsTab hostId={event.createdByUid}/>;
-            case "categories":    return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} onSaveFees={handleSaveFees} />;
+            case "categories":    return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} onSaveFees={stripeSupported ? handleSaveFees : undefined} />;
             default:              return null;
         }
     };

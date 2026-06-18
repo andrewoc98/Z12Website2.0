@@ -27,6 +27,7 @@ type Booking = {
     boatId:                     string;
     inviteCode:                 string | null;
     crewMemberUids:             string[];
+    eventDate?:                 any;
     createdAt:                  any;
     refundedAt?:                any;
     refundId?:                  string;
@@ -45,6 +46,7 @@ type CrewEntry = {
     boatId:        string;
     eventId:       string;
     eventName:     string;
+    eventYear?:    number;
     categoryName?: string;
     bowNumber?:    number;
 };
@@ -192,6 +194,11 @@ function BookingCard({ b, onRefunded }: { b: Booking; onRefunded: () => void }) 
                     >
                         {b.eventName || "—"}
                     </Link>
+                    {b.eventDate && (
+                        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 2 }}>
+                            {(b.eventDate?.toDate ? b.eventDate.toDate() : new Date(b.eventDate)).getFullYear()}
+                        </div>
+                    )}
                     {b.categoryName && (
                         <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 3 }}>
                             {b.categoryName}
@@ -319,15 +326,20 @@ export default function MyBookingsPage() {
                     boats.map((b: any) => b.eventId as string).filter(Boolean)
                 )];
                 const nameMap: Record<string, string> = {};
+                const yearMap: Record<string, number> = {};
                 await Promise.all(uniqueEventIds.map(async (eid) => {
                     const eSnap = await getDoc(doc(db, "events", eid));
-                    nameMap[eid] = eSnap.data()?.name ?? "Unknown Event";
+                    const data = eSnap.data();
+                    nameMap[eid] = data?.name ?? "Unknown Event";
+                    const startAt = data?.startAt;
+                    if (startAt?.toDate) yearMap[eid] = startAt.toDate().getFullYear();
                 }));
 
                 setCrewEntries(boats.map((b: any) => ({
                     boatId:       b.id,
                     eventId:      b.eventId ?? "",
                     eventName:    nameMap[b.eventId] ?? "Unknown Event",
+                    eventYear:    yearMap[b.eventId],
                     categoryName: b.categoryName,
                     bowNumber:    b.bowNumber,
                 })));
@@ -435,6 +447,11 @@ export default function MyBookingsPage() {
                                         >
                                             {e.eventName}
                                         </Link>
+                                        {e.eventYear && (
+                                            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 2 }}>
+                                                {e.eventYear}
+                                            </div>
+                                        )}
                                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                                             {e.categoryName && (
                                                 <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>
