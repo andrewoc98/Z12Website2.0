@@ -301,6 +301,10 @@ export default function EventPage() {
     const [reviewErr,     setReviewErr]     = useState<string | null>(null);
     const [reviewDone,    setReviewDone]    = useState(false);
 
+    const avgRating = reviews.length
+        ? reviews.reduce((s: number, r: any) => s + (r.rating ?? 0), 0) / reviews.length
+        : null;
+
     // ── Results tab state ──
     const [resultsTab, setResultsTab] = useState<"overall" | "category">("overall");
     const [resultsCategory, setResultsCategory] = useState<string>("All");
@@ -382,16 +386,16 @@ export default function EventPage() {
         fetchUsersByUid(uids).then(setUserByUid);
     }, [boats, isTourActive]);
 
-    // Load reviews for this event (real-time so new submissions appear immediately)
+    // Load all reviews for the club that hosted this event (real-time)
     useEffect(() => {
-        if (!eventId || isTourActive) return;
-        const q = query(collection(db, "reviews"), where("eventId", "==", eventId));
+        if (!event?.clubId || isTourActive) return;
+        const q = query(collection(db, "reviews"), where("clubId", "==", event.clubId));
         return onSnapshot(q, (snap) => {
             const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             setReviews(all);
-            if (user?.uid) setMyReview(all.find((r: any) => r.reviewerUid === user.uid) ?? null);
+            if (user?.uid) setMyReview(all.find((r: any) => r.eventId === eventId && r.reviewerUid === user.uid) ?? null);
         });
-    }, [eventId, isTourActive, user?.uid]);
+    }, [event?.clubId, isTourActive, user?.uid]);
 
     // Load the current user's paid bookings for this event (for crew removal)
     useEffect(() => {
@@ -775,6 +779,22 @@ export default function EventPage() {
                             <div className="esu-detail-row">
                                 <span className="esu-detail-label">Hosted by</span>
                                 <span>{hostClubName}</span>
+                            </div>
+                        )}
+                        {avgRating !== null && (
+                            <div className="esu-detail-row">
+                                <span className="esu-detail-label">Club rating</span>
+                                <button
+                                    onClick={() => setTab("reviews")}
+                                    style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                                >
+                                    <span style={{ color: "#FEB959", fontSize: 14 }}>
+                                        {"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}
+                                    </span>
+                                    <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+                                        {avgRating.toFixed(1)} ({reviews.length})
+                                    </span>
+                                </button>
                             </div>
                         )}
                         <div className="esu-detail-row">
@@ -1359,9 +1379,6 @@ export default function EventPage() {
     function renderReviewsTab() {
         if (!event) return null;
         const isFinished = event.status === "finished";
-        const avgRating = reviews.length
-            ? reviews.reduce((s: number, r: any) => s + (r.rating ?? 0), 0) / reviews.length
-            : null;
 
         return (
             <div>
@@ -1376,7 +1393,7 @@ export default function EventPage() {
                                 {"★".repeat(Math.round(avgRating!)) + "☆".repeat(5 - Math.round(avgRating!))}
                             </div>
                             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
-                                {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+                                {reviews.length} review{reviews.length !== 1 ? "s" : ""} across all {hostClubName ?? "club"} events
                             </div>
                         </div>
                     </div>
@@ -1478,6 +1495,11 @@ export default function EventPage() {
                                             : ""}
                                     </div>
                                 </div>
+                                {(r.eventName || r.eventYear) && (
+                                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 5 }}>
+                                        {r.eventName}{r.eventName && r.eventYear ? ` · ${r.eventYear}` : r.eventYear ?? ""}
+                                    </div>
+                                )}
                                 {r.comment && (
                                     <p style={{ margin: "8px 0 0", fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.5 }}>
                                         {r.comment}

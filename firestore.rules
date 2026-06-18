@@ -426,12 +426,10 @@ service cloud.firestore {
 
     // ── Reviews ───────────────────────────────────────────────────────────────
     // Written only by the submitReview Cloud Function (Admin SDK).
-    // Reads are public — reviews appear on the event page for all visitors.
-    // The signed-in get is required for the "already reviewed?" check in ReviewsTab.
+    // Reads are fully public — reviews appear on the event page for all visitors.
 
     match /reviews/{reviewId} {
-      allow get:  if signedIn();
-      allow list: if true;
+      allow read:  if true;
       allow write: if false;
     }
 
