@@ -4,16 +4,21 @@ export type EventStatus = "draft" | "open" | "closed" | "running" | "finished" |
 
 export type EventSeriesType = "regional_series" | "national_series" | "national_event";
 
+// Countries where Stripe Connect onboarding and paid events are supported.
+// Add new country codes here as support is rolled out.
+export const STRIPE_SUPPORTED_COUNTRIES = new Set(["US"]);
+
 export const SERIES_LENGTH_METERS: Record<EventSeriesType, number> = {
     regional_series: 3000,
-    national_series: 6000,
+    national_series: 3000,
     national_event:  6000,
 };
 
 export type EventCategory = {
     id: string;
     name: string;
-    feeCents?: number;  // entry fee in cents; absent or 0 = free registration
+    feeCents?: number;       // entry fee in cents; absent or 0 = free registration
+    lengthMeters?: number;   // per-category override; absent means use event-level lengthMeters
 };
 
 export type EventDoc = {

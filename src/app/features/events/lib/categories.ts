@@ -1,4 +1,4 @@
-import type {EventDoc} from "../types.ts";
+import type {EventDoc, EventSeriesType} from "../types.ts";
 
 export type Gender = "Men" | "Women" | "Mixed";
 export type BoatClass = "1x" | "2x" | "2-" | "4x+";
@@ -116,6 +116,36 @@ export function buildDefaultCategories(): string[] {
         }
     }
     return out;
+}
+
+// Divisions that race 3000m instead of the standard 6000m at National Events.
+// Add entries here as rules change — no other code needs updating.
+const NATIONAL_EVENT_SHORT_DISTANCE_DIVISIONS = new Set<string>([
+    "Junior 14",
+    "Junior 15",
+    "Junior 16",
+]);
+
+export function parseDivisionFromCategory(cat: string): string | null {
+    const parts = cat.split("•").map((s) => s.trim());
+    return parts.length === 3 ? parts[1] : null;
+}
+
+export function isShortDistanceNationalCategory(categoryId: string): boolean {
+    const division = parseDivisionFromCategory(categoryId);
+    if (!division) return false;
+    return NATIONAL_EVENT_SHORT_DISTANCE_DIVISIONS.has(division) || division.startsWith("Masters ");
+}
+
+export function getCategoryRaceMeters(
+    categoryId: string,
+    seriesType: EventSeriesType | "" | undefined,
+    eventLengthMeters: number,
+): number {
+    if (seriesType === "national_event" && isShortDistanceNationalCategory(categoryId)) {
+        return 3000;
+    }
+    return eventLengthMeters;
 }
 
 export function parseBoatClassFromCategory(cat: string): BoatClass | null {

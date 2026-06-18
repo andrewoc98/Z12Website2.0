@@ -161,7 +161,8 @@ service cloud.firestore {
       allow update: if isClubAdmin()
         && hasClubClaim(clubId)
         && !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(["adminUids", "federationId", "createdBy", "status", "approvedAt", "approvedBy"]);
+               .hasAny(["adminUids", "federationId", "createdBy", "status", "approvedAt", "approvedBy"])
+        && request.resource.data.location.get("country", "") == resource.data.location.get("country", "");
 
       // Club info (name, location, status) is public — needed for unauthenticated event pages
       allow get: if true;

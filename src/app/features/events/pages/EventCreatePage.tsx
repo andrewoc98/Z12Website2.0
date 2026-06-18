@@ -5,11 +5,11 @@ import { useAuth } from "../../../providers/AuthProvider";
 import { useAdminClaims } from "../../admin/hooks/useAdminClaims";
 import { getClub } from "../../admin/services/clubAdminService";
 import CategoryPicker from "../components/CategoryPicker";
-import { buildDefaultCategories, parseBoatClassFromCategory } from "../lib/categories";
+import { buildDefaultCategories, getCategoryRaceMeters, parseBoatClassFromCategory } from "../lib/categories";
 import type { BoatClass } from "../lib/categories";
 import { categoriesFromIds, createEvent, dateInputToTimestampStartOfDay,dateInputToTimestampEndOfDay } from "../api/events";
 import type { EventStatus, EventSeriesType } from "../types";
-import { SERIES_LENGTH_METERS } from "../types";
+import { SERIES_LENGTH_METERS, STRIPE_SUPPORTED_COUNTRIES } from "../types";
 import InfoTooltip from "../../../shared/components/Infotooltip/Infotooltip.tsx";
 import { Link } from "react-router-dom";
 
@@ -33,6 +33,7 @@ export default function EventCreatePage() {
     const [clubCountry, setClubCountry] = useState<string | null>(null);
 
     const stripeOnboarded: boolean = profile?.roles?.clubAdmin?.stripeOnboarded ?? false;
+    const stripeSupported: boolean = clubCountry !== null && STRIPE_SUPPORTED_COUNTRIES.has(clubCountry);
 
     // Per-boat-class fees: globalFeeUsd applies to all; boatFees[boatClass] overrides a specific class
     const [globalFeeUsd, setGlobalFeeUsd] = useState("");
@@ -152,13 +153,16 @@ export default function EventCreatePage() {
                 : 0;
 
             const builtCategories = categoriesFromIds(categories).map(c => {
-                if (clubCountry !== "US") return c; // entry fees only permitted for US clubs
+                const catLength = getCategoryRaceMeters(c.id, seriesType, resolvedLength);
+                const withLength = catLength !== resolvedLength ? { ...c, lengthMeters: catLength } : c;
+
+                if (clubCountry !== "US") return withLength; // entry fees only permitted for US clubs
                 const bc = parseBoatClassFromCategory(c.id);
                 const overrideStr = bc ? boatFees[bc] : undefined;
                 const feeCents = overrideStr?.trim()
                     ? Math.round(parseFloat(overrideStr) * 100)
                     : globalFeeCents;
-                return feeCents > 0 ? { ...c, feeCents } : c;
+                return feeCents > 0 ? { ...withLength, feeCents } : withLength;
             });
 
             const eventId = await createEvent({
@@ -199,7 +203,7 @@ export default function EventCreatePage() {
                 <h1>Create Event</h1>
 
                 {/* Stripe guard banner */}
-                {!stripeOnboarded && (
+                {stripeSupported && !stripeOnboarded && (
                     <div style={{
                         background: "rgba(254,185,89,0.06)",
                         border: "1px solid rgba(254,185,89,0.22)",
@@ -288,7 +292,8 @@ export default function EventCreatePage() {
                             />
                             {seriesType && (
                                 <p className="muted" style={{ fontSize: "0.8rem", marginTop: 4 }}>
-                                    Distance is fixed at {SERIES_LENGTH_METERS[seriesType]}m for {seriesType === "regional_series" ? "Regional Series" : "National events"}.
+                                    Distance is fixed at {SERIES_LENGTH_METERS[seriesType]}m for {seriesType === "regional_series" ? "Regional Series" : seriesType === "national_series" ? "National Series" : "National Events"}.
+                                    {seriesType === "national_event" && " Junior 14–16 and Masters categories race 3000m."}
                                 </p>
                             )}
                         </label>
@@ -309,7 +314,7 @@ export default function EventCreatePage() {
                                     <option value="regional_series">Regional Series (3000m)</option>
                                 )}
                                 {allowedSeriesTypes.includes("national_series") && (
-                                    <option value="national_series">National Series (6000m)</option>
+                                    <option value="national_series">National Series (3000m)</option>
                                 )}
                                 {allowedSeriesTypes.includes("national_event") && (
                                     <option value="national_event">National Event (6000m)</option>
@@ -317,49 +322,41 @@ export default function EventCreatePage() {
                             </select>
                         </label>
                     )}
-                </div>
-
-                <div className="card mt-[14px]">
-                    <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginTop: "1rem" }}>
                         <input
                             type="checkbox"
                             checked={autoAssignBowNumbers}
                             onChange={(e) => setAutoAssignBowNumbers(e.target.checked)}
                             style={{ marginTop: 3, flexShrink: 0 }}
                         />
-                        <span>
-                            <span className="inline-flex items-center" style={{ fontWeight: 600, fontSize: 14 }}>
-                                Auto-assign bow numbers
-                                <InfoTooltip
-                                    text="When enabled, bow numbers are assigned automatically once the registration closing date passes. Numbers are allocated in category order (as listed below), with entries within each category ordered by registration time. Excluded bow numbers are always skipped. You can also assign or adjust numbers manually at any time in the Bow Numbers tab."
-                                    position="right"
-                                />
-                            </span>
-                            <span className="muted" style={{ display: "block", fontSize: 13, marginTop: 3 }}>
-                                Off by default — enable only if you want the system to assign numbers automatically after closing.
-                            </span>
+                        <span className="inline-flex items-center" style={{ fontWeight: 600, fontSize: 14 }}>
+                            Auto-assign bow numbers
+                            <InfoTooltip
+                                text="When enabled, bow numbers are assigned automatically once the registration closing date passes. Numbers are allocated in category order (as listed below), with entries within each category ordered by registration time. Excluded bow numbers are always skipped. You can also assign or adjust numbers manually at any time in the Bow Numbers tab."
+                                position="right"
+                            />
                         </span>
                     </label>
                 </div>
 
                 <CategoryPicker value={categories} onChange={setCategories} />
 
-                {/* Entry fees — US clubs only */}
+                {/* Entry fees — Stripe-supported countries only */}
                 {clubCountry === null && (
                     <div className="card mt-[14px]">
                         <div className={`${skeletonBar} mb-3`} style={{ width: 120, height: 18 }} />
                         <div className={skeletonBar} style={{ width: "60%", height: 14 }} />
                     </div>
                 )}
-                {clubCountry !== null && clubCountry !== "US" && (
+                {clubCountry !== null && !stripeSupported && (
                     <div className="card mt-[14px]" style={{ opacity: 0.7 }}>
                         <h3>Entry Fees</h3>
                         <p className="muted mt-1" style={{ fontSize: 13 }}>
-                            Entry fees are only available for US-based events.
+                            Entry fees are not yet available for events in your country.
                         </p>
                     </div>
                 )}
-                {clubCountry === "US" && <div className="card mt-[14px]">
+                {stripeSupported && <div className="card mt-[14px]">
                     <h3>Entry Fees <span className="muted" style={{ fontWeight: 400, fontSize: 14 }}>(optional)</span></h3>
                     <p className="muted mt-1" style={{ fontSize: 13 }}>
                         Set a default fee for all boat types, or override per boat class. Leave blank for a free event.
