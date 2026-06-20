@@ -111,8 +111,9 @@ function CheckoutForm({
 
             {/* Refund policy — must be shown before payment button (legal requirement) */}
             <p className="sco-refund-policy">
-                Full refund if the event is cancelled by the organiser. Athlete cancellations are
-                subject to the event refund policy. By proceeding you agree to these terms.
+                Full refund if the event is cancelled by the organiser, or if the event is
+                rescheduled and you opt out within 14 days. No refund is issued for incomplete
+                crew boats. By proceeding you agree to these terms.
             </p>
 
             {err && <div className="sco-error">{err}</div>}

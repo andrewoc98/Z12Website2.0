@@ -34,9 +34,10 @@ interface CoachPaymentIntentResult {
 }
 
 interface CoachCheckoutModalProps {
-    eventId:  string;
-    entries:  EntryInput[];
-    onClose:  () => void;
+    eventId:   string;
+    entries?:  EntryInput[];
+    boatIds?:  string[];
+    onClose:   () => void;
 }
 
 // ---------- Stripe loader (singleton) ----------
@@ -126,8 +127,9 @@ function CoachCheckoutForm({
             </div>
 
             <p className="sco-refund-policy">
-                Full refund if the event is cancelled by the organiser. Athlete cancellations are
-                subject to the event refund policy. By proceeding you agree to these terms.
+                Full refund if the event is cancelled by the organiser, or if the event is
+                rescheduled and you opt out within 14 days. No refund is issued for incomplete
+                crew boats. By proceeding you agree to these terms.
             </p>
 
             {err && <div className="sco-error">{err}</div>}
@@ -145,7 +147,7 @@ function CoachCheckoutForm({
 
 // ---------- Modal shell ----------
 
-export default function CoachCheckoutModal({ eventId, entries, onClose }: CoachCheckoutModalProps) {
+export default function CoachCheckoutModal({ eventId, entries, boatIds, onClose }: CoachCheckoutModalProps) {
     const [state, setState] = useState<
         | { phase: "loading" }
         | { phase: "ready"; result: CoachPaymentIntentResult }
@@ -157,19 +159,20 @@ export default function CoachCheckoutModal({ eventId, entries, onClose }: CoachC
     useEffect(() => {
         const functions    = getFunctions(app);
         const createCoachPI = httpsCallable<
-            { eventId: string; entries: { categoryId: string; count: number }[] },
+            { eventId: string; entries?: { categoryId: string; count: number }[]; boatIds?: string[] },
             CoachPaymentIntentResult
         >(functions, "createCoachPaymentIntent");
 
-        createCoachPI({
-            eventId,
-            entries: entries.map((e) => ({ categoryId: e.categoryId, count: e.count })),
-        })
+        const payload = boatIds && boatIds.length > 0
+            ? { eventId, boatIds }
+            : { eventId, entries: (entries ?? []).map((e) => ({ categoryId: e.categoryId, count: e.count })) };
+
+        createCoachPI(payload)
             .then(({ data }) => setState({ phase: "ready", result: data }))
             .catch((e: any) =>
                 setState({ phase: "error", message: e?.message ?? "Could not initiate payment." })
             );
-    }, [eventId, entries]);
+    }, [eventId, entries, boatIds]);
 
     const handleOverlayClick = (e: React.MouseEvent) => {
         if (e.target === overlayRef.current) onClose();
@@ -181,7 +184,9 @@ export default function CoachCheckoutModal({ eventId, entries, onClose }: CoachC
         return () => window.removeEventListener("keydown", handler);
     }, [onClose]);
 
-    const entryCount = entries.reduce((sum, e) => sum + e.count, 0);
+    const entryCount = boatIds && boatIds.length > 0
+        ? boatIds.length
+        : (entries ?? []).reduce((sum, e) => sum + e.count, 0);
 
     return (
         <div className="sco-overlay" ref={overlayRef} onClick={handleOverlayClick}>

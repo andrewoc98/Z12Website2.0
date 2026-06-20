@@ -10,7 +10,7 @@ const call = <Req, Res>(name: string) =>
     };
 
 export const listClubRowers = call<
-    { eventId: string; boatId: string; categoryName: string },
+    { eventId: string; boatId?: string; categoryId?: string; categoryName: string },
     { rowers: ClubRower[] }
 >("listClubRowers");
 

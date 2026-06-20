@@ -12,7 +12,7 @@ import Footer from "../../../shared/components/Footer/Footer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type BookingStatus = "pending_crew" | "confirmed" | "refunded" | "refund_failed" | "cancelled";
+type BookingStatus = "pending_crew" | "confirmed" | "partially_refunded" | "refunded" | "refund_failed" | "cancelled";
 
 type Booking = {
     id: string;
@@ -28,6 +28,7 @@ type Booking = {
     crewMemberUids?: string[];
     // coach-specific (one payment covers N boats)
     boatIds?: string[];
+    partialRefunds?: Array<{ boatId: string; refundCents: number; refundId?: string; refundedAt: any }>;
     // shared
     stripePaymentIntentId: string;
     eventFeeCents: number;
@@ -96,18 +97,20 @@ function eventYear(ts: any): number | null {
 // ─── Shared UI atoms ──────────────────────────────────────────────────────────
 
 const BOOKING_STATUS_STYLE: Record<BookingStatus, { label: string; color: string; bg: string; border: string }> = {
-    pending_crew:  { label: "Crew pending",  color: "#FEB959", bg: "rgba(254,185,89,0.1)",  border: "rgba(254,185,89,0.3)"  },
-    confirmed:     { label: "Confirmed",     color: "#48c78e", bg: "rgba(72,199,142,0.1)",  border: "rgba(72,199,142,0.3)"  },
-    refunded:      { label: "Refunded",      color: "#a0a0b0", bg: "rgba(160,160,176,0.1)", border: "rgba(160,160,176,0.25)" },
-    refund_failed: { label: "Refund failed", color: "#ff6b6b", bg: "rgba(255,107,107,0.1)", border: "rgba(255,107,107,0.3)" },
-    cancelled:     { label: "Cancelled",     color: "#a0a0b0", bg: "rgba(160,160,176,0.1)", border: "rgba(160,160,176,0.25)" },
+    pending_crew:       { label: "Crew pending",    color: "#FEB959", bg: "rgba(254,185,89,0.1)",  border: "rgba(254,185,89,0.3)"  },
+    confirmed:          { label: "Confirmed",        color: "#48c78e", bg: "rgba(72,199,142,0.1)",  border: "rgba(72,199,142,0.3)"  },
+    partially_refunded: { label: "Partial refund",   color: "#FEB959", bg: "rgba(254,185,89,0.08)", border: "rgba(254,185,89,0.25)" },
+    refunded:           { label: "Refunded",         color: "#a0a0b0", bg: "rgba(160,160,176,0.1)", border: "rgba(160,160,176,0.25)" },
+    refund_failed:      { label: "Refund failed",    color: "#ff6b6b", bg: "rgba(255,107,107,0.1)", border: "rgba(255,107,107,0.3)" },
+    cancelled:          { label: "Cancelled",        color: "#a0a0b0", bg: "rgba(160,160,176,0.1)", border: "rgba(160,160,176,0.25)" },
 };
 
 const BOAT_STATUS_STYLE: Record<string, { label: string; color: string; bg: string; border: string }> = {
-    pending_crew: { label: "Awaiting crew", color: "#FEB959", bg: "rgba(254,185,89,0.08)", border: "rgba(254,185,89,0.25)" },
-    registered:   { label: "Crew set",      color: "#48c78e", bg: "rgba(72,199,142,0.08)", border: "rgba(72,199,142,0.25)" },
+    pending_crew: { label: "Awaiting crew", color: "#FEB959", bg: "rgba(254,185,89,0.08)",  border: "rgba(254,185,89,0.25)"  },
+    registered:   { label: "Crew set",      color: "#48c78e", bg: "rgba(72,199,142,0.08)",  border: "rgba(72,199,142,0.25)"  },
     in_progress:  { label: "In progress",   color: "#7c8cff", bg: "rgba(124,140,255,0.08)", border: "rgba(124,140,255,0.25)" },
-    finished:     { label: "Finished",      color: "#a0a0b0", bg: "rgba(160,160,176,0.08)", border: "rgba(160,160,176,0.2)" },
+    finished:     { label: "Finished",      color: "#a0a0b0", bg: "rgba(160,160,176,0.08)", border: "rgba(160,160,176,0.2)"  },
+    cancelled:    { label: "Cancelled",     color: "#a0a0b0", bg: "rgba(160,160,176,0.05)", border: "rgba(160,160,176,0.15)" },
 };
 
 function BookingStatusBadge({ status }: { status: BookingStatus }) {
@@ -315,16 +318,18 @@ function AthleteBookingCard({ b, onRefunded }: { b: Booking; onRefunded: () => v
 
 // ─── Card: coach booking ──────────────────────────────────────────────────────
 
-function CoachBoatRow({ boat, eventId, userNames }: {
+function CoachBoatRow({ boat, eventId, userNames, refundEntry }: {
     boat: BoatDetail;
     eventId: string;
     userNames: Record<string, string>;
+    refundEntry?: { refundCents: number; refundedAt: any } | null;
 }) {
-    const inviteUrl = boat.inviteCode
+    const inviteUrl = boat.inviteCode && boat.status !== "cancelled"
         ? `${window.location.origin}/invite/${eventId}/${boat.inviteCode}`
         : null;
 
     const hasCrewMembers = boat.rowerUids.length > 0;
+    const isCancelled    = boat.status === "cancelled";
 
     return (
         <div style={{
@@ -332,9 +337,10 @@ function CoachBoatRow({ boat, eventId, userNames }: {
             flexDirection: "column",
             gap: 6,
             padding: "10px 12px",
-            background: "rgba(255,255,255,0.02)",
+            background: isCancelled ? "rgba(255,255,255,0.01)" : "rgba(255,255,255,0.02)",
             borderRadius: 8,
-            border: "1px solid rgba(255,255,255,0.06)",
+            border: `1px solid ${isCancelled ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.06)"}`,
+            opacity: isCancelled ? 0.65 : 1,
         }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>
@@ -343,7 +349,14 @@ function CoachBoatRow({ boat, eventId, userNames }: {
                 <BoatStatusBadge status={boat.status} />
             </div>
 
-            {hasCrewMembers ? (
+            {isCancelled && refundEntry ? (
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ color: "#a0a0b0" }}>{fmt(refundEntry.refundCents)} refunded</span>
+                    {refundEntry.refundedAt && (
+                        <span>· {tsToDateStr(refundEntry.refundedAt)}</span>
+                    )}
+                </div>
+            ) : !isCancelled && hasCrewMembers ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                     {boat.rowerUids.map(uid => (
                         <div key={uid} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -357,9 +370,9 @@ function CoachBoatRow({ boat, eventId, userNames }: {
                         </div>
                     ))}
                 </div>
-            ) : (
-                inviteUrl && <InviteLinkRow url={inviteUrl} />
-            )}
+            ) : !isCancelled && inviteUrl ? (
+                <InviteLinkRow url={inviteUrl} />
+            ) : null}
         </div>
     );
 }
@@ -371,7 +384,10 @@ function CoachBookingCard({ b, boats, userNames, boatsLoading, onRefunded }: {
     boatsLoading: boolean;
     onRefunded: () => void;
 }) {
-    const boatCount = b.boatIds?.length ?? 0;
+    const boatCount      = b.boatIds?.length ?? 0;
+    const partialRefunds = b.partialRefunds ?? [];
+    const totalRefunded  = partialRefunds.reduce((sum, r) => sum + r.refundCents, 0);
+    const refundByBoatId = new Map(partialRefunds.map(r => [r.boatId, r]));
 
     return (
         <div style={CARD_STYLE}>
@@ -402,9 +418,26 @@ function CoachBookingCard({ b, boats, userNames, boatsLoading, onRefunded }: {
             {/* Details row */}
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
                 <MetaCol label="Booked" value={tsToDateStr(b.createdAt)} />
-                <MetaCol label="Total paid" value={fmt(b.totalChargedCents)} accent />
+                <MetaCol
+                    label={totalRefunded > 0 ? "Net paid" : "Total paid"}
+                    value={fmt(b.totalChargedCents - totalRefunded)}
+                    accent
+                />
                 <MetaCol label="Boats" value={String(boatCount)} />
             </div>
+
+            {/* Partial refund summary banner */}
+            {partialRefunds.length > 0 && b.status === "partially_refunded" && (
+                <div style={{
+                    background: "rgba(254,185,89,0.06)",
+                    border: "1px solid rgba(254,185,89,0.2)",
+                    borderRadius: 8, padding: "8px 12px",
+                    fontSize: 12, color: "#FEB959", lineHeight: 1.5,
+                }}>
+                    {partialRefunds.length === 1 ? "1 boat" : `${partialRefunds.length} boats`} had no crew by closing date —{" "}
+                    <strong>{fmt(totalRefunded)}</strong> refunded.
+                </div>
+            )}
 
             {/* Boats section */}
             {boatsLoading ? (
@@ -428,7 +461,13 @@ function CoachBookingCard({ b, boats, userNames, boatsLoading, onRefunded }: {
                         Boats
                     </div>
                     {boats.map(boat => (
-                        <CoachBoatRow key={boat.id} boat={boat} eventId={b.eventId} userNames={userNames} />
+                        <CoachBoatRow
+                            key={boat.id}
+                            boat={boat}
+                            eventId={b.eventId}
+                            userNames={userNames}
+                            refundEntry={refundByBoatId.get(boat.id) ?? null}
+                        />
                     ))}
                 </div>
             ) : null}
@@ -642,8 +681,9 @@ export default function MyBookingsPage() {
     }, [user?.uid]);
 
     // ── Derived state ──────────────────────────────────────────────────────────
-    const active  = bookings.filter(b => b.status !== "refunded" && b.status !== "cancelled");
-    const past    = bookings.filter(b => b.status === "refunded" || b.status === "cancelled");
+    const PAST_STATUSES = new Set<BookingStatus>(["refunded", "cancelled"]);
+    const active = bookings.filter(b => !PAST_STATUSES.has(b.status));
+    const past   = bookings.filter(b => PAST_STATUSES.has(b.status));
     const paidBoatIds = new Set(
         bookings.flatMap(b =>
             b.payerRole === "coach"

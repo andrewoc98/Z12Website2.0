@@ -279,7 +279,15 @@ service cloud.firestore {
     }
 
     match /events/{eventId}/boats/{boatId} {
-      allow get:  if true;
+      // pending_crew boats are private — only the creator, a crew member, the host, or timing admin
+      // may read them directly. All other boats are public.
+      allow get: if resource.data.get("status", "registered") != "pending_crew"
+          || isEventHost(eventId)
+          || isTimingAdmin(eventId)
+          || (signedIn() && (
+              resource.data.get("createdByUid", "") == uid()
+              || resource.data.get("rowerUids", []).hasAny([uid()])
+          ));
       allow list: if true;
 
       // Rower creating their own boat (first rowerUid must be themselves)
@@ -302,7 +310,8 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(["rowerUids", "status", "inviteCode", "updatedAt"]));
 
-      allow delete: if isEventHost(eventId) || isTimingAdmin(eventId);
+      allow delete: if isEventHost(eventId) || isTimingAdmin(eventId)
+        || (signedIn() && resource.data.get('createdByUid', '') == uid());
     }
 
     match /events/{eventId}/rowerCategorySignups/{docId} {

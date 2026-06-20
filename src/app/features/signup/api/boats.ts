@@ -1,6 +1,7 @@
 import type { BoatDoc } from "../types";
 import {
     collection,
+    deleteDoc,
     doc,
     getDocs,
     orderBy,
@@ -232,6 +233,10 @@ export async function getBoat(eventId: string, boatId: string): Promise<BoatDoc 
     const snap = await getDoc(boatRef(eventId, boatId));
     if (!snap.exists()) return null;
     return { id: snap.id, eventId, ...(snap.data() as any) } as any;
+}
+
+export async function deleteBoat(eventId: string, boatId: string): Promise<void> {
+    await deleteDoc(boatRef(eventId, boatId));
 }
 
 export async function assignBowNumbersForEvent(

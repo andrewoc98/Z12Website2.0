@@ -62,7 +62,7 @@ export default function ClubInfoEditor({ club, onSaved }: Props) {
                 />
             </label>
 
-            <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 items-end">
                 <label>
                     City
                     <input

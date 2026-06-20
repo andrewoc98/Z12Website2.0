@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
-const StripeCheckoutModal  = lazy(() => import("../../signup/components/StripeCheckoutModal"));
-const CoachCheckoutModal   = lazy(() => import("../../signup/components/CoachCheckoutModal"));
+const StripeCheckoutModal                 = lazy(() => import("../../signup/components/StripeCheckoutModal"));
+const CoachCrewBuilderModal               = lazy(() => import("../components/CoachCrewBuilderModal"));
+const CoachCrewBuilderAndCheckoutModal    = lazy(() => import("../components/CoachCrewBuilderAndCheckoutModal"));
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import Footer from "../../../shared/components/Footer/Footer.tsx";
 import type { EventDoc, EventCategory, FirestoreEventDoc, EventSeriesType } from "../types";
@@ -184,6 +185,42 @@ const SERIES_TIER: Record<EventSeriesType, {
     },
 };
 
+// ---------- Closing countdown ----------
+function ClosingCountdown({ closingDate }: { closingDate: string }) {
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), 60_000);
+        return () => clearInterval(id);
+    }, []);
+
+    const targetMs = useMemo(() => new Date(closingDate).getTime(), [closingDate]);
+    const diff = targetMs - now;
+    if (diff <= 0) return null;
+
+    const totalMins = Math.floor(diff / 60_000);
+    const days  = Math.floor(totalMins / (60 * 24));
+    const hours = Math.floor((totalMins % (60 * 24)) / 60);
+    const mins  = totalMins % 60;
+    const isUrgent = diff < 24 * 60 * 60_000;
+
+    const label = days > 0
+        ? `${days}d ${hours}h remaining`
+        : hours > 0
+            ? `${hours}h ${mins}m remaining`
+            : `${mins}m remaining`;
+
+    return (
+        <span style={{
+            fontSize: "11px",
+            color: isUrgent ? "#ff6b6b" : "rgba(254,185,89,0.9)",
+            fontWeight: isUrgent ? 700 : 500,
+        }}>
+            · {label}
+        </span>
+    );
+}
+
 // ---------- Sub-components ----------
 function EsuStatusPill({ status }: { status: string }) {
     const map: Record<string, { label: string; cls: string }> = {
@@ -284,8 +321,10 @@ export default function EventPage() {
     const [filterCategory, setFilterCategory] = useState("all");
     const [filterClub, setFilterClub] = useState("all");
     const [expandedBoats, setExpandedBoats] = useState<Set<string>>(new Set());
-    const [showCheckout,      setShowCheckout]      = useState(false);
-    const [showCoachCheckout, setShowCoachCheckout] = useState(false);
+    const [showCheckout,                      setShowCheckout]                      = useState(false);
+    const [showCrewBuilder,                   setShowCrewBuilder]                   = useState(false);
+    const [crewBuilderBoatIds,                setCrewBuilderBoatIds]                = useState<string[]>([]);
+    const [showCoachCrewBuilderAndCheckout,   setShowCoachCrewBuilderAndCheckout]   = useState(false);
     const [clubCountry,  setClubCountry]  = useState<string | null>(null);
     const [hostClubName, setHostClubName] = useState<string | null>(null);
 
@@ -338,7 +377,6 @@ export default function EventPage() {
             const snap = await getDoc(doc(db, "events", eventId));
             if (!snap.exists()) { setEvent(null); return; }
             const eventData = mapEvent(snap.id, snap.data() as FirestoreEventDoc);
-            setEvent(eventData);
             if (eventData.clubId) {
                 try {
                     const clubSnap = await getDoc(doc(db, "clubs", eventData.clubId));
@@ -348,6 +386,7 @@ export default function EventPage() {
                     // Club info unavailable (e.g. unauthenticated) — not a critical failure
                 }
             }
+            setEvent(eventData);
         } catch (e: any) {
             setErr(e?.message ?? "Failed to load event");
         } finally {
@@ -480,12 +519,14 @@ export default function EventPage() {
         !!event && totalCoachBoats > 0 && event.status === "open";
 
     const coachEntries = useMemo(() => {
-        const result: { categoryId: string; categoryName: string; count: number; feeCents: number }[] = [];
+        const result: { categoryId: string; categoryName: string; count: number; feeCents: number; boatSize: number }[] = [];
         for (const [catId, count] of coachSelectedCounts.entries()) {
             if (count === 0) continue;
             const cat = categoryById.get(catId);
             if (!cat) continue;
-            result.push({ categoryId: cat.id, categoryName: cat.name, count, feeCents: cat.feeCents ?? 0 });
+            const bc = parseBoatClassFromCategory(cat.name);
+            const boatSize = bc ? boatSizeFromBoatClass(bc) as number : 1;
+            result.push({ categoryId: cat.id, categoryName: cat.name, count, feeCents: cat.feeCents ?? 0, boatSize });
         }
         return result;
     }, [coachSelectedCounts, categoryById]);
@@ -572,6 +613,7 @@ export default function EventPage() {
                 const startMs = toTimestamp(b.startedAt);
                 const finishMs = toTimestamp(b.finishedAt);
                 const status = b.status?.toLowerCase();
+                if (status === "pending_crew") return null;
                 if (status === "under_review") return null;
                 const isResolved = (startMs != null && finishMs != null) || status === "dnf" || status === "dns";
                 if (!isResolved) return null;
@@ -742,12 +784,12 @@ export default function EventPage() {
                 }
             }
             console.log("[coach] tasks queued:", tasks.length);
-            await Promise.all(tasks);
+            const newBoatIds = await Promise.all(tasks);
             console.log("[coach] all tasks resolved");
             await reloadBoats();
             setCoachSelectedCounts(new Map());
-            const n = tasks.length;
-            setSuccessMsg(`${n} ${n === 1 ? "entry" : "entries"} created! Share the invite links with your crews.`);
+            setCrewBuilderBoatIds(newBoatIds);
+            setShowCrewBuilder(true);
         } catch (e: any) {
             console.error("[coach] error:", e);
             setSignupErr(e?.message ?? "Failed to create entries");
@@ -795,7 +837,12 @@ export default function EventPage() {
                         {event.closingDate && (
                             <div className="esu-detail-row">
                                 <span className="esu-detail-label">Entries close</span>
-                                <span>{formatDate(event.closingDate)}</span>
+                                <span>
+                                    {formatDate(event.closingDate)}
+                                    {Date.now() < new Date(event.closingDate).getTime() && (
+                                        <ClosingCountdown closingDate={event.closingDate} />
+                                    )}
+                                </span>
                             </div>
                         )}
                         {hostClubName && (
@@ -843,6 +890,8 @@ export default function EventPage() {
         if (!event) return null;
         const closingMs = toTimestamp(event.closingDate);
         const isRegistrationClosed = closingMs != null && Date.now() > closingMs;
+        const fmtFee = (c: number) =>
+            new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(c / 100);
         return (
             <div>
                 {myRegisteredBoats.length > 0 && (
@@ -858,8 +907,6 @@ export default function EventPage() {
                     const hasCoach = !!p?.roles?.coach;
                     const hasBoth  = hasRower && hasCoach;
                     const mode     = hasBoth ? entryMode : (hasRower ? "rower" : "coach");
-                    const fmtFee   = (c: number) =>
-                        new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(c / 100);
 
                     if (!hasRower && !hasCoach) return (
                         <div className="esu-card esu-info-card">
@@ -906,10 +953,10 @@ export default function EventPage() {
                         : totalCoachBoats === 0
                             ? "Select categories above"
                             : coachRequiresPayment
-                                ? `Pay & create ${totalCoachBoats} ${totalCoachBoats === 1 ? "entry" : "entries"} — ${fmtFee(coachTotalFeeCents)}`
+                                ? `Enter ${totalCoachBoats} ${totalCoachBoats === 1 ? "Crew" : "Crews"} & Checkout →`
                                 : totalCoachBoats === 1
-                                    ? "Create 1 entry & get invite link →"
-                                    : `Create ${totalCoachBoats} entries & get invite links →`;
+                                    ? "Create 1 entry →"
+                                    : `Create ${totalCoachBoats} entries →`;
 
                     return (
                         <div className="esu-card esu-signup-card" data-tour="signup-form">
@@ -1147,7 +1194,9 @@ export default function EventPage() {
                                 <button
                                     className="esu-btn-primary esu-signup-btn"
                                     disabled={!canCreateAsCoach || busy}
-                                    onClick={coachRequiresPayment ? () => setShowCoachCheckout(true) : onCreateBoatAsCoach}
+                                    onClick={coachRequiresPayment
+                                        ? () => setShowCoachCrewBuilderAndCheckout(true)
+                                        : onCreateBoatAsCoach}
                                 >
                                     {busy ? (
                                         <span className="esu-btn-loading">Creating entries…</span>
@@ -1165,6 +1214,27 @@ export default function EventPage() {
                             <span>Your crews in progress</span>
                             <span className="esu-section-count">{myPendingCrews.length}</span>
                         </h2>
+
+                        {/* Coach: open crew builder modal for pending entries */}
+                        {isCoach && myPendingCrews.some(b => b.createdByUid === user?.uid) && (
+                            <div style={{ marginBottom: 16 }}>
+                                <button
+                                    className="esu-btn-primary"
+                                    style={{ width: "100%" }}
+                                    onClick={() => {
+                                        setCrewBuilderBoatIds(
+                                            myPendingCrews
+                                                .filter(b => b.createdByUid === user?.uid)
+                                                .map(b => b.id)
+                                        );
+                                        setShowCrewBuilder(true);
+                                    }}
+                                >
+                                    Manage crews →
+                                </button>
+                            </div>
+                        )}
+
                         <ul className="esu-boats-grid">
                             {myPendingCrews.map(b => {
                                 const url = b.inviteCode ? inviteLink(eventId!, b.inviteCode) : null;
@@ -1185,12 +1255,14 @@ export default function EventPage() {
                                             <div className="esu-crew-section-label">Crew</div>
                                             {renderCrewNames(b, true)}
                                         </div>
-                                        <CrewInvitePanel
-                                            boat={b as any}
-                                            eventId={eventId!}
-                                            inviteUrl={url}
-                                            onAthleteAdded={reloadBoats}
-                                        />
+                                        {!(isCoach && b.createdByUid === user?.uid) && (
+                                            <CrewInvitePanel
+                                                boat={b as any}
+                                                eventId={eventId!}
+                                                inviteUrl={url}
+                                                onAthleteAdded={reloadBoats}
+                                            />
+                                        )}
                                     </li>
                                 );
                             })}
@@ -1581,12 +1653,31 @@ export default function EventPage() {
                     />
                 </Suspense>
             )}
-            {showCoachCheckout && event && coachEntries.length > 0 && (
+            {showCoachCrewBuilderAndCheckout && event && coachEntries.length > 0 && (
                 <Suspense fallback={null}>
-                    <CoachCheckoutModal
+                    <CoachCrewBuilderAndCheckoutModal
                         eventId={eventId!}
+                        eventName={event.name}
                         entries={coachEntries}
-                        onClose={() => setShowCoachCheckout(false)}
+                        onClose={() => {
+                            setShowCoachCrewBuilderAndCheckout(false);
+                            setCoachSelectedCounts(new Map());
+                            reloadBoats();
+                        }}
+                    />
+                </Suspense>
+            )}
+            {showCrewBuilder && event && crewBuilderBoatIds.length > 0 && (
+                <Suspense fallback={null}>
+                    <CoachCrewBuilderModal
+                        eventId={eventId!}
+                        eventName={event.name}
+                        boatIds={crewBuilderBoatIds}
+                        getCategoryFee={(catId) => categoryById.get(catId)?.feeCents ?? 0}
+                        requiresPayment={false}
+                        onPay={() => {}}
+                        onClose={() => { setShowCrewBuilder(false); setCrewBuilderBoatIds([]); }}
+                        onBoatsChanged={reloadBoats}
                     />
                 </Suspense>
             )}
@@ -1684,6 +1775,9 @@ export default function EventPage() {
                                                 {event.closingDate && (
                                                     <div style={{ fontSize: "11px", color: "rgba(254,185,89,0.65)", marginTop: 2 }}>
                                                         Closes {formatDate(event.closingDate)}
+                                                        {Date.now() < new Date(event.closingDate).getTime() && (
+                                                            <ClosingCountdown closingDate={event.closingDate} />
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>

@@ -156,7 +156,6 @@ export default function Navbar() {
                             );
                         }
                         const isOpen = openGroup === entry.label;
-                        // Count reschedule notifications relevant to items in this group
                         const groupHasNotif = false; // bookings moved to top-level nav
                         return (
                             <div
