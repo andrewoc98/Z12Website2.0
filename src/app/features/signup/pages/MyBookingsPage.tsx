@@ -290,6 +290,7 @@ function AthleteBookingCard({ b, onRefunded }: { b: Booking; onRefunded: () => v
 
             {/* Details row */}
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                <MetaCol label="Order" value={`#${b.id.slice(0, 8).toUpperCase()}`} />
                 <MetaCol label="Booked" value={tsToDateStr(b.createdAt)} />
                 <MetaCol label="Fee" value={fmt(b.totalChargedCents)} accent />
                 {(b.crewMemberUids?.length ?? 0) > 1 && (
@@ -417,6 +418,7 @@ function CoachBookingCard({ b, boats, userNames, boatsLoading, onRefunded }: {
 
             {/* Details row */}
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                <MetaCol label="Order" value={`#${b.id.slice(0, 8).toUpperCase()}`} />
                 <MetaCol label="Booked" value={tsToDateStr(b.createdAt)} />
                 <MetaCol
                     label={totalRefunded > 0 ? "Net paid" : "Total paid"}
