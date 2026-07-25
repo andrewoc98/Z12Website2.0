@@ -232,6 +232,25 @@ export async function saveBoatAdjustment(
 
 }
 
+export async function saveBoatTimes(
+    eventId: string,
+    boatId: string,
+    startedAt: number | null,
+    finishedAt: number | null,
+) {
+    const ref = doc(db, "events", eventId, "boats", boatId);
+    const patch: Record<string, any> = { startedAt, finishedAt };
+
+    if (startedAt != null && finishedAt != null) {
+        patch.elapsedMs = finishedAt - startedAt;
+        patch.status = "finished";
+    } else if (startedAt != null) {
+        patch.status = "in_progress";
+    }
+
+    await updateDoc(ref, patch);
+}
+
 export async function updateEvent(eventId: string, patch: Partial<EventDoc>): Promise<void> {
     if (!eventId) throw new Error("updateEvent: missing eventId");
 

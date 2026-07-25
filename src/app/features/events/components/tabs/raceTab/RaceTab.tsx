@@ -14,17 +14,8 @@ export default function RaceTab({ event, boats = [] }: any) {
         );
     }, [boats]);
 
-    const finishedBoats = useMemo(() => {
-        return boats.filter((b:any) =>
-            b.finishedAt || b.resultStatus
-        )
-            .sort((a:any, b:any) => {
-                // Handle missing bowNumber: treat undefined as Infinity so they appear last
-                const aBow = a.bowNumber ?? Infinity;
-                const bBow = b.bowNumber ?? Infinity;
-
-                return aBow - bBow;
-            });
+    const editorBoats = useMemo(() => {
+        return boats.filter((b: any) => b.status !== "pending_crew");
     }, [boats]);
 
     return (
@@ -44,8 +35,8 @@ export default function RaceTab({ event, boats = [] }: any) {
                 />
             </CollapsibleCard>
 
-            <CollapsibleCard title={`Results Editor (${finishedBoats.length})`} defaultOpen={false}>
-                <ResultsEditor boats={finishedBoats} event = {event}/>
+            <CollapsibleCard title={`Results Editor (${editorBoats.length})`} defaultOpen={false}>
+                <ResultsEditor boats={editorBoats} event={event}/>
             </CollapsibleCard>
 
         </div>
