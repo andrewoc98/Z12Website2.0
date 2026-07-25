@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { saveBoatAdjustment, saveBoatTimes } from "../../../api/events";
+import { useUserProfiles } from "../../../../timing/useUserProfiles";
+import { formatRowerNames } from "../../../../timing/lib/utils";
 
 function parseTimeToUnix(input: string, eventDate?: string): { unix: number | null; error: string | null } {
     const trimmed = input.trim();
@@ -87,6 +89,14 @@ interface TimeState {
 
 export default function ResultsEditor({ event, boats }: any) {
     const eventDate = event?.startDate as string | undefined;
+
+    const allUids = useMemo(() => {
+        const uids = new Set<string>();
+        boats.forEach((b: any) => (b.rowerUids ?? []).forEach((uid: string) => uids.add(uid)));
+        return Array.from(uids);
+    }, [boats]);
+
+    const { profiles } = useUserProfiles(allUids);
 
     const [timeState, setTimeState] = useState<Record<string, TimeState>>(() => {
         const init: Record<string, TimeState> = {};
@@ -273,7 +283,10 @@ export default function ResultsEditor({ event, boats }: any) {
                                                 <span className="font-mono font-bold text-sm block">{b.bowNumber ?? "—"}</span>
                                                 <span className="text-xs block truncate" style={statusStyle(b.status)}>{statusLabel(b.status)}</span>
                                             </div>
-                                            <span className="text-sm self-center overflow-hidden text-ellipsis whitespace-nowrap" title={b.clubName}>{b.clubName}</span>
+                                            <div className="self-center overflow-hidden">
+                                                <span className="text-sm block truncate" title={b.clubName}>{b.clubName}</span>
+                                                <span className="text-xs block truncate text-muted">{formatRowerNames(b.rowerUids ?? [], profiles, b.boatSize)}</span>
+                                            </div>
                                             {timeInput(b.id, "start", state, isSaving)}
                                             {timeInput(b.id, "finish", state, isSaving)}
                                             <span className="font-mono text-sm self-center">{formatElapsed(elapsed)}</span>
@@ -321,7 +334,10 @@ export default function ResultsEditor({ event, boats }: any) {
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <span className="font-mono font-bold text-base flex-shrink-0">{b.bowNumber ?? "—"}</span>
-                                                <span className="text-sm font-medium truncate">{b.clubName}</span>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-sm font-medium truncate">{b.clubName}</span>
+                                                    <span className="text-xs text-muted truncate">{formatRowerNames(b.rowerUids ?? [], profiles, b.boatSize)}</span>
+                                                </div>
                                             </div>
                                             <span className="text-xs flex-shrink-0" style={statusStyle(b.status)}>{statusLabel(b.status)}</span>
                                         </div>
