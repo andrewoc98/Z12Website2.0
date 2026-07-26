@@ -10,12 +10,16 @@ function RedirectToEntries() {
     const { eventId } = useParams<{ eventId: string }>();
     return <Navigate to={`/events/${eventId}?tab=entries`} replace />;
 }
+// Timing has been retired in favour of the Results Editor on the manage-race page.
+function RedirectTimingToManage() {
+    const { eventId } = useParams<{ eventId: string }>();
+    return <Navigate to={`/host/events/${eventId}`} replace />;
+}
 import HomePage from "./features/home/pages/HomePage";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
 import RequireRole from "./guards/RequireRole";
 import RequireAnyRole from "./guards/RequireAnyRole";
 import RequireAuth from "./guards/RequiredAuth.tsx";
-import RequireTimingAccess from "./guards/RequireTimingAccess.tsx";
 import RequireMaintenance from "./guards/RequireMaintenance.tsx";
 import ProfileCompletionModal from "./features/home/components/ProfileCompletionModal.tsx";
 import TourController from "./features/home/components/TourController.tsx";
@@ -39,8 +43,6 @@ const Terms                   = lazy(() => import("./features/terms/Terms"));
 const Privacy                 = lazy(() => import("./features/privacy/Privacy"));
 const ParentConsentPage       = lazy(() => import("./features/auth/pages/ParentConsentPage"));
 const ResetPasswordPage       = lazy(() => import("./features/auth/pages/ResetPasswordPage"));
-const TimingPage              = lazy(() => import("./features/timing/pages/TimingPage"));
-const TimingEventSelectPage   = lazy(() => import("./features/timing/pages/TimingEventSelectPage"));
 const AcceptInvitePage        = lazy(() => import("./features/admin/pages/AcceptInvitePage"));
 const PlatformAdminDashboard  = lazy(() => import("./features/admin/pages/PlatformAdminDashboard"));
 const FederationAdminDashboard = lazy(() => import("./features/admin/pages/FederationAdminDashboard"));
@@ -269,21 +271,14 @@ export const router = createBrowserRouter([
                 path: "/club/request",
                 element: <ClubCreationRequestPage />,
             },
+            // Timing retired — redirect old links to the Results Editor on the manage-race page.
             {
                 path: "/timing",
-                element: (
-                    <RequireTimingAccess>
-                        <TimingEventSelectPage />
-                    </RequireTimingAccess>
-                ),
+                element: <Navigate to="/host/events" replace />,
             },
             {
                 path: "/timing/:eventId",
-                element: (
-                    <RequireTimingAccess>
-                        <TimingPage />
-                    </RequireTimingAccess>
-                ),
+                element: <RedirectTimingToManage />,
             },
         ],
     },

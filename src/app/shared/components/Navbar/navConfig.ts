@@ -23,7 +23,6 @@ export const NAV_CONFIG: NavItemDef[] = [
   { to: "/rower/my-sessions", label: "My Sessions", roles: ["rower"],                         group: "Athlete" },
   { to: "/my-bookings",       label: "My Bookings", roles: ["rower", "coach"]                                  },
 
-  { to: "/timing",            label: "Timing",      roles: ["clubAdmin", "admin"],            group: "Host"    },
   { to: "/host/events",       label: "Manage Races",roles: ["clubAdmin"],                     group: "Host"    },
   { to: "/host/events/new",   label: "Create Race", roles: ["clubAdmin"],                     group: "Host"    },
 
