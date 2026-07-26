@@ -39,18 +39,38 @@ export function useAdminClaims(): State {
         }
 
         user.getIdTokenResult(/* forceRefresh */ true).then(result => {
-            const claims = result.claims as Record<string, unknown>;
-            // Higher-privilege roles keep their elevated JWT claim, so clubId/federationId
-            // may not be written to the token. Fall back to the Firestore profile in that case.
-            const jwtClubId        = (claims["clubId"]        as string) ?? null;
-            const jwtFederationId  = (claims["federationId"]  as string) ?? null;
-            const p                = profile as UserProfile | null;
-            const profileClubId      = p?.roles?.clubAdmin?.clubId         ?? null;
-            const profileFederationId = p?.roles?.federationAdmin?.federationId ?? null;
+            const claims      = result.claims as Record<string, unknown>;
+            const jwtRole     = (claims["role"] as AdminRole) ?? null;
+            const jwtClubId   = (claims["clubId"]        as string) ?? null;
+            const jwtFedId    = (claims["federationId"]  as string) ?? null;
+            const p           = profile as UserProfile | null;
+
+            // If the JWT already carries a role, resolve immediately.
+            if (jwtRole) {
+                setState({
+                    adminRole:    jwtRole,
+                    federationId: jwtFedId  ?? p?.roles?.federationAdmin?.federationId ?? null,
+                    clubId:       jwtClubId ?? p?.roles?.clubAdmin?.clubId              ?? null,
+                    loading:      false,
+                });
+                return;
+            }
+
+            // No JWT role. If the Firestore profile hasn't arrived yet, stay in
+            // loading state — the effect will re-run when profile populates.
+            if (!p) return;
+
+            // Profile is loaded. Derive the admin role from Firestore roles (highest-privilege wins).
+            const profileAdminRole: AdminRole | null =
+                p.roles?.platformAdmin   ? "platformAdmin"   :
+                p.roles?.federationAdmin ? "federationAdmin" :
+                p.roles?.clubAdmin       ? "clubAdmin"       :
+                null;
+
             setState({
-                adminRole:    (claims["role"] as AdminRole) ?? null,
-                federationId: jwtFederationId ?? profileFederationId,
-                clubId:       jwtClubId       ?? profileClubId,
+                adminRole:    profileAdminRole,
+                federationId: jwtFedId  ?? p.roles?.federationAdmin?.federationId ?? null,
+                clubId:       jwtClubId ?? p.roles?.clubAdmin?.clubId              ?? null,
                 loading:      false,
             });
         }).catch(() => {
