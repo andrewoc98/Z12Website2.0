@@ -54,7 +54,7 @@ type Payment = {
 };
 
 const PAYMENT_STATUS: Record<Payment["status"], { label: string; color: string }> = {
-    held:      { label: "Held",     color: "#FEB959" },
+    held:      { label: "Paid",     color: "#48c78e" },
     succeeded: { label: "Paid out", color: "#48c78e" },
     refunded:  { label: "Refunded", color: "#a0a0b0" },
     disputed:  { label: "Disputed", color: "#ff6b6b" },

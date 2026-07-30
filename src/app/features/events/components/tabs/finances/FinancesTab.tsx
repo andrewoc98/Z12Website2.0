@@ -9,8 +9,10 @@ const HOST_SHARE = 0.9;
 
 const ACTIVE_BOAT_STATUSES = new Set(["registered", "in_progress", "finished"]);
 
+// "held" is the status every successful destination charge keeps for life —
+// the 90% transfer to the host happens at charge time, so it reads as "Paid".
 const PAYMENT_STATUS: Record<EventPayment["status"], { label: string; color: string }> = {
-    held:      { label: "Held",     color: "#FEB959" },
+    held:      { label: "Paid",     color: "#22c55e" },
     succeeded: { label: "Paid out", color: "#22c55e" },
     refunded:  { label: "Refunded", color: "var(--muted)" },
     disputed:  { label: "Disputed", color: "#ff6b6b" },
