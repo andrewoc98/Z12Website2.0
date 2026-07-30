@@ -274,7 +274,9 @@ service cloud.firestore {
 
     match /events/{eventId}/{subCollection}/{docId} {
       allow get:  if true;
-      allow list: if signedIn();
+      // Public start lists & results: the unauthenticated /events/:eventId page
+      // lists this subcollection (boats), so listing must match the public `get`.
+      allow list: if true;
       allow write: if isEventHost(eventId) || isTimingAdmin(eventId);
     }
 

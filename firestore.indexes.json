@@ -49,6 +49,14 @@
       ]
     },
     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fullName",    "order": "ASCENDING" },
+        { "fieldPath": "roles.coach", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "clubs",
       "queryScope": "COLLECTION",
       "fields": [
@@ -65,12 +73,38 @@
       ]
     },
     {
+      "collectionGroup": "clubCreationRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "federationId", "order": "ASCENDING" },
+        { "fieldPath": "status",       "order": "ASCENDING" },
+        { "fieldPath": "submittedAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "clubCreationRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "requestedBy", "order": "ASCENDING" },
+        { "fieldPath": "status",      "order": "ASCENDING" },
+        { "fieldPath": "submittedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "members",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "status",      "order": "ASCENDING" },
         { "fieldPath": "role",        "order": "ASCENDING" },
         { "fieldPath": "displayName", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "members",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role",   "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },
     {
@@ -96,6 +130,23 @@
         { "fieldPath": "status",       "order": "ASCENDING" },
         { "fieldPath": "federationId", "order": "ASCENDING" },
         { "fieldPath": "createdAt",    "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "federationInvites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "invitedEmail", "order": "ASCENDING" },
+        { "fieldPath": "federationId", "order": "ASCENDING" },
+        { "fieldPath": "status",       "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clubId",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ],
