@@ -73,25 +73,6 @@ const ROWER_STEPS: TourStep[] = [
     },
     {
         route: "/events",
-        element: 'a[href="/rower/my-sessions"]',
-        popover: {
-            title: "Training Sessions",
-            description: "Your coach can build structured sessions and time you live on the water. All the sessions you're part of show up here.",
-            side: "bottom",
-            align: "center",
-        },
-    },
-    {
-        route: "/rower/my-sessions",
-        element: '[data-tour="rower-sessions-list"]',
-        popover: {
-            title: "Your Session History",
-            description: "Each card shows the session name, date, and number of pieces. Tap in to see your split times and how you stacked up against your squad.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/rower/my-sessions",
         popover: {
             title: "You're all set!",
             description: "That's the tour. Head back to your profile anytime to update your details or connect with a coach.",
@@ -139,46 +120,9 @@ const COACH_STEPS: TourStep[] = [
     },
     {
         route: "/events",
-        element: 'a[href="/coach/sessions"]',
-        popover: {
-            title: "Training Sessions",
-            description: "Plan and time training sessions for your squad. Build multi-piece sessions, assign boats, and record splits live on the water.",
-            side: "bottom",
-            align: "center",
-        },
-    },
-    {
-        route: "/coach/sessions",
-        element: '[data-tour="coach-sessions-list"]',
-        popover: {
-            title: "Your Sessions",
-            description: "Every session you've created lives here — draft, active, and completed. Click into a completed session to review piece-by-piece results for each boat.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/coach/sessions/new",
-        element: '[data-tour="session-type-toggle"]',
-        popover: {
-            title: "Race or Time Trial?",
-            description: "Race mode starts all boats at once — tap each one as it finishes. Time Trial mode times boats one at a time, ideal for single-sculls testing on the water.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/coach/sessions/new",
-        element: '[data-tour="session-assistant"]',
-        popover: {
-            title: "Invite a Timing Assistant",
-            description: "Enter a colleague's email to share timing duties. They get full access to start and stop boats — perfect when one person is at the start line and the other at the finish.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/coach/sessions",
         popover: {
             title: "You're all set!",
-            description: "That's the tour. Head to your profile to open up athlete assignment requests, then build your first session when you're ready.",
+            description: "That's the tour. Head to your profile to open up athlete assignment requests.",
         },
     },
 ];

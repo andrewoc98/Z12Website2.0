@@ -13,8 +13,9 @@ import RegistrationsTab from "../components/tabs/registrations/RegistrationsTab"
 import RaceTab from "../components/tabs/raceTab/RaceTab";
 import ContactsTab from "../components/tabs/contacts/ContactsTab.tsx";
 import BowNumbersTab from "../components/tabs/bowNumbers/BowNumbersTab.tsx";
+import FinancesTab from "../components/tabs/finances/FinancesTab.tsx";
 
-type Tab = "overview" | "categories" | "registrations" | "bow numbers" | "race" | "contacts";
+type Tab = "overview" | "categories" | "registrations" | "finances" | "bow numbers" | "race" | "contacts";
 
 export default function HostEventManagePage() {
 
@@ -121,6 +122,7 @@ export default function HostEventManagePage() {
         switch (tab) {
             case "overview":      return <OverviewTab event={event} boats={boats}/>;
             case "registrations": return <RegistrationsTab event={event} boats={boats} />;
+            case "finances":      return <FinancesTab event={event} boats={boats} />;
             case "bow numbers":   return <BowNumbersTab event={event} boats={boats} />;
             case "race":          return <RaceTab event={event} boats={boats}/>;
             case "contacts":      return <ContactsTab hostId={event.createdByUid}/>;
@@ -129,7 +131,15 @@ export default function HostEventManagePage() {
         }
     };
 
-    const tabs: Tab[] = ["overview", "categories", "registrations", "bow numbers", "race", "contacts"];
+    const tabs: Tab[] = [
+        "overview",
+        "categories",
+        "registrations",
+        ...(stripeSupported ? (["finances"] as Tab[]) : []),
+        "bow numbers",
+        "race",
+        "contacts",
+    ];
 
     return (
         <>

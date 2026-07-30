@@ -48,14 +48,7 @@ const PlatformAdminDashboard  = lazy(() => import("./features/admin/pages/Platfo
 const FederationAdminDashboard = lazy(() => import("./features/admin/pages/FederationAdminDashboard"));
 const ClubAdminDashboard      = lazy(() => import("./features/admin/pages/ClubAdminDashboard"));
 const ClubCreationRequestPage = lazy(() => import("./features/admin/pages/ClubCreationRequestPage"));
-const SessionListPage            = lazy(() => import("./features/trainingSessions/pages/SessionListPage"));
-const SessionCreatePage          = lazy(() => import("./features/trainingSessions/pages/SessionCreatePage"));
-const SessionRunPage             = lazy(() => import("./features/trainingSessions/pages/SessionRunPage"));
-const SessionResultsPage         = lazy(() => import("./features/trainingSessions/pages/SessionResultsPage"));
-const RowerSessionListPage       = lazy(() => import("./features/trainingSessions/pages/RowerSessionListPage"));
-const RowerSessionDetailPage     = lazy(() => import("./features/trainingSessions/pages/RowerSessionDetailPage"));
 import {useAuth} from "./providers/AuthProvider";
-import ActiveSessionBanner from "./features/trainingSessions/components/ActiveSessionBanner";
 import ErrorPage from "./features/error/pages/ErrorPage";
 
 const EXCLUDED_PATHS = [
@@ -90,7 +83,6 @@ function RootLayout() {
             <TourMockProvider>
                 {showModal && <ProfileCompletionModal missingFields={missingFields} />}
                 <TourController />
-                <ActiveSessionBanner />
                 <Outlet />
             </TourMockProvider>
         </RequireMaintenance>
@@ -162,69 +154,18 @@ export const router = createBrowserRouter([
                     </RequireRole>
                 ),
             },
-            // ── Training Sessions (Coach) ────────────────────────────────
+            // Training sessions disabled — redirect old links home.
             {
-                path: "/coach/sessions",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionListPage />
-                    </RequireRole>
-                ),
+                path: "/coach/sessions/*",
+                element: <Navigate to="/" replace />,
             },
             {
-                path: "/coach/sessions/new",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionCreatePage />
-                    </RequireRole>
-                ),
+                path: "/rower/my-sessions/*",
+                element: <Navigate to="/" replace />,
             },
             {
-                path: "/coach/sessions/:sessionId/edit",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionCreatePage />
-                    </RequireRole>
-                ),
-            },
-            {
-                path: "/coach/sessions/:sessionId/run",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionRunPage />
-                    </RequireRole>
-                ),
-            },
-            {
-                // Timing-assistant entry point — no auth required here; SessionRunPage
-                // performs its own auth (including custom-token sign-in via invite link).
                 path: "/session/:sessionId/run",
-                element: <SessionRunPage />,
-            },
-            {
-                path: "/coach/sessions/:sessionId/results",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionResultsPage />
-                    </RequireRole>
-                ),
-            },
-            // ── Training Sessions (Rower / Athlete) ──────────────────────
-            {
-                path: "/rower/my-sessions",
-                element: (
-                    <RequireRole role="rower">
-                        <RowerSessionListPage />
-                    </RequireRole>
-                ),
-            },
-            {
-                path: "/rower/my-sessions/:sessionId",
-                element: (
-                    <RequireRole role="rower">
-                        <RowerSessionDetailPage />
-                    </RequireRole>
-                ),
+                element: <Navigate to="/" replace />,
             },
             { path: "/", element: <HomePage /> },
             { path: "/events", element: <RowerEventListPage /> },

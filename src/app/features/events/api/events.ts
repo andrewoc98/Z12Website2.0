@@ -1,5 +1,5 @@
 import { DEV_MODE } from "../../../shared/lib/config";
-import type {EventCategory, EventDoc, EventStatus, FirestoreEventDoc} from "../types";
+import type {EventCategory, EventDoc, EventPayment, EventStatus, FirestoreEventDoc} from "../types";
 
 // Firestore
 import {
@@ -216,6 +216,29 @@ export function subscribeToEventBoats(
         callback(boats);
     });
 
+}
+
+export function subscribeToEventPayments(
+    eventId: string,
+    callback: (payments: EventPayment[]) => void,
+    onError?: (err: Error) => void
+) {
+    // Equality-only filter so no composite index is required; sort client-side.
+    const q = query(
+        collection(db, "payments"),
+        where("eventId", "==", eventId)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        const payments = snapshot.docs.map(d => ({
+            ...(d.data() as EventPayment),
+            id: d.id,
+        }));
+        payments.sort((a, b) =>
+            (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0)
+        );
+        callback(payments);
+    }, onError);
 }
 
 export async function saveBoatAdjustment(

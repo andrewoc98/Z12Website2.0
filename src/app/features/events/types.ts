@@ -48,6 +48,24 @@ export type EventDoc = {
 };
 
 
+// A /payments/{id} doc as written by the Stripe fulfillment functions.
+// Athlete payments cover one boat (boatId); coach bulk payments cover several (boatIds).
+export type EventPayment = {
+    id: string;
+    eventId: string;
+    eventName?: string;
+    boatId?: string;
+    boatIds?: string[];
+    payerId: string;
+    hostId: string | null;
+    stripePaymentIntentId: string;
+    eventFeeCents: number;
+    processingFeeCents: number;
+    totalChargedCents: number;
+    status: "held" | "succeeded" | "refunded" | "disputed";
+    createdAt: any; // Timestamp
+};
+
 export type FirestoreEventDoc = {
     name: string;
     startAt: any;   // Timestamp
