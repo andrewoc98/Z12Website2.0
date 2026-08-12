@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { updateBowNumber } from "../../../../signup/api/boats";
 
 const STATUS_CLS: Record<string, string> = {
     registered: "bg-[#22c55e] text-brand-ink",
@@ -7,11 +8,12 @@ const STATUS_CLS: Record<string, string> = {
 
 export default function CrewRow({ boat }: any) {
 
-    const [bow, setBow] = useState(boat.bowNumber || "");
+    const [bow, setBow] = useState(boat.bowNumber ?? "");
 
-    const saveBow = () => {
-        // TODO: update bow number API
-        console.log("update bow", bow);
+    const saveBow = async () => {
+        const parsed = bow === "" ? null : Number(bow);
+        if (parsed !== null && isNaN(parsed)) return;
+        await updateBowNumber(boat.eventId, boat.id, parsed);
     };
 
     return (

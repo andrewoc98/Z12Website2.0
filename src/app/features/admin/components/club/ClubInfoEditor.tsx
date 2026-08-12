@@ -62,7 +62,7 @@ export default function ClubInfoEditor({ club, onSaved }: Props) {
                 />
             </label>
 
-            <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+            <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 items-end">
                 <label>
                     City
                     <input
@@ -71,15 +71,24 @@ export default function ClubInfoEditor({ club, onSaved }: Props) {
                         placeholder="Cork"
                     />
                 </label>
-                <label>
+                <label style={{ opacity: country ? 0.55 : 1 }}>
                     Country (ISO code)
                     <input
                         value={country}
                         onChange={e => setCountry(e.target.value)}
                         placeholder="IE"
                         maxLength={2}
-                        style={{ textTransform: "uppercase" }}
+                        readOnly={!!country}
+                        style={{
+                            textTransform: "uppercase",
+                            cursor: country ? "not-allowed" : undefined,
+                        }}
                     />
+                    {country && (
+                        <span style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, display: "block" }}>
+                            Country code is locked. Contact support to change it.
+                        </span>
+                    )}
                 </label>
             </div>
 

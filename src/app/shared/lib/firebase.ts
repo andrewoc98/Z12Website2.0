@@ -7,7 +7,7 @@ import {
 import {
     getFirestore,
     connectFirestoreEmulator,
-    doc, getDoc, getDocs, writeBatch, collection,
+    doc, getDoc,
 } from "firebase/firestore";
 import type { ConsentOptions, PendingUser } from "../../features/auth/types.ts";
 
@@ -84,19 +84,6 @@ export async function sendPasswordResetEmail(email: string) {
         console.error("Password reset failed:", err);
         throw new Error("Failed to send password reset email");
     }
-}
-
-export async function deleteEvent(eventId: string) {
-    if (!eventId) throw new Error("Missing eventId");
-    const batch      = writeBatch(db);
-    const eventRef   = doc(db, "events", eventId);
-    const boatsSnap  = await getDocs(collection(db, "events", eventId, "boats"));
-    const signupSnap = await getDocs(collection(db, "events", eventId, "rowerCategorySignups"));
-    boatsSnap.forEach(d  => batch.delete(d.ref));
-    signupSnap.forEach(d => batch.delete(d.ref));
-    batch.delete(eventRef);
-    await batch.commit();
-    return true;
 }
 
 export async function createPendingUser(data: {

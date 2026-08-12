@@ -9,10 +9,28 @@ import { useRoles } from "../../../providers/RoleProvider";
 import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { NAV_CONFIG, type CheckableRole } from "./navConfig";
+import { useRescheduleCount } from "../../../features/signup/hooks/useRescheduleCount";
 
 type FlatLink  = { type: "link";  to: string; label: string };
 type GroupLink = { type: "group"; label: string; items: { to: string; label: string }[] };
 type NavEntry  = FlatLink | GroupLink;
+
+function NotifDot({ count }: { count: number }) {
+    if (!count) return null;
+    return (
+        <span style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            minWidth: count > 9 ? 18 : 16, height: 16,
+            borderRadius: 99, padding: "0 4px",
+            background: "var(--brand, #ffd400)", color: "#141414",
+            fontSize: 10, fontWeight: 800, lineHeight: 1,
+            verticalAlign: "middle", marginLeft: 5,
+            flexShrink: 0,
+        }}>
+            {count > 9 ? "9+" : count}
+        </span>
+    );
+}
 
 const linkCls = "text-text no-underline text-[14px] font-bold tracking-[1px] uppercase transition-[color] hover:text-brand-warm max-md:py-2 max-md:min-h-[44px] max-md:flex max-md:items-center max-md:w-full";
 
@@ -30,6 +48,8 @@ export default function Navbar() {
 
     const user         = DEV_MODE ? mockAuth?.user ?? null : fbAuth?.user ?? null;
     const rolesLoading = DEV_MODE ? false : fbRoles?.loading ?? true;
+
+    const rescheduleCount = useRescheduleCount(DEV_MODE ? null : (user?.uid ?? null));
 
     const hasRole = (r: CheckableRole): boolean => {
         if (DEV_MODE) return !!mockRoles?.hasRole(r);
@@ -97,11 +117,20 @@ export default function Navbar() {
 
                 <button
                     data-nav-burger
-                    className="hidden max-md:flex max-md:items-center max-md:justify-center text-[22px] bg-transparent border-none text-text cursor-pointer p-2 rounded-[6px] min-h-[unset] transition-[background] hover:bg-surface-2 hover:shadow-none"
+                    className="hidden max-md:flex max-md:items-center max-md:justify-center text-[22px] bg-transparent border-none text-text cursor-pointer p-2 rounded-[6px] min-h-[unset] transition-[background] hover:bg-surface-2 hover:shadow-none relative"
                     onClick={() => setOpen(o => !o)}
                     aria-label="Menu"
                 >
                     ☰
+                    {rescheduleCount > 0 && (
+                        <span style={{
+                            position: "absolute", top: 4, right: 4,
+                            width: 8, height: 8, borderRadius: "50%",
+                            background: "var(--brand, #ffd400)",
+                            border: "2px solid var(--bg, #141414)",
+                            display: "block",
+                        }} aria-hidden="true" />
+                    )}
                 </button>
 
                 <nav
@@ -116,13 +145,18 @@ export default function Navbar() {
 
                     {navEntries.map(entry => {
                         if (entry.type === "link") {
+                            const isBookings = entry.to === "/my-bookings";
                             return (
-                                <Link key={entry.to} to={entry.to} className={linkCls} onClick={close}>
+                                <Link key={entry.to} to={entry.to} className={linkCls} onClick={close}
+                                    style={{ display: "flex", alignItems: "center" }}
+                                >
                                     {entry.label}
+                                    {isBookings && <NotifDot count={rescheduleCount} />}
                                 </Link>
                             );
                         }
                         const isOpen = openGroup === entry.label;
+                        const groupHasNotif = false; // bookings moved to top-level nav
                         return (
                             <div
                                 key={entry.label}
@@ -134,13 +168,19 @@ export default function Navbar() {
                                     onClick={() => toggleGroup(entry.label)}
                                     aria-expanded={isOpen}
                                 >
-                                    {entry.label}
+                                    <span className="flex items-center gap-[5px]">
+                                        {entry.label}
+                                        {groupHasNotif && <NotifDot count={rescheduleCount} />}
+                                    </span>
                                     <span className={`text-[10px] inline-block leading-none transition-[transform] duration-200 ${isOpen ? "rotate-180" : ""}`}>▾</span>
                                 </button>
                                 <div className={`${isOpen ? "flex" : "hidden"} flex-col gap-[2px] md:absolute md:top-[calc(100%+14px)] md:left-1/2 md:-translate-x-1/2 md:min-w-[160px] md:bg-surface-2 md:border md:border-border md:rounded-[12px] md:shadow-DEFAULT md:p-[6px] md:z-[200] max-md:static max-md:[transform:none] max-md:bg-transparent max-md:border-l-2 max-md:border-border max-md:rounded-none max-md:shadow-none max-md:pl-3 max-md:py-1 max-md:w-full max-md:mt-1 max-md:mb-1`}>
                                     {entry.items.map(sub => (
-                                        <Link key={sub.to} to={sub.to} className={panelLinkCls} onClick={close}>
+                                        <Link key={sub.to} to={sub.to} className={panelLinkCls} onClick={close}
+                                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                                        >
                                             {sub.label}
+                                            {sub.to === "/my-bookings" && <NotifDot count={rescheduleCount} />}
                                         </Link>
                                     ))}
                                 </div>

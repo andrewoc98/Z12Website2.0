@@ -1,44 +1,60 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
+import { useAuth } from "../../../providers/AuthProvider";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_HOST_EVENTS, TOUR_HOST_BOATS } from "../../home/components/tourMockData";
-import {categoriesFromIds, getEvent, subscribeToEventBoats, updateEventCategories} from "../api/events";
+import {getEvent, subscribeToEventBoats, updateEventCategories, updateCategoryFees} from "../api/events";
+import { getClub } from "../../admin/services/clubAdminService";
+import { STRIPE_SUPPORTED_COUNTRIES } from "../types";
 import CategoriesTab from "../components/tabs/categories/CategoriesTab.tsx";
 import OverviewTab from "../components/tabs/overview/OverviewTab";
 import RegistrationsTab from "../components/tabs/registrations/RegistrationsTab";
 import RaceTab from "../components/tabs/raceTab/RaceTab";
 import ContactsTab from "../components/tabs/contacts/ContactsTab.tsx";
+import BowNumbersTab from "../components/tabs/bowNumbers/BowNumbersTab.tsx";
+import FinancesTab from "../components/tabs/finances/FinancesTab.tsx";
 
-type Tab = "overview" | "categories" | "registrations"  | "race" | "contacts";
+type Tab = "overview" | "categories" | "registrations" | "finances" | "bow numbers" | "race" | "contacts";
 
 export default function HostEventManagePage() {
 
     const { eventId } = useParams();
+    const { profile } = useAuth() as any;
     const { isTourActive } = useTourMock();
     const [event, setEvent] = useState<any>(null);
     const [tab, setTab] = useState<Tab>("overview");
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [boats, setBoats] = useState<any>([])
+    const [boats, setBoats] = useState<any>([]);
+    const [stripeSupported, setStripeSupported] = useState(false);
 
     const handleSaveCategories = async (addedIds: string[], removedIds: string[]) => {
         if (!eventId || !event) return;
 
-        // 1. Calculate the final list of IDs (Current - Removed + Added)
-        const currentIds: string[] = event.categories.map((c: any) => c.id);
+        const currentCats: any[] = event.categories ?? [];
+        const feeMap = new Map(currentCats.map((c: any) => [c.id, c.feeCents ?? 0]));
+
+        const currentIds: string[] = currentCats.map((c: any) => c.id);
         const finalIds = [
             ...currentIds.filter(id => !removedIds.includes(id)),
-            ...addedIds
+            ...addedIds,
         ];
 
-        // 2. Convert IDs back to full EventCategory objects using your helper
-        const nextCategories = categoriesFromIds(finalIds);
+        // Preserve existing feeCents; newly added categories start at 0
+        const nextCategories = finalIds.map(id => ({
+            id,
+            name: id,
+            feeCents: feeMap.get(id) ?? 0,
+        }));
 
-        // 3. Persist to Firestore
         await updateEventCategories(eventId, nextCategories, removedIds);
+        const updatedEvent = await getEvent(eventId);
+        setEvent(updatedEvent);
+    };
 
-        // 4. Refresh local state
-        // We fetch the fresh event from the DB to ensure everything is in sync
+    const handleSaveFees = async (fees: Record<string, number>) => {
+        if (!eventId) return;
+        await updateCategoryFees(eventId, fees);
         const updatedEvent = await getEvent(eventId);
         setEvent(updatedEvent);
     };
@@ -53,7 +69,13 @@ export default function HostEventManagePage() {
             return;
         }
 
-        getEvent(eventId).then(setEvent);
+        getEvent(eventId).then(async (ev) => {
+            setEvent(ev);
+            if (ev?.clubId) {
+                const club = await getClub(ev.clubId);
+                setStripeSupported(STRIPE_SUPPORTED_COUNTRIES.has(club?.location?.country ?? ""));
+            }
+        });
 
         const unsubscribe = subscribeToEventBoats(eventId, setBoats);
         return unsubscribe;
@@ -83,18 +105,41 @@ export default function HostEventManagePage() {
 
     if (!event) return <div className="loading">Loading…</div>;
 
+    const adminClubId = profile?.roles?.clubAdmin?.clubId;
+    if (adminClubId && event.clubId && adminClubId !== event.clubId) {
+        return (
+            <>
+                <Navbar />
+                <main style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", gap: 12, color: "var(--text)" }}>
+                    <h1 style={{ fontSize: 24, margin: 0 }}>Access denied</h1>
+                    <p style={{ color: "var(--muted)", margin: 0 }}>This event belongs to a different club.</p>
+                </main>
+            </>
+        );
+    }
+
     const renderTab = () => {
         switch (tab) {
             case "overview":      return <OverviewTab event={event} boats={boats}/>;
             case "registrations": return <RegistrationsTab event={event} boats={boats} />;
+            case "finances":      return <FinancesTab event={event} boats={boats} />;
+            case "bow numbers":   return <BowNumbersTab event={event} boats={boats} />;
             case "race":          return <RaceTab event={event} boats={boats}/>;
             case "contacts":      return <ContactsTab hostId={event.createdByUid}/>;
-            case "categories":    return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} />;
+            case "categories":    return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} onSaveFees={stripeSupported ? handleSaveFees : undefined} />;
             default:              return null;
         }
     };
 
-    const tabs: Tab[] = ["overview","categories","registrations","race","contacts"];
+    const tabs: Tab[] = [
+        "overview",
+        "categories",
+        "registrations",
+        ...(stripeSupported ? (["finances"] as Tab[]) : []),
+        "bow numbers",
+        "race",
+        "contacts",
+    ];
 
     return (
         <>

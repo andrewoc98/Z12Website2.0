@@ -1,5 +1,5 @@
 import { DEV_MODE } from "../../../shared/lib/config";
-import type {EventCategory, EventDoc, EventStatus, FirestoreEventDoc} from "../types";
+import type {EventCategory, EventDoc, EventPayment, EventStatus, FirestoreEventDoc} from "../types";
 
 // Firestore
 import {
@@ -70,6 +70,7 @@ let mockEvents: EventWithId[] = DEV_MODE ? loadMockEvents() : [];
 // --------------------
 export type CreateEventInput = {
     bowsAssigned: boolean;
+    autoAssignBowNumbers: boolean;
     name: string;
     description: string;
     location: string;
@@ -84,6 +85,9 @@ export type CreateEventInput = {
     status: EventStatus;
 
     clubId: string;
+    federationId?: string;
+    seriesType?: import("../types").EventSeriesType;
+    seriesGroupId?: string;
     createdByUid: string;
     createdByName: string;
 };
@@ -113,6 +117,23 @@ export async function createEvent(input: CreateEventInput): Promise<string> {
     });
 
     return ref.id;
+}
+
+/** Update only the feeCents field on existing categories without touching membership. */
+export async function updateCategoryFees(
+    eventId: string,
+    fees: Record<string, number>       // categoryId → feeCents (0 = free)
+): Promise<void> {
+    const snap = await getDoc(doc(db, "events", eventId));
+    if (!snap.exists()) throw new Error("Event not found.");
+    const existing: EventCategory[] = snap.data().categories ?? [];
+    const updated = existing.map((c) =>
+        c.id in fees ? { ...c, feeCents: fees[c.id] } : c
+    );
+    await updateDoc(doc(db, "events", eventId), {
+        categories: updated,
+        updatedAt:  serverTimestamp(),
+    });
 }
 
 export async function updateEventCategories(
@@ -197,6 +218,29 @@ export function subscribeToEventBoats(
 
 }
 
+export function subscribeToEventPayments(
+    eventId: string,
+    callback: (payments: EventPayment[]) => void,
+    onError?: (err: Error) => void
+) {
+    // Equality-only filter so no composite index is required; sort client-side.
+    const q = query(
+        collection(db, "payments"),
+        where("eventId", "==", eventId)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        const payments = snapshot.docs.map(d => ({
+            ...(d.data() as EventPayment),
+            id: d.id,
+        }));
+        payments.sort((a, b) =>
+            (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0)
+        );
+        callback(payments);
+    }, onError);
+}
+
 export async function saveBoatAdjustment(
     eventId: string,
     boatId: string,
@@ -209,6 +253,25 @@ export async function saveBoatAdjustment(
         adjustmentMs
     });
 
+}
+
+export async function saveBoatTimes(
+    eventId: string,
+    boatId: string,
+    startedAt: number | null,
+    finishedAt: number | null,
+) {
+    const ref = doc(db, "events", eventId, "boats", boatId);
+    const patch: Record<string, any> = { startedAt, finishedAt };
+
+    if (startedAt != null && finishedAt != null) {
+        patch.elapsedMs = finishedAt - startedAt;
+        patch.status = "finished";
+    } else if (startedAt != null) {
+        patch.status = "in_progress";
+    }
+
+    await updateDoc(ref, patch);
 }
 
 export async function updateEvent(eventId: string, patch: Partial<EventDoc>): Promise<void> {
@@ -296,4 +359,44 @@ export async function fetchAdminsByHost(hostId: string): Promise<Admin[]> {
         console.error("Error fetching admins:", error);
         return [];
     }
+}
+
+// --------------------
+// Series Groups
+// --------------------
+export type SeriesGroup = {
+    id: string;
+    federationId: string;
+    name: string;
+    clubIds: string[];
+    createdAt: string;
+    updatedAt: string;
+};
+
+export async function listSeriesGroups(federationId: string): Promise<SeriesGroup[]> {
+    if (!federationId) return [];
+    const snap = await getDocs(collection(db, "federations", federationId, "seriesGroups"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as SeriesGroup));
+}
+
+export async function createSeriesGroup(federationId: string, name: string): Promise<string> {
+    const ref = await addDoc(collection(db, "federations", federationId, "seriesGroups"), {
+        federationId,
+        name,
+        clubIds: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+    return ref.id;
+}
+
+export async function updateSeriesGroupClubs(
+    federationId: string,
+    groupId: string,
+    clubIds: string[]
+): Promise<void> {
+    await updateDoc(doc(db, "federations", federationId, "seriesGroups", groupId), {
+        clubIds,
+        updatedAt: serverTimestamp(),
+    });
 }

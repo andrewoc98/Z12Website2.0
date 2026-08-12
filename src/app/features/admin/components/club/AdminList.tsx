@@ -16,7 +16,7 @@ function initials(name: string): string {
     return name.split(/\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
 }
 
-export default function AdminList({ adminUids, currentUid, onAction }: Props) {
+export default function AdminList({ clubId: _clubId, adminUids, currentUid, onAction }: Props) {
     const [admins,   setAdmins]   = useState<ClubAdminProfile[]>([]);
     const [loading,  setLoading]  = useState(true);
     const [removing, setRemoving] = useState<string | null>(null);

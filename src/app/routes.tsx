@@ -10,11 +10,16 @@ function RedirectToEntries() {
     const { eventId } = useParams<{ eventId: string }>();
     return <Navigate to={`/events/${eventId}?tab=entries`} replace />;
 }
+// Timing has been retired in favour of the Results Editor on the manage-race page.
+function RedirectTimingToManage() {
+    const { eventId } = useParams<{ eventId: string }>();
+    return <Navigate to={`/host/events/${eventId}`} replace />;
+}
 import HomePage from "./features/home/pages/HomePage";
 import AuthPage from "./features/auth/pages/AuthPage.tsx";
 import RequireRole from "./guards/RequireRole";
+import RequireAnyRole from "./guards/RequireAnyRole";
 import RequireAuth from "./guards/RequiredAuth.tsx";
-import RequireTimingAccess from "./guards/RequireTimingAccess.tsx";
 import RequireMaintenance from "./guards/RequireMaintenance.tsx";
 import ProfileCompletionModal from "./features/home/components/ProfileCompletionModal.tsx";
 import TourController from "./features/home/components/TourController.tsx";
@@ -27,6 +32,10 @@ const HostEventManagePage     = lazy(() => import("./features/events/pages/HostE
 const RowerEventListPage      = lazy(() => import("./features/signup/pages/RowerEventListPage"));
 const ProfilePage             = lazy(() => import("./features/profile/pages/ProfilePage"));
 const InviteJoinPage          = lazy(() => import("./features/signup/pages/InviteJoinPage"));
+const BookingConfirmPage      = lazy(() => import("./features/signup/pages/BookingConfirmPage"));
+const MyBookingsPage          = lazy(() => import("./features/signup/pages/MyBookingsPage"));
+const StripeConnectComplete   = lazy(() => import("./features/admin/pages/StripeConnectComplete"));
+const StripeConnectRefresh    = lazy(() => import("./features/admin/pages/StripeConnectRefresh"));
 const HostEventListPage       = lazy(() => import("./features/events/pages/HostEventListPage"));
 const ForgotPasswordPage      = lazy(() => import("./features/auth/pages/ForgotPasswordPage"));
 const AboutPage               = lazy(() => import("./features/about/pages/AboutPage"));
@@ -34,21 +43,12 @@ const Terms                   = lazy(() => import("./features/terms/Terms"));
 const Privacy                 = lazy(() => import("./features/privacy/Privacy"));
 const ParentConsentPage       = lazy(() => import("./features/auth/pages/ParentConsentPage"));
 const ResetPasswordPage       = lazy(() => import("./features/auth/pages/ResetPasswordPage"));
-const TimingPage              = lazy(() => import("./features/timing/pages/TimingPage"));
-const TimingEventSelectPage   = lazy(() => import("./features/timing/pages/TimingEventSelectPage"));
 const AcceptInvitePage        = lazy(() => import("./features/admin/pages/AcceptInvitePage"));
 const PlatformAdminDashboard  = lazy(() => import("./features/admin/pages/PlatformAdminDashboard"));
 const FederationAdminDashboard = lazy(() => import("./features/admin/pages/FederationAdminDashboard"));
 const ClubAdminDashboard      = lazy(() => import("./features/admin/pages/ClubAdminDashboard"));
 const ClubCreationRequestPage = lazy(() => import("./features/admin/pages/ClubCreationRequestPage"));
-const SessionListPage            = lazy(() => import("./features/trainingSessions/pages/SessionListPage"));
-const SessionCreatePage          = lazy(() => import("./features/trainingSessions/pages/SessionCreatePage"));
-const SessionRunPage             = lazy(() => import("./features/trainingSessions/pages/SessionRunPage"));
-const SessionResultsPage         = lazy(() => import("./features/trainingSessions/pages/SessionResultsPage"));
-const RowerSessionListPage       = lazy(() => import("./features/trainingSessions/pages/RowerSessionListPage"));
-const RowerSessionDetailPage     = lazy(() => import("./features/trainingSessions/pages/RowerSessionDetailPage"));
 import {useAuth} from "./providers/AuthProvider";
-import ActiveSessionBanner from "./features/trainingSessions/components/ActiveSessionBanner";
 import ErrorPage from "./features/error/pages/ErrorPage";
 
 const EXCLUDED_PATHS = [
@@ -83,7 +83,6 @@ function RootLayout() {
             <TourMockProvider>
                 {showModal && <ProfileCompletionModal missingFields={missingFields} />}
                 <TourController />
-                <ActiveSessionBanner />
                 <Outlet />
             </TourMockProvider>
         </RequireMaintenance>
@@ -155,69 +154,18 @@ export const router = createBrowserRouter([
                     </RequireRole>
                 ),
             },
-            // ── Training Sessions (Coach) ────────────────────────────────
+            // Training sessions disabled — redirect old links home.
             {
-                path: "/coach/sessions",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionListPage />
-                    </RequireRole>
-                ),
+                path: "/coach/sessions/*",
+                element: <Navigate to="/" replace />,
             },
             {
-                path: "/coach/sessions/new",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionCreatePage />
-                    </RequireRole>
-                ),
+                path: "/rower/my-sessions/*",
+                element: <Navigate to="/" replace />,
             },
             {
-                path: "/coach/sessions/:sessionId/edit",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionCreatePage />
-                    </RequireRole>
-                ),
-            },
-            {
-                path: "/coach/sessions/:sessionId/run",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionRunPage />
-                    </RequireRole>
-                ),
-            },
-            {
-                // Timing-assistant entry point — no auth required here; SessionRunPage
-                // performs its own auth (including custom-token sign-in via invite link).
                 path: "/session/:sessionId/run",
-                element: <SessionRunPage />,
-            },
-            {
-                path: "/coach/sessions/:sessionId/results",
-                element: (
-                    <RequireRole role="coach">
-                        <SessionResultsPage />
-                    </RequireRole>
-                ),
-            },
-            // ── Training Sessions (Rower / Athlete) ──────────────────────
-            {
-                path: "/rower/my-sessions",
-                element: (
-                    <RequireRole role="rower">
-                        <RowerSessionListPage />
-                    </RequireRole>
-                ),
-            },
-            {
-                path: "/rower/my-sessions/:sessionId",
-                element: (
-                    <RequireRole role="rower">
-                        <RowerSessionDetailPage />
-                    </RequireRole>
-                ),
+                element: <Navigate to="/" replace />,
             },
             { path: "/", element: <HomePage /> },
             { path: "/events", element: <RowerEventListPage /> },
@@ -229,6 +177,17 @@ export const router = createBrowserRouter([
             { path: "/privacy", element: <Privacy /> },
             { path: "/reset-password", element: <ResetPasswordPage /> },
             { path: "/events/:eventId/view", element: <RedirectToEntries /> },
+            { path: "/booking/confirm", element: <BookingConfirmPage /> },
+            { path: "/admin/stripe/complete", element: <StripeConnectComplete /> },
+            { path: "/admin/stripe/refresh",  element: <StripeConnectRefresh /> },
+            {
+                path: "/my-bookings",
+                element: (
+                    <RequireAnyRole roles={["rower", "coach"]}>
+                        <MyBookingsPage />
+                    </RequireAnyRole>
+                ),
+            },
             {
                 path: "/accept-invite",
                 element: (
@@ -253,21 +212,14 @@ export const router = createBrowserRouter([
                 path: "/club/request",
                 element: <ClubCreationRequestPage />,
             },
+            // Timing retired — redirect old links to the Results Editor on the manage-race page.
             {
                 path: "/timing",
-                element: (
-                    <RequireTimingAccess>
-                        <TimingEventSelectPage />
-                    </RequireTimingAccess>
-                ),
+                element: <Navigate to="/host/events" replace />,
             },
             {
                 path: "/timing/:eventId",
-                element: (
-                    <RequireTimingAccess>
-                        <TimingPage />
-                    </RequireTimingAccess>
-                ),
+                element: <RedirectTimingToManage />,
             },
         ],
     },

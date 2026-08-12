@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
 import type { EventDoc, EventCategory, FirestoreEventDoc } from "../../events/types";
+import { STRIPE_SUPPORTED_COUNTRIES } from "../../events/types";
+
+const StripeCheckoutModal = lazy(() => import("../components/StripeCheckoutModal"));
 import type { BoatSize } from "../types";
 import { createBoat, listBoatsForEvent } from "../api/boats";
 import {parseBoatClassFromCategory, boatSizeFromBoatClass, formatDate} from "../../events/lib/categories";
@@ -181,6 +184,8 @@ export default function EventPageSignUp() {
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    const [showCheckout, setShowCheckout] = useState(false);
+    const [clubCountry, setClubCountry] = useState<string | null>(null);
 
     const clubName = useMemo(() => p?.roles?.rower?.clubMemberships?.[0]?.clubName ?? "", [p]);
     const inviteLink = (eid: string, code: string) => `${window.location.origin}/invite/${eid}/${code}`;
@@ -199,7 +204,12 @@ export default function EventPageSignUp() {
             try {
                 const snap = await getDoc(doc(db, "events", eventId));
                 if (!snap.exists()) return setSelectedEvent(null);
-                setSelectedEvent(mapEvent(snap.id, snap.data() as FirestoreEventDoc));
+                const eventData = mapEvent(snap.id, snap.data() as FirestoreEventDoc);
+                setSelectedEvent(eventData);
+                if (eventData.clubId) {
+                    const clubSnap = await getDoc(doc(db, "clubs", eventData.clubId));
+                    setClubCountry(clubSnap.data()?.location?.country ?? null);
+                }
             } catch (e: any) {
                 setErr(e?.message ?? "Failed to load event");
             } finally {
@@ -274,6 +284,9 @@ export default function EventPageSignUp() {
         derivedBoatSize !== null && selectedEvent.status === "open" &&
         !alreadySignedUpForCategory && !!clubName;
 
+    const selectedCategoryFee = selectedCategory?.feeCents ?? 0;
+    const requiresPayment = selectedCategoryFee > 0 && STRIPE_SUPPORTED_COUNTRIES.has(clubCountry ?? "");
+
     const myPendingCrews = useMemo(() => {
         if (!user) return [];
         return boats.filter((b) => (b.status ?? "registered") === "pending_crew" && (b.rowerUids ?? []).includes(user.uid));
@@ -339,6 +352,16 @@ export default function EventPageSignUp() {
     // ---------- Render ----------
     return (
         <>
+            {showCheckout && selectedEvent && selectedCategory && (
+                <Suspense fallback={null}>
+                    <StripeCheckoutModal
+                        eventId={eventId!}
+                        categoryId={selectedCategory.id}
+                        categoryName={selectedCategory.name}
+                        onClose={() => setShowCheckout(false)}
+                    />
+                </Suspense>
+            )}
             <Navbar />
             <main className="esu-page">
                 <div className="esu-container">
@@ -436,6 +459,16 @@ export default function EventPageSignUp() {
                                                 )}
                                             </div>
 
+                                            {/* Entry fee badge */}
+                                            {selectedCategoryFee > 0 && (
+                                                <div className="esu-fee-badge">
+                                                    <span className="esu-fee-label">Entry fee</span>
+                                                    <span className="esu-fee-amount">
+                                                        {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(selectedCategoryFee / 100)}
+                                                    </span>
+                                                </div>
+                                            )}
+
                                             {successMsg && (
                                                 <div className="esu-success-banner">{successMsg}</div>
                                             )}
@@ -443,10 +476,12 @@ export default function EventPageSignUp() {
                                             <button
                                                 className="esu-btn-primary esu-signup-btn"
                                                 disabled={!canCreate || busy}
-                                                onClick={onCreateBoat}
+                                                onClick={requiresPayment ? () => setShowCheckout(true) : onCreateBoat}
                                             >
                                                 {busy ? (
                                                     <span className="esu-btn-loading">Signing up…</span>
+                                                ) : requiresPayment ? (
+                                                    `Pay & Enter — ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(selectedCategoryFee / 100)}`
                                                 ) : derivedBoatSize && derivedBoatSize > 1 ? (
                                                     "Create crew & get invite link"
                                                 ) : (

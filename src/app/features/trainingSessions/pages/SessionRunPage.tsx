@@ -211,40 +211,51 @@ export default function SessionRunPage() {
     useEffect(() => {
         if (!sessionId) return;
         if (authLoading) return;
-        if (!user && inviteToken) return; // waiting for token exchange to complete
+        // Not signed in yet — waiting for token exchange to complete.
+        // Clear loading so a failed exchange shows the error instead of a spinner.
+        if (!user && inviteToken) { setLoading(false); return; }
         (async () => {
             setLoading(true);
             if (!user) {
                 setLoading(false);
                 return;
             }
-            const snap = await getDoc(doc(db, 'sessions', sessionId));
-            if (!snap.exists()) { setLoading(false); return; }
-            const s = { id: snap.id, ...snap.data() } as Session;
-            setSession(s);
+            try {
+                const snap = await getDoc(doc(db, 'sessions', sessionId));
+                if (!snap.exists()) { setLoading(false); return; }
+                const s = { id: snap.id, ...snap.data() } as Session;
+                setSession(s);
 
-            if (s.status === 'draft') {
-                setShowPreStart(true);
-                setPieceIdx(0);
-                setPhase('ready');
+                if (s.status === 'draft') {
+                    setShowPreStart(true);
+                    setPieceIdx(0);
+                    setPhase('ready');
+                    setLoading(false);
+                    return;
+                }
+
+                const activePieceIdx  = s.pieces.findIndex(p => p.status === 'active');
+                const pendingPieceIdx = s.pieces.findIndex(p => p.status === 'pending');
+
+                if (activePieceIdx >= 0) {
+                    setPieceIdx(activePieceIdx);
+                    await restoreActivePiece(s, activePieceIdx);
+                } else if (pendingPieceIdx >= 0) {
+                    setPieceIdx(pendingPieceIdx);
+                    setPhase('ready');
+                } else {
+                    navigate(`/coach/sessions/${sessionId}/results`, { replace: true });
+                    return;
+                }
                 setLoading(false);
-                return;
+            } catch {
+                setLoading(false);
+                // Likely a permission-denied error: user is signed in as the wrong
+                // account. If they arrived via an invite token, offer to switch.
+                if (inviteToken && !assistantConfirmDismissed.current) {
+                    setShowAssistantConfirm(true);
+                }
             }
-
-            const activePieceIdx  = s.pieces.findIndex(p => p.status === 'active');
-            const pendingPieceIdx = s.pieces.findIndex(p => p.status === 'pending');
-
-            if (activePieceIdx >= 0) {
-                setPieceIdx(activePieceIdx);
-                await restoreActivePiece(s, activePieceIdx);
-            } else if (pendingPieceIdx >= 0) {
-                setPieceIdx(pendingPieceIdx);
-                setPhase('ready');
-            } else {
-                navigate(`/coach/sessions/${sessionId}/results`, { replace: true });
-                return;
-            }
-            setLoading(false);
         })();
         return () => stopTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps

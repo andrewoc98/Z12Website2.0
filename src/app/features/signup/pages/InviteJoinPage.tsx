@@ -34,6 +34,17 @@ export default function InviteJoinPage() {
                 setRequirements(req);
                 setBoatId(req.boatId);
 
+                // Check registration closing date
+                if (req.closingDate) {
+                    const closing = req.closingDate.toDate
+                        ? req.closingDate.toDate()
+                        : new Date(req.closingDate);
+                    if (closing < new Date()) {
+                        setEligibilityError("Registration has closed for this event.");
+                        return;
+                    }
+                }
+
                 // Ensure profile completeness
                 if (!profile.dateOfBirth) {
                     setEligibilityError("Please add your date of birth to your profile.");

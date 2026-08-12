@@ -28,9 +28,15 @@ export function mapEvent(id: string, data: any): EventDoc {
         location: data.location ?? "",
         description: data.description ?? "",
         lengthMeters: data.lengthMeters ?? 0,
+        clubId: data.clubId,
+        federationId: data.federationId,
+        seriesType: data.seriesType,
+        seriesGroupId: data.seriesGroupId,
         createdByUid: data.createdByUid ?? "",
         createdByName: data.createdByName ?? "",
+        hostId: data.hostId,
         categories: data.categories ?? [],
+        excludedBowNumbers: data.excludedBowNumbers ?? [],
         resultsPublishMode: data.resultsPublishMode
     };
 }

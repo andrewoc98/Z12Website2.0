@@ -1,35 +1,34 @@
 import EventHeaderEditor from "./EventHeaderEditor";
 import RegistrationStats from "./RegistrationStats";
 import CategoryBreakdown from "./CategoryBreakdown";
-import {assignBowNumbersForEvent} from "../../../../signup/api/boats.ts";
-import {useState} from "react";
+import { assignBowNumbersForEvent } from "../../../../signup/api/boats.ts";
+import { useState } from "react";
 import DangerZoneCard from "./DangerZoneCard.tsx";
-import {deleteEvent} from "../../../../../shared/lib/firebase.ts";
 import HostAdminInvite from "../../../../auth/pages/AdminHostInvite.tsx";
 
 export default function OverviewTab({ event, boats = [] }: any) {
     const [busy, setBusy] = useState(false);
+    const [assignErr, setAssignErr] = useState<string | null>(null);
+    const [assignOk, setAssignOk] = useState(false);
+
+    const closingDate: Date | null = event.closingDate ? new Date(event.closingDate) : null;
+    const isAfterClosing = closingDate ? closingDate < new Date() : false;
+
     const assignBows = async () => {
         setBusy(true);
+        setAssignErr(null);
+        setAssignOk(false);
         try {
             await assignBowNumbersForEvent(
                 event.id,
-                (event.categories ?? []).map((c:any)=>c.id)
+                (event.categories ?? []).map((c: any) => c.id)
             );
-        } catch(e) {
-            console.error("Failed to assign bows", e);
+            setAssignOk(true);
+            setTimeout(() => setAssignOk(false), 3000);
+        } catch (e: any) {
+            setAssignErr(e?.message ?? "Failed to assign bow numbers.");
         }
         setBusy(false);
-    }
-
-    const deleteEventHandler = async (eventId: string) => {
-        try {
-            await deleteEvent(eventId);
-
-            window.location.href = "/host/events";
-        } catch (e) {
-            console.error("Failed to delete event", e);
-        }
     };
 
     return (
@@ -41,10 +40,20 @@ export default function OverviewTab({ event, boats = [] }: any) {
                 <button
                     className="btn-primary"
                     onClick={assignBows}
-                    disabled={busy}
+                    disabled={busy || !isAfterClosing}
                 >
-                    {busy ? "Assigning..." : "Assign Bow Numbers"}
+                    {busy ? "Assigning…" : assignOk ? "Assigned ✓" : "Assign Bow Numbers"}
                 </button>
+                {assignErr && (
+                    <p className="text-[#ff6b6b] text-[13px] mt-2">{assignErr}</p>
+                )}
+                {!isAfterClosing && (
+                    <p className="text-muted text-[13px] mt-2">
+                        {closingDate
+                            ? `Available after registration closes (${closingDate.toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })}).`
+                            : "Set a registration closing date to enable bulk assignment."}
+                    </p>
+                )}
             </div>
 
             <RegistrationStats boats={boats} />
@@ -53,11 +62,8 @@ export default function OverviewTab({ event, boats = [] }: any) {
                 boats={boats}
                 categories={event.categories}
             />
-            <HostAdminInvite/>
-            <DangerZoneCard
-                event={event}
-                onDelete={deleteEventHandler}
-            />
+            <HostAdminInvite />
+            <DangerZoneCard event={event} />
         </div>
     );
 }

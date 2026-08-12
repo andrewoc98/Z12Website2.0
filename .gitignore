@@ -33,8 +33,13 @@ dist/
 .env.development
 .env.local
 .env.production
-*z12-website-firebase-adminsdk*.json
+*firebase-adminsdk*.json
 .env*
 
 #other
 createTestEvent.js
+
+# migration / one-off script output (may contain user PII — never commit)
+duplicate-email-report.json
+club-migration-errors.txt
+.junie/

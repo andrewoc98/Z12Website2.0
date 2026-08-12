@@ -73,25 +73,6 @@ const ROWER_STEPS: TourStep[] = [
     },
     {
         route: "/events",
-        element: 'a[href="/rower/my-sessions"]',
-        popover: {
-            title: "Training Sessions",
-            description: "Your coach can build structured sessions and time you live on the water. All the sessions you're part of show up here.",
-            side: "bottom",
-            align: "center",
-        },
-    },
-    {
-        route: "/rower/my-sessions",
-        element: '[data-tour="rower-sessions-list"]',
-        popover: {
-            title: "Your Session History",
-            description: "Each card shows the session name, date, and number of pieces. Tap in to see your split times and how you stacked up against your squad.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/rower/my-sessions",
         popover: {
             title: "You're all set!",
             description: "That's the tour. Head back to your profile anytime to update your details or connect with a coach.",
@@ -139,46 +120,9 @@ const COACH_STEPS: TourStep[] = [
     },
     {
         route: "/events",
-        element: 'a[href="/coach/sessions"]',
-        popover: {
-            title: "Training Sessions",
-            description: "Plan and time training sessions for your squad. Build multi-piece sessions, assign boats, and record splits live on the water.",
-            side: "bottom",
-            align: "center",
-        },
-    },
-    {
-        route: "/coach/sessions",
-        element: '[data-tour="coach-sessions-list"]',
-        popover: {
-            title: "Your Sessions",
-            description: "Every session you've created lives here — draft, active, and completed. Click into a completed session to review piece-by-piece results for each boat.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/coach/sessions/new",
-        element: '[data-tour="session-type-toggle"]',
-        popover: {
-            title: "Race or Time Trial?",
-            description: "Race mode starts all boats at once — tap each one as it finishes. Time Trial mode times boats one at a time, ideal for single-sculls testing on the water.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/coach/sessions/new",
-        element: '[data-tour="session-assistant"]',
-        popover: {
-            title: "Invite a Timing Assistant",
-            description: "Enter a colleague's email to share timing duties. They get full access to start and stop boats — perfect when one person is at the start line and the other at the finish.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/coach/sessions",
         popover: {
             title: "You're all set!",
-            description: "That's the tour. Head to your profile to open up athlete assignment requests, then build your first session when you're ready.",
+            description: "That's the tour. Head to your profile to open up athlete assignment requests.",
         },
     },
 ];
@@ -289,81 +233,7 @@ const HOST_STEPS: TourStep[] = [
         route: "/host/events",
         popover: {
             title: "You're all set!",
-            description: "That's the tour. Use the Timing link in the nav on race day to record and publish results.",
-        },
-    },
-];
-
-// ── Timing admin (roles.admin — attached to host accounts) ────────────────────
-
-const ADMIN_STEPS: TourStep[] = [
-    {
-        route: "/",
-        popover: {
-            title: "Welcome to Z12",
-            description: "You have timing access for your assigned events. Let's take a quick look at the timing tools.",
-        },
-    },
-    {
-        route: "/",
-        element: 'a[href="/timing"]',
-        popover: {
-            title: "Timing",
-            description: "This takes you to your assigned events. Select an event to begin timing or manage entries.",
-            side: "bottom",
-            align: "center",
-        },
-    },
-    {
-        route: "/timing",
-        element: '[data-tour="timing-select"]',
-        popover: {
-            title: "Select an Event",
-            description: "Your events appear here. Active events are highlighted — click one to open the timing tools.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/timing/tour-timing-event-1",
-        element: '[data-tour="timing-tabs"]',
-        popover: {
-            title: "Start · In Progress · Finish",
-            description: "Each tab shows boats at that stage. Tap a boat in Start to begin timing it, then tap again in In Progress to stop the clock when it crosses the line.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/timing/tour-timing-event-1",
-        element: '[data-tour="timing-tab-start"]',
-        popover: {
-            title: "DNS — Did Not Start",
-            description: "The Start tab lists all boats yet to race. If a crew scratches before leaving the dock, long-press their card and choose Mark DNS. DNS entries won't appear in the results.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/timing/tour-timing-event-1",
-        element: '[data-tour="timing-tab-in-progress"]',
-        popover: {
-            title: "DNF — Did Not Finish",
-            description: "The In Progress tab shows boats currently on the water. If a crew withdraws mid-race, long-press their card and choose Mark DNF. DNF entries appear at the bottom of results.",
-            side: "bottom",
-        },
-    },
-    {
-        route: "/timing/tour-timing-event-1",
-        element: '[data-tour="timing-dnf-demo"]',
-        popover: {
-            title: "The Action Menu",
-            description: "Long-pressing any boat card opens this menu. Stop Boat records the finish time. Mark DNF removes them from the active race. The menu is also where you'll find DNS on the Start tab.",
-            side: "top",
-        },
-    },
-    {
-        route: "/timing",
-        popover: {
-            title: "You're all set!",
-            description: "That's the tour. Results are published to all participants the moment you record them.",
+            description: "That's the tour. On race day, open your event and use the Race tab to enter times and publish results.",
         },
     },
 ];
@@ -407,7 +277,7 @@ const FEDERATION_ADMIN_STEPS: TourStep[] = [
 ];
 
 // ── Role resolution ───────────────────────────────────────────────────────────
-// Priority order: federationAdmin > clubAdmin > admin > coach > rower
+// Priority order: federationAdmin > clubAdmin > coach > rower
 // Multi-role users get all matching step arrays concatenated in priority order.
 // The welcome step is kept only from the highest-priority role; the closing
 // "You're all set!" step is kept only from the lowest-priority role.
@@ -415,7 +285,6 @@ const FEDERATION_ADMIN_STEPS: TourStep[] = [
 const ROLE_PRIORITY: Array<{ key: keyof UserProfile["roles"]; steps: TourStep[] }> = [
     { key: "federationAdmin", steps: FEDERATION_ADMIN_STEPS },
     { key: "clubAdmin",       steps: HOST_STEPS },
-    { key: "admin",           steps: ADMIN_STEPS },
     { key: "coach",           steps: COACH_STEPS },
     { key: "rower",           steps: ROWER_STEPS },
 ];
