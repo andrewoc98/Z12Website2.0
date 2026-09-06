@@ -13,6 +13,8 @@
     "seed": "ts-node --esm scripts/seedEmulator.ts"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/push-notifications": "^8.1.2",
     "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^9.8.0",
     "@tailwindcss/vite": "^4.3.0",
