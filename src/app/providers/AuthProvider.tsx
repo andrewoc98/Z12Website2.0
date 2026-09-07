@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../shared/lib/firebase";
+import { syncNativePush } from "../shared/lib/nativePush";
 import type { UserProfile } from "../features/auth/types";
 
 type AuthCtx = {
@@ -30,6 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(u);
             setProfile(null);
             setLoading(false);
+            // No-op off the native app; ties this device's push token to the signed-in user.
+            syncNativePush(u?.uid ?? null);
         });
         return () => unsub();
     }, []);

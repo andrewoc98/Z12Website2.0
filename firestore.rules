@@ -119,6 +119,12 @@ service cloud.firestore {
       allow write: if false; // Cloud Functions only (admin SDK)
     }
 
+    // devices — FCM tokens for the native app shell, keyed by token
+    match /users/{userId}/devices/{token} {
+      allow read: if signedIn() && uid() == userId;
+      allow write: if false; // Cloud Functions only (admin SDK) — see deviceService.ts
+    }
+
     // ── Federations ───────────────────────────────────────────────────────────
 
     match /federations/{federationId} {
