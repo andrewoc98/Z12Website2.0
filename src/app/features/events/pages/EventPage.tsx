@@ -10,22 +10,37 @@ import type { EventDoc, EventCategory, FirestoreEventDoc, EventSeriesType } from
 import { STRIPE_SUPPORTED_COUNTRIES } from "../types";
 import type { BoatSize } from "../../signup/types";
 import { createBoat, createBoatAsCoach, listBoatsForEvent } from "../../signup/api/boats";
-import { parseBoatClassFromCategory, boatSizeFromBoatClass, formatDate } from "../lib/categories";
+import {
+    parseBoatClassFromCategory,
+    boatSizeFromBoatClass,
+    formatDate,
+    isEligibleForCategory,
+    isErgEvent,
+} from "../lib/categories";
 import { collection, doc, getDoc, getDocs, query, where, documentId, onSnapshot } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_ROWER_EVENTS, TOUR_TIMING_BOATS, TOUR_USER_PROFILES } from "../../home/components/tourMockData";
 import { mapEvent } from "../lib/mapper.tsx";
+import { subscribeToEventBoats } from "../api/events";
+import { formatErgTime } from "../api/ergScores";
 import OverallResults from "../../results/components/OverallResults";
 import CategoryResults from "../../results/components/CategoryResults";
+import ErgResults from "../../results/components/ErgResults";
+import ErgCategoryResults from "../../results/components/ErgCategoryResults";
+import type { ErgEntry } from "../../results/components/ErgResultCard";
+import MyErgScoresTab from "../components/tabs/ergScores/MyErgScoresTab";
+import ErgEntriesTab from "../components/tabs/ergScores/ErgEntriesTab";
+import { ClosingCountdown, ErgFinalDayFlag } from "../components/EntryWindow";
+import { hasClosingDate, isRegistrationClosed, isRegistrationOpen } from "../lib/registration";
 import { useUserProfiles } from "../../timing/useUserProfiles";
 import { useAthleteRoster } from "../../coaches/hooks/useAthleteRoster";
 import CrewInvitePanel from "../components/CrewInvitePanel";
 import { removeCrewMember, submitReview } from "../../admin/services/stripeService";
 import { removeCrewMemberAsCreator } from "../../signup/services/crewInviteService";
 
-type Tab = "overview" | "entries" | "results" | "reviews";
+type Tab = "overview" | "entries" | "results" | "myscores" | "reviews";
 
 type Profile = {
     dateOfBirth?: string;
@@ -42,62 +57,6 @@ type UserDoc = {
 };
 
 // ---------- Utility functions ----------
-function todayYMD() {
-    return new Date().toISOString().slice(0, 10);
-}
-
-function ageOnDate(dobYmd: string, onYmd: string) {
-    const [y, m, d] = dobYmd.split("-").map(Number);
-    const [yy, mm, dd] = onYmd.split("-").map(Number);
-    let age = yy - y;
-    if (mm < m || (mm === m && dd < d)) age -= 1;
-    return age;
-}
-
-function parseCategoryParts(catName: string) {
-    const parts = catName.split("•").map((s) => s.trim());
-    if (parts.length !== 3) return null;
-    return { gender: parts[0], division: parts[1], boatClass: parts[2] };
-}
-
-function juniorLimitFromDivision(division: string): number | null {
-    const m = division.match(/^Junior\s+(\d{1,2})$/i);
-    return m ? Number(m[1]) : null;
-}
-
-function mastersBandFromDivision(division: string): { min: number; max: number | null } | null {
-    const m = division.match(/^Masters(?:\s+([A-K]))?/i);
-    if (!m) return { min: 27, max: null };
-    const band = (m[1] ?? "").toUpperCase();
-    const bands: Record<string, { min: number; max: number | null }> = {
-        A: { min: 27, max: 35 }, B: { min: 36, max: 42 }, C: { min: 43, max: 49 },
-        D: { min: 50, max: 54 }, E: { min: 55, max: 59 }, F: { min: 60, max: 64 },
-        G: { min: 65, max: 69 }, H: { min: 70, max: 74 }, I: { min: 75, max: 79 },
-        J: { min: 80, max: 84 }, K: { min: 85, max: null },
-    };
-    return bands[band] ?? { min: 27, max: null };
-}
-
-function isEligibleForCategory(profile: Profile, catName: string) {
-    const parts = parseCategoryParts(catName);
-    if (!parts || !profile.dateOfBirth || !profile.gender) return false;
-    const age = ageOnDate(profile.dateOfBirth, todayYMD());
-    const div = parts.division;
-    if (parts.gender === "Men" && profile.gender !== "male") return false;
-    if (parts.gender === "Women" && profile.gender !== "female") return false;
-    if (div.startsWith("U19") && age >= 19) return false;
-    if (div.startsWith("U21") && age >= 21) return false;
-    if (div.startsWith("U23") && age >= 23) return false;
-    const juniorLimit = juniorLimitFromDivision(div);
-    if (juniorLimit !== null && age >= juniorLimit) return false;
-    if (div.startsWith("Masters")) {
-        const band = mastersBandFromDivision(div);
-        if (!band) return false;
-        if (age < band.min) return false;
-        if (band.max !== null && age > band.max) return false;
-    }
-    return true;
-}
 
 function randomCode(len = 12) {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -186,40 +145,6 @@ const SERIES_TIER: Record<EventSeriesType, {
 };
 
 // ---------- Closing countdown ----------
-function ClosingCountdown({ closingDate }: { closingDate: string }) {
-    const [now, setNow] = useState(() => Date.now());
-
-    useEffect(() => {
-        const id = setInterval(() => setNow(Date.now()), 60_000);
-        return () => clearInterval(id);
-    }, []);
-
-    const targetMs = useMemo(() => new Date(closingDate).getTime(), [closingDate]);
-    const diff = targetMs - now;
-    if (diff <= 0) return null;
-
-    const totalMins = Math.floor(diff / 60_000);
-    const days  = Math.floor(totalMins / (60 * 24));
-    const hours = Math.floor((totalMins % (60 * 24)) / 60);
-    const mins  = totalMins % 60;
-    const isUrgent = diff < 24 * 60 * 60_000;
-
-    const label = days > 0
-        ? `${days}d ${hours}h remaining`
-        : hours > 0
-            ? `${hours}h ${mins}m remaining`
-            : `${mins}m remaining`;
-
-    return (
-        <span style={{
-            fontSize: "11px",
-            color: isUrgent ? "#ff6b6b" : "rgba(254,185,89,0.9)",
-            fontWeight: isUrgent ? 700 : 500,
-        }}>
-            · {label}
-        </span>
-    );
-}
 
 // ---------- Sub-components ----------
 function EsuStatusPill({ status }: { status: string }) {
@@ -244,6 +169,34 @@ function EsuSeatDots({ filled, total }: { filled: number; total: number }) {
     );
 }
 
+
+/**
+ * Small "what kind of event is this" chip. Used on the event hero and on both
+ * event list pages so the type is unambiguous everywhere it can be seen.
+ */
+export function EventTypeBadge({ erg, distanceMeters }: { erg: boolean; distanceMeters?: number }) {
+    return (
+        <span
+            style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "2px 8px",
+                marginBottom: 6,
+                borderRadius: 999,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.07em",
+                textTransform: "uppercase",
+                color: erg ? "var(--brand)" : "rgba(255,255,255,0.55)",
+                background: erg ? "var(--brand-soft)" : "rgba(255,255,255,0.06)",
+                border: `1px solid ${erg ? "var(--brand)" : "rgba(255,255,255,0.12)"}`,
+            }}
+        >
+            {erg ? `Indoor Erg · ${distanceMeters ?? 2000}m` : "Open Water"}
+        </span>
+    );
+}
 
 function EsuBoatCard({ b, userByUid, renderCrewNames, isOwn }: {
     b: any;
@@ -311,6 +264,11 @@ export default function EventPage() {
     const [loadingEvent, setLoadingEvent] = useState(true);
     const [loadingBoats, setLoadingBoats] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+
+    // Erg events diverge from here on: individual entries, no boat classes, and
+    // results that arrive from Concept2 rather than from a timing tablet.
+    const erg = !!event && isErgEvent(event);
+    const ergDistance = event?.ergConfig?.distanceMeters ?? event?.lengthMeters ?? 2000;
 
     // ── Entries tab state ──
     const [categoryId, setCategoryId] = useState("");
@@ -418,6 +376,20 @@ export default function EventPage() {
 
     useEffect(() => { void reloadBoats(); }, [eventId, isTourActive]);
 
+    // Erg results stream. Scores land asynchronously whenever an athlete syncs
+    // their Concept2 Logbook, so the leaderboard has to move on its own rather
+    // than waiting for someone to hit Refresh. Open water still loads once and
+    // refreshes on demand — its times are entered by the host in one sitting.
+    const [boatsUpdatedAt, setBoatsUpdatedAt] = useState<number | null>(null);
+    useEffect(() => {
+        if (!erg || !eventId || isTourActive) return;
+        return subscribeToEventBoats(eventId, (next) => {
+            setBoats(next);
+            setLoadingBoats(false);
+            setBoatsUpdatedAt(Date.now());
+        });
+    }, [erg, eventId, isTourActive]);
+
     useEffect(() => {
         if (isTourActive) {
             setUserByUid(new Map(Object.entries(TOUR_USER_PROFILES) as [string, UserDoc][]));
@@ -483,22 +455,34 @@ export default function EventPage() {
 
     const derivedBoatSize: BoatSize | null = useMemo(() => {
         if (!selectedCategory) return null;
+        // Erg categories carry no boat class — an entry is always one athlete.
+        if (erg) return 1 as BoatSize;
         const bc = parseBoatClassFromCategory(selectedCategory.name);
         return bc ? boatSizeFromBoatClass(bc) as BoatSize : null;
-    }, [selectedCategory]);
+    }, [selectedCategory, erg]);
 
     const alreadySignedUp = useMemo(() => {
         if (!user || !selectedCategory) return false;
+        // Erg is one entry per athlete per event, not per category: the fee covers
+        // the whole event, and a score is imported against a single entry.
+        if (erg) return boats.some(b => (b.rowerUids ?? []).includes(user.uid));
         return boats.some(b => {
             const rowers: string[] = b.rowerUids ?? [];
             if (!rowers.includes(user.uid)) return false;
             if (b.categoryId) return b.categoryId === selectedCategory.id;
             return (b.categoryName ?? b.category ?? "") === selectedCategory.name;
         });
-    }, [boats, user, selectedCategory]);
+    }, [boats, user, selectedCategory, erg]);
+
+    // Water events normally close entries before the start; erg stays open while
+    // the event is running, since rowing the piece IS the event. A host running
+    // without a closing date decides for themselves — up to the end date, which
+    // nothing overrides. lib/registration.ts holds that precedence.
+    const entriesOpen = !!event && event.status !== "cancelled" && event.status !== "draft"
+        && isRegistrationOpen(event);
 
     const canCreate = !!user && !!p?.roles?.rower && !!event && !!selectedCategory &&
-        derivedBoatSize !== null && event.status === "open" && !alreadySignedUp && !!clubName;
+        derivedBoatSize !== null && entriesOpen && !alreadySignedUp && !!clubName;
 
     // Coaches pick categories with a quantity per category (Map<categoryId, count>)
     const [coachSelectedCounts, setCoachSelectedCounts] = useState<Map<string, number>>(new Map());
@@ -516,7 +500,7 @@ export default function EventPage() {
     [coachSelectedCounts]);
 
     const canCreateAsCoach = !!user && !!p?.roles?.coach &&
-        !!event && totalCoachBoats > 0 && event.status === "open";
+        !!event && totalCoachBoats > 0 && entriesOpen;
 
     const coachEntries = useMemo(() => {
         const result: { categoryId: string; categoryName: string; count: number; feeCents: number; boatSize: number }[] = [];
@@ -642,6 +626,84 @@ export default function EventPage() {
         return map;
     }, [finishedBoats]);
 
+    // ── Erg results: derived state ──
+    // Ranking is a straight sort on the denormalised best time the Cloud
+    // Functions write onto each entry, so there is nothing to recompute here.
+    const ergEntries = useMemo<ErgEntry[]>(() => {
+        if (!erg) return [];
+        return boats
+            .filter(b => typeof b.ergBestTimeMs === "number" && b.ergBestTimeMs !== null)
+            .map(b => ({
+                id: b.id,
+                clubName: b.clubName ?? "",
+                categoryName: b.categoryName ?? b.category,
+                rowerUids: b.rowerUids ?? [],
+                ergBestTimeMs: b.ergBestTimeMs,
+                ergScoreCount: b.ergScoreCount ?? 0,
+            }))
+            .sort((a, b) => (a.ergBestTimeMs ?? Infinity) - (b.ergBestTimeMs ?? Infinity));
+    }, [erg, boats]);
+
+    const ergByCategory = useMemo(() => {
+        const map = new Map<string, ErgEntry[]>();
+        for (const e of ergEntries) {
+            const cat = e.categoryName ?? "—";
+            map.set(cat, [...(map.get(cat) ?? []), e]);
+        }
+        return map;
+    }, [ergEntries]);
+
+    // Same publish gate as open water: "Category" holds a category back until
+    // every entrant in it has posted a score, "Event" holds the whole board.
+    const visibleErgEntries = useMemo<ErgEntry[]>(() => {
+        const mode = event?.resultsPublishMode as any;
+        if (!mode || mode === "Live") return ergEntries;
+
+        const hasScore = (b: any) => typeof b.ergBestTimeMs === "number" && b.ergBestTimeMs !== null;
+
+        if (mode === "Category") {
+            const complete = new Set<string>();
+            const byCat = new Map<string, any[]>();
+            for (const b of boats) {
+                const cat = b.categoryName ?? b.category ?? "—";
+                byCat.set(cat, [...(byCat.get(cat) ?? []), b]);
+            }
+            for (const [cat, list] of byCat.entries()) {
+                if (list.every(hasScore)) complete.add(cat);
+            }
+            return ergEntries.filter(e => complete.has(e.categoryName ?? "—"));
+        }
+
+        if (mode === "Event") return boats.every(hasScore) ? ergEntries : [];
+        return ergEntries;
+    }, [event?.resultsPublishMode, ergEntries, boats]);
+
+    const visibleErgByCategory = useMemo(() => {
+        const visible = new Set(visibleErgEntries.map(e => e.id));
+        const map = new Map<string, ErgEntry[]>();
+        for (const [cat, list] of ergByCategory.entries()) {
+            const kept = list.filter(e => visible.has(e.id));
+            if (kept.length) map.set(cat, kept);
+        }
+        return map;
+    }, [visibleErgEntries, ergByCategory]);
+
+    const concept2Linked = !!(p as any)?.concept2?.linked;
+
+    // Rank against the whole leaderboard so a pinned "your position" row stays
+    // correct on page 3 of the results.
+    const myErgStanding = useMemo(() => {
+        if (!user || !erg) return null;
+        const idx = visibleErgEntries.findIndex(e => (e.rowerUids ?? []).includes(user.uid));
+        if (idx === -1) return null;
+        return { rank: idx + 1, entry: visibleErgEntries[idx], total: visibleErgEntries.length };
+    }, [visibleErgEntries, user, erg]);
+
+    const myErgEntry = useMemo(
+        () => (!user || !erg ? null : boats.find(b => (b.rowerUids ?? []).includes(user.uid)) ?? null),
+        [boats, user, erg],
+    );
+
     const visibleBoats = useMemo(() => {
         const mode = event?.resultsPublishMode as any;
         if (!mode || mode === "Live") return finishedBoats;
@@ -682,8 +744,7 @@ export default function EventPage() {
         const uids: string[] = Array.isArray(b.rowerUids) ? b.rowerUids : [];
         const isPayer     = myEventBookings.some(bk => bk.boatId === b.id);
         const isCreator   = !!user && b.createdByUid === user.uid;
-        const closingMs   = event?.closingDate ? new Date(event.closingDate).getTime() : null;
-        const regClosed   = closingMs != null && Date.now() > closingMs;
+        const regClosed   = !event || isRegistrationClosed(event);
         const canRemove   = allowRemove && (isPayer || isCreator) && !regClosed;
         if (!uids.length) return <p className="esu-muted">No crew yet.</p>;
         return (
@@ -741,9 +802,12 @@ export default function EventPage() {
                 adjustmentMs: 0,
             });
             await reloadBoats();
-            setSuccessMsg(derivedBoatSize > 1
-                ? "Crew created! Share the invite link below with your crew."
-                : "You're registered! See you at the start line.");
+            setSuccessMsg(
+                erg
+                    ? "You're entered. Connect your Concept2 Logbook, then row your 2k — scores import automatically."
+                    : derivedBoatSize > 1
+                        ? "Crew created! Share the invite link below with your crew."
+                        : "You're registered! See you at the start line.");
         } catch (e: any) {
             setSignupErr(e?.message ?? "Failed to sign up");
         } finally {
@@ -834,14 +898,32 @@ export default function EventPage() {
                             <span className="esu-detail-label">Course</span>
                             <span>{event.lengthMeters}m</span>
                         </div>
-                        {event.closingDate && (
+                        {erg ? (
+                            <div className="esu-detail-row">
+                                <span className="esu-detail-label">Entries close</span>
+                                <span>
+                                    When the event ends, {formatDate(event.endDate)}
+                                    {" "}
+                                    <ErgFinalDayFlag endDate={event.endDate} />
+                                </span>
+                            </div>
+                        ) : hasClosingDate(event) ? (
                             <div className="esu-detail-row">
                                 <span className="esu-detail-label">Entries close</span>
                                 <span>
                                     {formatDate(event.closingDate)}
-                                    {Date.now() < new Date(event.closingDate).getTime() && (
-                                        <ClosingCountdown closingDate={event.closingDate} />
+                                    {Date.now() < new Date(event.closingDate!).getTime() && (
+                                        <ClosingCountdown closingDate={event.closingDate!} />
                                     )}
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="esu-detail-row">
+                                <span className="esu-detail-label">Entries close</span>
+                                <span>
+                                    {isRegistrationClosed(event)
+                                        ? "Closed by the host"
+                                        : `When the event ends, ${formatDate(event.endDate)}`}
                                 </span>
                             </div>
                         )}
@@ -888,12 +970,48 @@ export default function EventPage() {
 
     function renderEntriesTab() {
         if (!event) return null;
-        const closingMs = toTimestamp(event.closingDate);
-        const isRegistrationClosed = closingMs != null && Date.now() > closingMs;
+        // Erg events, and water events created without a closing date, stay open
+        // right up to the end of the event. The host's switch can close either
+        // early, or keep a dated water event open past its deadline.
+        const regClosed = isRegistrationClosed(event);
+
+        // Indoor events have no crews, invites, bow numbers or coach entry, so
+        // they get a much smaller tab of their own rather than a stack of
+        // conditionals through the open-water one.
+        if (erg) {
+            return (
+                <ErgEntriesTab
+                    eventId={event.id}
+                    endDate={event.endDate}
+                    distanceMeters={ergDistance}
+                    entries={boats}
+                    profiles={profiles}
+                    currentUserUid={user?.uid}
+                    isRower={!!p?.roles?.rower}
+                    isRegistrationClosed={regClosed}
+                    concept2Linked={concept2Linked}
+                    clubName={clubName}
+                    eligibleCategories={eligibleCategories}
+                    categoryId={categoryId}
+                    onCategoryChange={setCategoryId}
+                    selectedFeeCents={selectedCategoryFee}
+                    requiresPayment={requiresPayment}
+                    canEnter={canCreate}
+                    busy={busy}
+                    onEnter={onCreateBoat}
+                    onCheckout={() => setShowCheckout(true)}
+                    signupErr={signupErr}
+                    successMsg={successMsg}
+                    onGoToScores={() => setTab("myscores")}
+                />
+            );
+        }
         const fmtFee = (c: number) =>
             new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(c / 100);
         return (
             <div>
+                {erg && <ErgFinalDayFlag endDate={event.endDate} variant="banner" />}
+
                 {myRegisteredBoats.length > 0 && (
                     <div className="esu-entries-banner">
                         <span className="esu-banner-icon">✓</span>
@@ -906,7 +1024,23 @@ export default function EventPage() {
                     const hasRower = !!p?.roles?.rower;
                     const hasCoach = !!p?.roles?.coach;
                     const hasBoth  = hasRower && hasCoach;
-                    const mode     = hasBoth ? entryMode : (hasRower ? "rower" : "coach");
+                    // Erg entries are individual: each athlete submits from their own
+                    // Concept2 account, so there is nothing for a coach to enter on
+                    // their behalf.
+                    const mode     = erg ? "rower" : hasBoth ? entryMode : (hasRower ? "rower" : "coach");
+
+                    if (erg && !hasRower) return (
+                        <div className="esu-card esu-info-card">
+                            <div className="esu-info-icon">ℹ</div>
+                            <div>
+                                <strong>Rower account required</strong>
+                                <p className="esu-muted" style={{ margin: "4px 0 0" }}>
+                                    Indoor erg events are entered by individual athletes. Sign in with
+                                    a rower account to enter.
+                                </p>
+                            </div>
+                        </div>
+                    );
 
                     if (!hasRower && !hasCoach) return (
                         <div className="esu-card esu-info-card">
@@ -920,7 +1054,7 @@ export default function EventPage() {
                         </div>
                     );
 
-                    if (event.status !== "open") return (
+                    if (event.status === "cancelled" || event.status === "draft") return (
                         <div className="esu-card esu-info-card">
                             <div className="esu-info-icon">🔒</div>
                             <div>
@@ -930,13 +1064,21 @@ export default function EventPage() {
                         </div>
                     );
 
-                    if (isRegistrationClosed) return (
+                    if (regClosed) return (
                         <div className="esu-card" style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
                             <div style={{ fontSize: "1.25rem", lineHeight: 1, marginTop: "2px", opacity: 0.5 }}>🗓</div>
                             <div>
-                                <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "rgba(255,255,255,0.8)", marginBottom: "0.3rem" }}>Registration deadline passed</div>
+                                <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "rgba(255,255,255,0.8)", marginBottom: "0.3rem" }}>
+                                    {erg ? "This event has ended"
+                                        : hasClosingDate(event) && event.registrationOpen !== false ? "Registration deadline passed"
+                                        : "Registration is closed"}
+                                </div>
                                 <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)" }}>
-                                    Entries closed on {formatDate(event.closingDate)}. The start list is shown below.
+                                    {erg
+                                        ? `Entries and scores closed on ${formatDate(event.endDate)}. The results are shown in the Results tab.`
+                                        : hasClosingDate(event) && event.registrationOpen !== false
+                                            ? `Entries closed on ${formatDate(event.closingDate)}. The start list is shown below.`
+                                            : `The host has closed entries for this event. The start list is shown below.`}
                                 </div>
                             </div>
                         </div>
@@ -944,7 +1086,9 @@ export default function EventPage() {
 
                     // ── Primary action label for the button ──
                     const rowerLabel = busy ? "Signing up…"
-                        : requiresPayment ? `Pay & enter as rower — ${fmtFee(selectedCategoryFee)}`
+                        : requiresPayment
+                            ? (erg ? `Pay & enter — ${fmtFee(selectedCategoryFee)}` : `Pay & enter as rower — ${fmtFee(selectedCategoryFee)}`)
+                        : erg ? "Enter event →"
                         : derivedBoatSize && derivedBoatSize > 1 ? "Create crew as rower →"
                         : "Register as rower →";
 
@@ -961,11 +1105,21 @@ export default function EventPage() {
                     return (
                         <div className="esu-card esu-signup-card" data-tour="signup-form">
                             <h3 className="esu-card-section-title">
-                                {mode === "rower" ? "Enter a category" : "Enter a crew (coach)"}
+                                {erg ? "Enter this event"
+                                    : mode === "rower" ? "Enter a category" : "Enter a crew (coach)"}
                             </h3>
 
+                            {erg && (
+                                <p className="esu-muted" style={{ fontSize: 13, margin: "0 0 14px" }}>
+                                    One entry fee covers unlimited attempts. Row {ergDistance}m on a
+                                    Concept2 RowErg any time between {formatDate(event.startDate)} and{" "}
+                                    {formatDate(event.endDate)} — your fastest verified piece is the one
+                                    that ranks.
+                                </p>
+                            )}
+
                             {/* Mode toggle — only shown for users with both rower and coach roles */}
-                            {hasBoth && (
+                            {hasBoth && !erg && (
                                 <div style={{
                                     display: "flex", background: "var(--surface-2)",
                                     borderRadius: 8, padding: 3, marginBottom: 14, gap: 3,
@@ -1153,7 +1307,9 @@ export default function EventPage() {
                                     </span>
                                 )}
                                 {mode === "rower" && alreadySignedUp && (
-                                    <span className="esu-already-tag">✓ Already entered</span>
+                                    <span className="esu-already-tag">
+                                        {erg ? "✓ Entered — submit your scores in My Scores" : "✓ Already entered"}
+                                    </span>
                                 )}
                                 {!clubName && (
                                     <span className="esu-error-text">⚠ No club set on your profile</span>
@@ -1388,7 +1544,181 @@ export default function EventPage() {
         );
     }
 
+    function renderErgResultsTab() {
+        if (loadingBoats) return <p className="esu-muted esu-empty-state">Loading results…</p>;
+
+        const entered = boats.length;
+
+        if (visibleErgEntries.length === 0) return (
+            <div className="esu-card" style={{ textAlign: "center", padding: "2.5rem 1.5rem" }}>
+                <div style={{ fontWeight: 600, fontSize: "1rem", color: "rgba(255,255,255,0.7)", marginBottom: "0.4rem" }}>
+                    No verified scores yet
+                </div>
+                <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.3)", maxWidth: 340, margin: "0 auto" }}>
+                    {entered > 0
+                        ? `${entered} ${entered === 1 ? "athlete has" : "athletes have"} entered. Scores appear here as soon as a verified ${ergDistance}m is imported from Concept2.`
+                        : `Scores appear here as soon as athletes post a verified ${ergDistance}m on a Concept2 RowErg.`}
+                </div>
+            </div>
+        );
+
+        const start = (page - 1) * PAGE_SIZE;
+        const pageEntries = visibleErgEntries.slice(start, start + PAGE_SIZE);
+        const totalPages = Math.max(1, Math.ceil(visibleErgEntries.length / PAGE_SIZE));
+
+        return (
+            <div>
+                <div className="esu-results-subtabs">
+                    {(["overall", "category"] as const).map(t => (
+                        <button
+                            key={t}
+                            className={`esu-results-subtab ${resultsTab === t ? "esu-results-subtab--active" : ""}`}
+                            onClick={() => { setResultsTab(t); setPage(1); }}
+                        >
+                            {t === "overall" ? "Overall" : "By Category"}
+                        </button>
+                    ))}
+                </div>
+
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        margin: "0.5rem 0 1rem",
+                    }}
+                >
+                    <span
+                        style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: "0.7rem",
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            color: "#22c55e",
+                        }}
+                    >
+                        <span
+                            style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: "50%",
+                                background: "#22c55e",
+                                animation: "pulse 2s ease-in-out infinite",
+                            }}
+                        />
+                        Live
+                    </span>
+                    <span className="esu-muted" style={{ fontSize: "0.8rem" }}>
+                        Fastest verified {ergDistance}m per athlete, updating as scores import
+                        from Concept2.
+                        {boatsUpdatedAt && (
+                            <> Last change {new Date(boatsUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.</>
+                        )}
+                    </span>
+                </div>
+
+                {/* The viewer's own standing, pinned so it is visible whatever
+                    page of the board they are on — or whether they are on it. */}
+                {user && myErgEntry && (
+                    <div
+                        className="esu-card"
+                        style={{
+                            borderColor: "var(--brand)",
+                            background: "rgba(255,212,0,0.03)",
+                            marginBottom: 12,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <div>
+                            <div
+                                style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    letterSpacing: "0.08em",
+                                    textTransform: "uppercase",
+                                    color: "var(--brand)",
+                                }}
+                            >
+                                Your position
+                            </div>
+                            <div style={{ fontSize: 14, marginTop: 4 }}>
+                                {myErgStanding ? (
+                                    <>
+                                        <strong style={{ fontSize: 18 }}>#{myErgStanding.rank}</strong>
+                                        <span className="esu-muted"> of {myErgStanding.total}</span>
+                                        <span style={{ marginLeft: 10, fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
+                                            {formatErgTime(myErgStanding.entry.ergBestTimeMs ?? 0)}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span className="esu-muted">
+                                        You're entered but have no verified score yet.
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <button type="button" className="btn-ghost" onClick={() => setTab("myscores")}>
+                            {myErgStanding ? "My scores" : "Submit a score"}
+                        </button>
+                    </div>
+                )}
+
+                {resultsTab === "overall" ? (
+                    <>
+                        <ErgResults
+                            entries={pageEntries}
+                            distanceMeters={ergDistance}
+                            profiles={profiles}
+                            currentUserUid={user?.uid}
+                            linkedAthleteUids={linkedAthleteUids}
+                            rankOffset={start}
+                            pendingCount={entered - visibleErgEntries.length}
+                        />
+                        {totalPages > 1 && (
+                            <div className="row" style={{ justifyContent: "center", marginTop: 14, gap: 10 }}>
+                                <button
+                                    className="btn-ghost"
+                                    disabled={page <= 1}
+                                    onClick={() => setPage(pg => Math.max(1, pg - 1))}
+                                >
+                                    ← Prev
+                                </button>
+                                <span className="esu-muted" style={{ fontSize: 13 }}>
+                                    Page {page} of {totalPages}
+                                </span>
+                                <button
+                                    className="btn-ghost"
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage(pg => Math.min(totalPages, pg + 1))}
+                                >
+                                    Next →
+                                </button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <ErgCategoryResults
+                        byCategory={visibleErgByCategory}
+                        distanceMeters={ergDistance}
+                        profiles={profiles}
+                        currentUserUid={user?.uid}
+                        linkedAthleteUids={linkedAthleteUids}
+                    />
+                )}
+            </div>
+        );
+    }
+
     function renderResultsTab() {
+        if (erg) return renderErgResultsTab();
         if (loadingBoats) return <p className="esu-muted esu-empty-state">Loading results…</p>;
         if (finishedBoats.length === 0) return (
             <div className="esu-card" style={{ textAlign: "center", padding: "2.5rem 1.5rem" }}>
@@ -1769,15 +2099,30 @@ export default function EventPage() {
                                         {/* Card body: date / distance / status */}
                                         <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                                             <div>
+                                                {/* Event type is never left implicit — an athlete must be
+                                                    able to tell an indoor 2k from a course race at a glance. */}
+                                                <EventTypeBadge erg={erg} distanceMeters={ergDistance} />
                                                 <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
                                                     {formatDate(event.startDate)} · {event.lengthMeters}m
                                                 </div>
-                                                {event.closingDate && (
+                                                {erg ? (
+                                                    <div style={{ fontSize: "11px", color: "rgba(254,185,89,0.65)", marginTop: 2 }}>
+                                                        Enter any time until {formatDate(event.endDate)}
+                                                        {" "}
+                                                        <ErgFinalDayFlag endDate={event.endDate} />
+                                                    </div>
+                                                ) : hasClosingDate(event) ? (
                                                     <div style={{ fontSize: "11px", color: "rgba(254,185,89,0.65)", marginTop: 2 }}>
                                                         Closes {formatDate(event.closingDate)}
-                                                        {Date.now() < new Date(event.closingDate).getTime() && (
-                                                            <ClosingCountdown closingDate={event.closingDate} />
+                                                        {Date.now() < new Date(event.closingDate!).getTime() && (
+                                                            <ClosingCountdown closingDate={event.closingDate!} />
                                                         )}
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ fontSize: "11px", color: "rgba(254,185,89,0.65)", marginTop: 2 }}>
+                                                        {isRegistrationClosed(event)
+                                                            ? "Entries closed"
+                                                            : `Enter any time until ${formatDate(event.endDate)}`}
                                                     </div>
                                                 )}
                                             </div>
@@ -1788,7 +2133,9 @@ export default function EventPage() {
                             })()}
 
                             <div className="esu-tab-bar">
-                                {(["overview", "entries", "results", "reviews"] as Tab[]).map(t => (
+                                {((erg && user
+                                    ? ["overview", "entries", "myscores", "results", "reviews"]
+                                    : ["overview", "entries", "results", "reviews"]) as Tab[]).map(t => (
                                     <button
                                         key={t}
                                         className={`esu-tab-btn ${activeTab === t ? "esu-tab-btn--active" : ""}`}
@@ -1796,6 +2143,7 @@ export default function EventPage() {
                                     >
                                         {t === "overview" ? "Overview"
                                             : t === "entries" ? "Entries"
+                                            : t === "myscores" ? "My Scores"
                                             : t === "results" ? "Results"
                                             : reviews.length > 0 ? `Reviews (${reviews.length})` : "Reviews"}
                                     </button>
@@ -1806,6 +2154,16 @@ export default function EventPage() {
                             {activeTab === "entries" && renderEntriesTab()}
                             {activeTab === "results" && renderResultsTab()}
                             {activeTab === "reviews" && renderReviewsTab()}
+                            {activeTab === "myscores" && erg && user && (
+                                <MyErgScoresTab
+                                    eventId={event.id}
+                                    uid={user.uid}
+                                    endDate={event.endDate}
+                                    distanceMeters={ergDistance}
+                                    isRegistered={!!myErgEntry}
+                                    onGoToEntries={() => setTab("entries")}
+                                />
+                            )}
                         </>
                     )}
                 </div>

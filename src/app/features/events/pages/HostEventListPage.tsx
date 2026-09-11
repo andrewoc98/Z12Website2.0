@@ -7,6 +7,7 @@ import { useAdminClaims } from "../../admin/hooks/useAdminClaims";
 import { useTourMock } from "../../../providers/TourMockContext";
 import { TOUR_HOST_EVENTS } from "../../home/components/tourMockData";
 import { formatDate, getEventStatus } from "../lib/categories.ts";
+import { isErgEvent } from "../lib/categories";
 
 type Mode = "active" | "finished";
 
@@ -150,7 +151,14 @@ export default function HostEventListPage() {
                                                 <div className="flex flex-col gap-[6px]">
                                                     <div className="grid grid-cols-[1fr_auto] items-center gap-2 max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-[6px]">
                                                         <span className="font-condensed text-[28px] tracking-[1px] text-brand-warm max-[640px]:text-[2rem]">{e.name}</span>
-                                                        <span className="text-[16px] text-muted max-[640px]:text-[0.9rem]">{e.lengthMeters}m Time Trial</span>
+                                                        <span
+                                                            className="text-[16px] max-[640px]:text-[0.9rem]"
+                                                            style={{ color: isErgEvent(e) ? "var(--brand)" : "var(--muted)" }}
+                                                        >
+                                                            {isErgEvent(e)
+                                                                ? `Indoor Erg · ${e.lengthMeters}m`
+                                                                : `${e.lengthMeters}m Time Trial`}
+                                                        </span>
                                                     </div>
                                                     <div className="grid grid-cols-[1fr_auto] items-center gap-2 text-[14px] text-muted max-[640px]:flex max-[640px]:flex-col max-[640px]:items-start">
                                                         <span>{e.location}</span>

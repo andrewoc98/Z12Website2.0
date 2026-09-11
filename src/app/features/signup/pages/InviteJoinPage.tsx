@@ -34,15 +34,11 @@ export default function InviteJoinPage() {
                 setRequirements(req);
                 setBoatId(req.boatId);
 
-                // Check registration closing date
-                if (req.closingDate) {
-                    const closing = req.closingDate.toDate
-                        ? req.closingDate.toDate()
-                        : new Date(req.closingDate);
-                    if (closing < new Date()) {
-                        setEligibilityError("Registration has closed for this event.");
-                        return;
-                    }
+                // Closing date, the host's manual switch, or the event already
+                // held — getInviteRequirements resolves all three.
+                if (req.registrationClosed) {
+                    setEligibilityError("Registration has closed for this event.");
+                    return;
                 }
 
                 // Ensure profile completeness

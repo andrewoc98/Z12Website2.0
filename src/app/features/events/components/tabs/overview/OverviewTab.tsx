@@ -4,15 +4,21 @@ import CategoryBreakdown from "./CategoryBreakdown";
 import { assignBowNumbersForEvent } from "../../../../signup/api/boats.ts";
 import { useState } from "react";
 import DangerZoneCard from "./DangerZoneCard.tsx";
+import RegistrationToggle from "./RegistrationToggle";
+import { isRegistrationClosed, hasClosingDate } from "../../../lib/registration";
 import HostAdminInvite from "../../../../auth/pages/AdminHostInvite.tsx";
 
-export default function OverviewTab({ event, boats = [] }: any) {
+export default function OverviewTab({ event, boats = [], onEventChange }: any) {
     const [busy, setBusy] = useState(false);
     const [assignErr, setAssignErr] = useState<string | null>(null);
     const [assignOk, setAssignOk] = useState(false);
 
-    const closingDate: Date | null = event.closingDate ? new Date(event.closingDate) : null;
-    const isAfterClosing = closingDate ? closingDate < new Date() : false;
+    // Bulk assignment waits until nobody can still enter — which is now the
+    // manual switch as much as the closing date. See lib/registration.ts.
+    const closingDate: Date | null = hasClosingDate(event) && event.closingDate
+        ? new Date(event.closingDate)
+        : null;
+    const isAfterClosing = isRegistrationClosed(event);
 
     const assignBows = async () => {
         setBusy(true);
@@ -34,7 +40,9 @@ export default function OverviewTab({ event, boats = [] }: any) {
     return (
         <div className="flex flex-col gap-5 bg-bg text-text">
 
-            <EventHeaderEditor event={event} />
+            <EventHeaderEditor event={event} onSaved={onEventChange} />
+
+            <RegistrationToggle event={event} onSaved={onEventChange} />
 
             <div>
                 <button
@@ -51,7 +59,7 @@ export default function OverviewTab({ event, boats = [] }: any) {
                     <p className="text-muted text-[13px] mt-2">
                         {closingDate
                             ? `Available after registration closes (${closingDate.toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })}).`
-                            : "Set a registration closing date to enable bulk assignment."}
+                            : "Available once registration closes — close it above, or set a closing date."}
                     </p>
                 )}
             </div>

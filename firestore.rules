@@ -65,9 +65,20 @@ service cloud.firestore {
              .get("roles", {}).get("admin", {}).get("hostIds", []).hasAny([hostId]);
     }
 
+    // Mirrors the client's lib/registration.ts: the event end beats everything,
+    // then the host's manual switch, then the closing date. `registrationOpen`
+    // is absent on every event created before the switch existed, which is why
+    // the default here is a sentinel rather than a boolean.
+    function eventAcceptsEntries(ed) {
+      let manual = ed.get("registrationOpen", "unset");
+      let notEnded = !("endAt" in ed) || ed.endAt > request.time;
+      let beforeClose = !("closeAt" in ed) || ed.closeAt > request.time;
+      return notEnded && (manual == true ? true : (manual == false ? false : beforeClose));
+    }
+
     function isEventOpen(eventId) {
-      let ed = get(/databases/$(database)/documents/events/$(eventId)).data;
-      return !("closingDate" in ed) || ed.closingDate > request.time;
+      return exists(/databases/$(database)/documents/events/$(eventId))
+        && eventAcceptsEntries(get(/databases/$(database)/documents/events/$(eventId)).data);
     }
 
     function writesProtectedFieldsOnCreate() {
@@ -99,6 +110,12 @@ service cloud.firestore {
 
       allow write:  if isPlatformAdmin();
       allow delete: if isOwner(userId);
+    }
+
+    // private — Concept2 OAuth tokens and refresh tokens. Server only: these
+    // grant access to the athlete's Logbook and must never reach a client.
+    match /users/{userId}/private/{docId} {
+      allow read, write: if false; // Cloud Functions only (admin SDK)
     }
 
     // Admin notifications — user reads own; Functions write
@@ -286,6 +303,17 @@ service cloud.firestore {
       allow write: if isEventHost(eventId) || isTimingAdmin(eventId);
     }
 
+    // Erg scores — imported from the Concept2 Logbook by Cloud Functions.
+    // Public read matches race results; no client may write one, not even the
+    // host, so the leaderboard stays provably Concept2-sourced. Hosts act on
+    // scores through the disqualifyErgScore / reinstateErgScore callables.
+    // Declared before the {subCollection} catch-all above so it wins.
+    match /events/{eventId}/ergScores/{scoreId} {
+      allow get:  if true;
+      allow list: if true;
+      allow write: if false; // Cloud Functions only (admin SDK)
+    }
+
     match /events/{eventId}/boats/{boatId} {
       // pending_crew boats are private — only the creator, a crew member, the host, or timing admin
       // may read them directly. All other boats are public.
@@ -299,12 +327,15 @@ service cloud.firestore {
       allow list: if true;
 
       // Rower creating their own boat (first rowerUid must be themselves)
-      // OR coach creating an empty crew entry (rowerUids empty, createdByUid is themselves)
-      allow create: if signedIn() && (
-        request.resource.data.get("rowerUids", [])[0] == uid()
-        || (request.resource.data.get("rowerUids", []).size() == 0
-            && request.resource.data.get("createdByUid", "") == uid())
-      );
+      // OR coach creating an empty crew entry (rowerUids empty, createdByUid is themselves).
+      // Either way registration must still be open — no entry after the event is held.
+      allow create: if signedIn()
+        && isEventOpen(eventId)
+        && (
+          request.resource.data.get("rowerUids", [])[0] == uid()
+          || (request.resource.data.get("rowerUids", []).size() == 0
+              && request.resource.data.get("createdByUid", "") == uid())
+        );
 
       // Host or timing admin can update any boat; rower can join a pending_crew boat before closing
       allow update: if isEventHost(eventId)

@@ -1,9 +1,15 @@
 import { useMemo, useState } from "react";
-import { DIVISIONS, GENDERS, categoryKey, type Gender, type Division } from "../lib/categories";
+import { DIVISIONS, GENDERS, categoryKey, ergCategoryKey, type Gender, type Division, type BoatClass } from "../lib/categories";
 
 type Props = {
     value: string[];
     onChange: (next: string[]) => void;
+    /**
+     * Open-water categories are gender x division x boat class; erg categories
+     * drop the boat class because an erg event has no boats. The picker walks
+     * the same divisions either way — only the leaf changes.
+     */
+    mode?: "openWater" | "erg";
 };
 
 type GenderFilter = "All" | Gender;
@@ -13,9 +19,12 @@ type DivisionConfig = (typeof DIVISIONS)[number] & {
     genders?: readonly Gender[];
 };
 
-function boatClassesForGender(d: DivisionConfig) {
-    return d.boatClasses;
-}
+/**
+ * The selectable leaves under one division. Open water has one per boat class;
+ * erg has exactly one, since gender + division fully identifies the category.
+ * `null` means "no boat class".
+ */
+type CategoryUnit = BoatClass | null;
 
 function groupFromDivision(division: Division): GroupKey {
     const s = String(division);
@@ -39,8 +48,15 @@ function genderShort(g: Gender) {
     return "Mix";
 }
 
-export default function CategoryPicker({ value, onChange }: Props) {
+export default function CategoryPicker({ value, onChange, mode = "openWater" }: Props) {
     const selected = useMemo(() => new Set(value), [value]);
+    const isErg = mode === "erg";
+
+    const unitsForDivision = (d: DivisionConfig): readonly CategoryUnit[] =>
+        isErg ? [null] : d.boatClasses;
+
+    const catKey = (gen: Gender, division: Division, unit: CategoryUnit) =>
+        unit === null ? ergCategoryKey(gen, division) : categoryKey(gen, division, unit);
 
     const [genderFilter, setGenderFilter] = useState<GenderFilter>("All");
     const [group, setGroup] = useState<GroupKey>("All");
@@ -120,11 +136,11 @@ export default function CategoryPicker({ value, onChange }: Props) {
         for (const d of DIVISIONS as DivisionConfig[]) {
             const genders = allowedGendersForDivision(d);
             for (const _g of genders) {
-                count += boatClassesForGender(d).length;
+                count += unitsForDivision(d).length;
             }
         }
         return count;
-    }, []);
+    }, [isErg]);
 
     const allEnabled = value.length === totalAllCategories;
     const noneEnabled = value.length === 0;
@@ -135,8 +151,8 @@ export default function CategoryPicker({ value, onChange }: Props) {
         for (const d of DIVISIONS as DivisionConfig[]) {
             const genders = allowedGendersForDivision(d);
             for (const g of genders) {
-                for (const bc of boatClassesForGender(d)) {
-                    all.push(categoryKey(g, d.division, bc));
+                for (const unit of unitsForDivision(d)) {
+                    all.push(catKey(g, d.division, unit));
                 }
             }
         }
@@ -147,8 +163,8 @@ export default function CategoryPicker({ value, onChange }: Props) {
         const next = new Set(selected);
         const genders = visibleGendersForDivision(d);
         for (const g of genders) {
-            for (const bc of boatClassesForGender(d)) {
-                const cat = categoryKey(g, d.division, bc);
+            for (const unit of unitsForDivision(d)) {
+                const cat = catKey(g, d.division, unit);
                 if (on) next.add(cat);
                 else next.delete(cat);
             }
@@ -162,9 +178,9 @@ export default function CategoryPicker({ value, onChange }: Props) {
         let checked = 0;
 
         for (const g of genders) {
-            for (const bc of boatClassesForGender(d)) {
+            for (const unit of unitsForDivision(d)) {
                 total += 1;
-                if (selected.has(categoryKey(g, d.division, bc))) checked += 1;
+                if (selected.has(catKey(g, d.division, unit))) checked += 1;
             }
         }
         return { total, checked };
@@ -184,7 +200,11 @@ export default function CategoryPicker({ value, onChange }: Props) {
                 </div>
             </div>
 
-            <p className="muted">Default is everything enabled — filter and tap to omit quickly.</p>
+            <p className="muted">
+                {isErg
+                    ? "Nothing is selected to start with — pick the classes your event actually runs."
+                    : "Default is everything enabled — filter and tap to omit quickly."}
+            </p>
 
             {/* Controls */}
             <div className="card card--tight" style={{ marginTop: 12 }}>
@@ -291,8 +311,8 @@ export default function CategoryPicker({ value, onChange }: Props) {
                                                                 </div>
 
                                                                 <div className="row" style={{ marginTop: 8 }}>
-                                                                    {d.boatClasses.map((bc) => {
-                                                                        const cat = categoryKey(gen, d.division, bc);
+                                                                    {unitsForDivision(d).map((unit) => {
+                                                                        const cat = catKey(gen, d.division, unit);
                                                                         const on = selected.has(cat);
 
                                                                         // use your button styling; primary for "on"
@@ -304,7 +324,7 @@ export default function CategoryPicker({ value, onChange }: Props) {
                                                                                 onClick={() => toggle(cat)}
                                                                                 aria-pressed={on}
                                                                             >
-                                                                                {genderShort(gen)}{bc}
+                                                                                {genderShort(gen)}{unit ?? ""}
                                                                             </button>
                                                                         );
                                                                     })}

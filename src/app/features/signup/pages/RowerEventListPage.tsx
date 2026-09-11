@@ -5,7 +5,9 @@ import { listEvents } from "../../events/api/events";
 import type { EventDoc, EventSeriesType } from "../../events/types";
 
 import Footer from "../../../shared/components/Footer/Footer.tsx";
-import { formatDate } from "../../events/lib/categories.ts";
+import { formatDate, isErgEvent } from "../../events/lib/categories.ts";
+import { hasClosingDate, isRegistrationClosed } from "../../events/lib/registration.ts";
+import { ErgFinalDayFlag } from "../../events/components/EntryWindow";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useRoles } from "../../../providers/RoleProvider";
 import { useTourMock } from "../../../providers/TourMockContext";
@@ -346,11 +348,24 @@ export default function RowerEventListPage() {
                                     <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                                         <div style={{ minWidth: 0 }}>
                                             <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>
+                                                {isErgEvent(featured) ? "Indoor Erg · " : ""}
                                                 {formatDate(featured.startDate)} · {featured.lengthMeters}m
                                             </div>
-                                            {featured.closingDate && (
+                                            {isErgEvent(featured) ? (
+                                                <div style={{ fontSize: "11px", color: "rgba(254,185,89,0.65)", marginTop: 2 }}>
+                                                    Enter any time until {formatDate(featured.endDate)}
+                                                    {" "}
+                                                    <ErgFinalDayFlag endDate={featured.endDate} />
+                                                </div>
+                                            ) : hasClosingDate(featured) ? (
                                                 <div style={{ fontSize: "11px", color: "rgba(254,185,89,0.65)", marginTop: 2 }}>
                                                     Closes {formatDate(featured.closingDate)}
+                                                </div>
+                                            ) : (
+                                                <div style={{ fontSize: "11px", color: "rgba(254,185,89,0.65)", marginTop: 2 }}>
+                                                    {isRegistrationClosed(featured)
+                                                        ? "Entries closed"
+                                                        : `Enter any time until ${formatDate(featured.endDate)}`}
                                                 </div>
                                             )}
                                             {(() => {
@@ -470,9 +485,9 @@ export default function RowerEventListPage() {
                                                     <div>{formatDate(e.startDate)}</div>
                                                 </div>
 
-                                                {/* Distance */}
-                                                <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.22)" }}>
-                                                    {e.lengthMeters}m
+                                                {/* Type + distance */}
+                                                <div style={{ fontSize: "11px", color: isErgEvent(e) ? "var(--brand)" : "rgba(255,255,255,0.22)" }}>
+                                                    {isErgEvent(e) ? `Erg · ${e.lengthMeters}m` : `${e.lengthMeters}m`}
                                                 </div>
 
                                                 {/* Entry fee badge */}
