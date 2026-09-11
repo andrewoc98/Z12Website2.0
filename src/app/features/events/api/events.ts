@@ -1,5 +1,5 @@
 import { DEV_MODE } from "../../../shared/lib/config";
-import type {EventCategory, EventDoc, EventPayment, EventStatus, FirestoreEventDoc} from "../types";
+import type {ErgConfig, EventCategory, EventDoc, EventPayment, EventStatus, EventType, FirestoreEventDoc} from "../types";
 
 // Firestore
 import {
@@ -79,8 +79,23 @@ export type CreateEventInput = {
     endAt: Timestamp;
     closeAt: Timestamp;
 
+    // Water event run without a registration deadline: closeAt is then the event
+    // end, and `registrationOpen` is the host's switch. Both absent on an event
+    // whose closing date governs. See lib/registration.ts.
+    noClosingDate?: boolean;
+    registrationOpen?: boolean;
+
     lengthMeters: number;
     categories: EventCategory[];
+
+    // Absent means an open-water race, matching every event created before erg
+    // support existed.
+    eventType?: EventType;
+    ergConfig?: ErgConfig;
+
+    // Capitalised on purpose: "Live" | "Category" | "Event" are the values
+    // EventPage and updateEventPublishMode actually read.
+    resultsPublishMode?: string;
 
     status: EventStatus;
 

@@ -7,7 +7,12 @@ import { STRIPE_SUPPORTED_COUNTRIES } from "../../events/types";
 const StripeCheckoutModal = lazy(() => import("../components/StripeCheckoutModal"));
 import type { BoatSize } from "../types";
 import { createBoat, listBoatsForEvent } from "../api/boats";
-import {parseBoatClassFromCategory, boatSizeFromBoatClass, formatDate} from "../../events/lib/categories";
+import {
+    parseBoatClassFromCategory,
+    boatSizeFromBoatClass,
+    formatDate,
+    isEligibleForCategory,
+} from "../../events/lib/categories";
 import { collection, doc, getDoc, getDocs, query, where, documentId } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 import { useAuth } from "../../../providers/AuthProvider";
@@ -33,64 +38,6 @@ type UserDoc = {
 };
 
 // ---------- Utility Functions ----------
-function todayYMD() {
-    return new Date().toISOString().slice(0, 10);
-}
-
-function ageOnDate(dobYmd: string, onYmd: string) {
-    const [y, m, d] = dobYmd.split("-").map(Number);
-    const [yy, mm, dd] = onYmd.split("-").map(Number);
-    let age = yy - y;
-    if (mm < m || (mm === m && dd < d)) age -= 1;
-    return age;
-}
-
-function parseCategoryParts(catName: string): { gender: string; division: string; boatClass: string } | null {
-    const parts = catName.split("•").map((s) => s.trim());
-    if (parts.length !== 3) return null;
-    return { gender: parts[0], division: parts[1], boatClass: parts[2] };
-}
-
-function juniorLimitFromDivision(division: string): number | null {
-    const m = division.match(/^Junior\s+(\d{1,2})$/i);
-    if (!m) return null;
-    return Number(m[1]);
-}
-
-function mastersBandFromDivision(division: string): { min: number; max: number | null } | null {
-    const m = division.match(/^Masters(?:\s+([A-K]))?/i);
-    if (!m) return { min: 27, max: null };
-    const band = (m[1] ?? "").toUpperCase();
-    const bands: Record<string, { min: number; max: number | null }> = {
-        A: { min: 27, max: 35 }, B: { min: 36, max: 42 }, C: { min: 43, max: 49 },
-        D: { min: 50, max: 54 }, E: { min: 55, max: 59 }, F: { min: 60, max: 64 },
-        G: { min: 65, max: 69 }, H: { min: 70, max: 74 }, I: { min: 75, max: 79 },
-        J: { min: 80, max: 84 }, K: { min: 85, max: null },
-    };
-    return bands[band] ?? { min: 27, max: null };
-}
-
-function isEligibleForCategory(profile: Profile, catName: string) {
-    const parts = parseCategoryParts(catName);
-    if (!parts || !profile.dateOfBirth || !profile.gender) return false;
-    const age = ageOnDate(profile.dateOfBirth, todayYMD());
-    const div = parts.division;
-    if (parts.gender === "Men" && profile.gender !== "male") return false;
-    if (parts.gender === "Women" && profile.gender !== "female") return false;
-    if (div.startsWith("U19") && age >= 19) return false;
-    if (div.startsWith("U21") && age >= 21) return false;
-    if (div.startsWith("U23") && age >= 23) return false;
-    const juniorLimit = juniorLimitFromDivision(div);
-    if (juniorLimit !== null && age >= juniorLimit) return false;
-    if (div.startsWith("Masters")) {
-        const mastersBand = mastersBandFromDivision(div);
-        if (!mastersBand) return false;
-        if (age < mastersBand.min) return false;
-        if (mastersBand.max !== null && age > mastersBand.max) return false;
-    }
-    return true;
-}
-
 function randomCode(len = 12) {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");

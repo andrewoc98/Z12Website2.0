@@ -13,7 +13,9 @@ import {
     writeBatch,
     where,
     getDoc,
+    Timestamp,
 } from "firebase/firestore";
+import type { DocumentData } from "firebase/firestore";
 import { db } from "../../../shared/lib/firebase";
 
 /**
@@ -36,6 +38,35 @@ function signupGuardRef(eventId: string, uid: string, categoryId: string) {
     if (!categoryId) throw new Error("Missing categoryId");
     // Guard doc that makes "category once per rower" atomic
     return doc(db, "events", eventId, "rowerCategorySignups", `${uid}__${categoryId}`);
+}
+
+/**
+ * Whether the raw event document still accepts entries.
+ *
+ * Mirrors lib/registration.ts, but reads the Firestore document (closeAt /
+ * endAt Timestamps) rather than a mapped EventDoc: the host's manual switch
+ * wins over the closing date, and the end of the event wins over everything.
+ */
+export function registrationClosedForEventData(data: DocumentData | undefined): boolean {
+    if (!data) return false;
+
+    const ms = (ts: unknown): number | null => {
+        if (ts == null) return null;
+        if (ts instanceof Timestamp) return ts.toMillis();
+        if (ts instanceof Date) return ts.getTime();
+        if (typeof ts === "number") return ts;
+        return null;
+    };
+
+    const now = Date.now();
+    const end = ms(data.endAt);
+    if (end != null && now > end) return true;
+
+    if (data.registrationOpen === false) return true;
+    if (data.registrationOpen === true) return false;
+
+    const close = ms(data.closeAt);
+    return close != null && now > close;
 }
 
 function cleanPatch(patch: any) {
@@ -96,6 +127,12 @@ export async function createBoat(boat: BoatDoc): Promise<string> {
     const newBoatId = newBoat.id;
 
     await runTransaction(db, async (tx) => {
+        // Read the event first: a transaction may not read after it writes.
+        const eventSnap = await tx.get(doc(db, "events", eventId));
+        if (registrationClosedForEventData(eventSnap.data())) {
+            throw new Error("Registration has closed for this event.");
+        }
+
         const existing = await tx.get(guard);
         if (existing.exists()) throw new Error("You’ve already signed up for this category.");
 
@@ -142,6 +179,11 @@ export async function createBoatAsCoach(params: {
     if (!eventId) throw new Error("Missing eventId");
     if (!categoryId) throw new Error("Missing categoryId");
     if (!coachUid) throw new Error("Missing coachUid");
+
+    const eventSnap = await getDoc(doc(db, "events", eventId));
+    if (registrationClosedForEventData(eventSnap.data())) {
+        throw new Error("Registration has closed for this event.");
+    }
 
     const newBoat = doc(boatsCol(eventId));
     const newBoatId = newBoat.id;
@@ -193,13 +235,11 @@ export async function joinBoatWithInviteCode(args: { eventId: string; code: stri
 
         const boat = fresh.data() as any;
 
-        // Check closing date before allowing crew join
+        // Registration must still be open before anyone joins a crew
         const eventRef = doc(db, "events", eventId);
         const eventSnap = await tx.get(eventRef);
-        const closingDate = eventSnap.data()?.closingDate;
-        if (closingDate) {
-            const closing = closingDate.toDate ? closingDate.toDate() : new Date(closingDate);
-            if (closing < new Date()) throw new Error("Registration has closed for this event.");
+        if (registrationClosedForEventData(eventSnap.data())) {
+            throw new Error("Registration has closed for this event.");
         }
 
         const status = boat.status ?? "registered";
@@ -376,7 +416,8 @@ export async function getInviteRequirements(
 
     return {
         eventDate:   eventSnap.data().date,
-        closingDate: eventSnap.data().closingDate ?? null,
+        closingDate: eventSnap.data().closeAt ?? null,
+        registrationClosed: registrationClosedForEventData(eventSnap.data()),
         category:    boat.category,
         genderCategory: boat.genderCategory,
         boatId:      boatDoc.id,

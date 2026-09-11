@@ -14,8 +14,11 @@ import RaceTab from "../components/tabs/raceTab/RaceTab";
 import ContactsTab from "../components/tabs/contacts/ContactsTab.tsx";
 import BowNumbersTab from "../components/tabs/bowNumbers/BowNumbersTab.tsx";
 import FinancesTab from "../components/tabs/finances/FinancesTab.tsx";
+import ErgScoreReviewTab from "../components/tabs/ergScores/ErgScoreReviewTab";
+import { isErgEvent } from "../lib/categories";
+import { isRegistrationOpen } from "../lib/registration";
 
-type Tab = "overview" | "categories" | "registrations" | "finances" | "bow numbers" | "race" | "contacts";
+type Tab = "overview" | "categories" | "registrations" | "finances" | "bow numbers" | "race" | "scores" | "contacts";
 
 export default function HostEventManagePage() {
 
@@ -87,13 +90,11 @@ export default function HostEventManagePage() {
         const now = Date.now();
         const start = event.startDate ? new Date(event.startDate).getTime() : null;
         const end = event.endDate ? new Date(event.endDate).getTime() : null;
-        const close = event.closingDate ? new Date(event.closingDate).getTime() : null;
 
         if (end && now > end) return "finished";
         if (start && now >= start) return "running";
-        if (close && now > close) return "closed";
 
-        return "open";
+        return isRegistrationOpen(event) ? "open" : "closed";
     }, [event]);
 
     const STATUS_COLORS: Record<string, string> = {
@@ -118,13 +119,18 @@ export default function HostEventManagePage() {
         );
     }
 
+    // Erg events have no boats to number and no times to key in — the Race tab's
+    // ResultsEditor edits start/finish stamps that simply do not exist here.
+    const erg = isErgEvent(event);
+
     const renderTab = () => {
         switch (tab) {
-            case "overview":      return <OverviewTab event={event} boats={boats}/>;
+            case "overview":      return <OverviewTab event={event} boats={boats} onEventChange={setEvent}/>;
             case "registrations": return <RegistrationsTab event={event} boats={boats} />;
             case "finances":      return <FinancesTab event={event} boats={boats} />;
             case "bow numbers":   return <BowNumbersTab event={event} boats={boats} />;
             case "race":          return <RaceTab event={event} boats={boats}/>;
+            case "scores":        return <ErgScoreReviewTab eventId={event.id} />;
             case "contacts":      return <ContactsTab hostId={event.createdByUid}/>;
             case "categories":    return <CategoriesTab event={event} boats={boats} onSave={handleSaveCategories} onSaveFees={stripeSupported ? handleSaveFees : undefined} />;
             default:              return null;
@@ -136,8 +142,7 @@ export default function HostEventManagePage() {
         "categories",
         "registrations",
         ...(stripeSupported ? (["finances"] as Tab[]) : []),
-        "bow numbers",
-        "race",
+        ...(erg ? (["scores"] as Tab[]) : (["bow numbers", "race"] as Tab[])),
         "contacts",
     ];
 

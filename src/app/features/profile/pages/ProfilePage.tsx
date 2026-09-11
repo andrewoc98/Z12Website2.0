@@ -15,6 +15,7 @@ import { MyAthletesSection } from "../../coaches/components/MyAthletesSection.ts
 import { ClubInvitesSection } from "../components/ClubInvitesSection.tsx";
 import { ConsentSettings } from "../components/ConsentSettings.tsx";
 import { RaceHistory } from "../components/RaceHistory.tsx";
+import Concept2Card from "../components/Concept2Card.tsx";
 
 export default function ProfilePageElite() {
     const { user, profile: authProfile, loading } = useAuth();
@@ -63,6 +64,8 @@ export default function ProfilePageElite() {
                 )}
 
                 <ClubInvitesSection />
+
+                {user && <Concept2Card uid={user.uid} />}
 
                 <section className="card profile-section">
                     <h3 className="section-title">Edit Profile</h3>
