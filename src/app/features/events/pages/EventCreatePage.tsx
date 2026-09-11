@@ -5,7 +5,7 @@ import { useAuth } from "../../../providers/AuthProvider";
 import { useAdminClaims } from "../../admin/hooks/useAdminClaims";
 import { getClub } from "../../admin/services/clubAdminService";
 import CategoryPicker from "../components/CategoryPicker";
-import { EventTypeChooser, EventTypeBanner } from "../components/EventTypePicker";
+import { EventTypeChooser, EventTypeBanner, isEventTypeAvailable } from "../components/EventTypePicker";
 import Modal from "../../../shared/components/Modal/Modal";
 import { buildDefaultCategories, getCategoryRaceMeters, parseBoatClassFromCategory } from "../lib/categories";
 import type { BoatClass } from "../lib/categories";
@@ -98,7 +98,9 @@ export default function EventCreatePage() {
         const draft = loadDraft();
         if (!draft) return;
         clearDraft();
-        if (draft.eventType)       setEventType(draft.eventType);
+        // A draft saved while indoor events were still open must not smuggle the
+        // type back in after they were switched off — drop back to the chooser.
+        if (draft.eventType && isEventTypeAvailable(draft.eventType)) setEventType(draft.eventType);
         if (draft.name)            setName(draft.name);
         if (draft.description)     setDescription(draft.description);
         if (draft.location)        setLocation(draft.location);
