@@ -12,7 +12,7 @@ import InviteAdminModal from "../components/club/InviteAdminModal";
 import { useClubAdminData } from "../hooks/useClubAdminData";
 import { useAdminClaims } from "../hooks/useAdminClaims";
 import { useAuth } from "../../../providers/AuthProvider";
-import { createConnectAccount } from "../services/stripeService";
+import { createConnectAccount, refreshConnectStatus, callableErrorText } from "../services/stripeService";
 import { STRIPE_SUPPORTED_COUNTRIES } from "../../events/types";
 
 type ToastState = { msg: string; type: "success" | "error" } | null;
@@ -174,7 +174,17 @@ function StripeSection({ notify }: { notify: (msg: string, type?: "success" | "e
     const { profile } = useAuth() as any;
     const [connecting, setConnecting] = useState(false);
 
+    const accountId: string | undefined = profile?.roles?.clubAdmin?.stripeConnectedAccountId;
     const onboarded: boolean = profile?.roles?.clubAdmin?.stripeOnboarded ?? false;
+
+    // account.updated is the webhook's only write of stripeOnboarded, so a
+    // dropped event leaves a fully onboarded admin showing as unconnected
+    // forever. Re-checking with Stripe on load repairs that without any
+    // manual intervention; profile updates arrive via the AuthProvider snapshot.
+    useEffect(() => {
+        if (!accountId || onboarded) return;
+        refreshConnectStatus({}).catch(() => { /* non-critical: banner stays as-is */ });
+    }, [accountId, onboarded]);
 
     async function handleConnect() {
         setConnecting(true);
@@ -182,7 +192,7 @@ function StripeSection({ notify }: { notify: (msg: string, type?: "success" | "e
             const { url } = await createConnectAccount({});
             window.location.href = url;
         } catch (e: any) {
-            notify(e?.message ?? "Could not initiate Stripe setup.", "error");
+            notify(callableErrorText(e, "Could not initiate Stripe setup."), "error");
             setConnecting(false);
         }
     }

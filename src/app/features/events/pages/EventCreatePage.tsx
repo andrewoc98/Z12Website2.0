@@ -14,7 +14,7 @@ import type { EventStatus, EventSeriesType, EventType } from "../types";
 import { DEFAULT_ERG_CONFIG, SERIES_LENGTH_METERS, STRIPE_SUPPORTED_COUNTRIES } from "../types";
 import InfoTooltip from "../../../shared/components/Infotooltip/Infotooltip.tsx";
 import { Link } from "react-router-dom";
-import { createConnectAccount } from "../../admin/services/stripeService";
+import { createConnectAccount, callableErrorText } from "../../admin/services/stripeService";
 
 const DRAFT_KEY = "z12_event_create_draft";
 
@@ -132,7 +132,7 @@ export default function EventCreatePage() {
             window.location.href = url;
         } catch (e: any) {
             clearDraft();
-            setErr(e?.message ?? "Could not start Stripe setup. Please try again.");
+            setErr(callableErrorText(e, "Could not start Stripe setup. Please try again."));
             setConnectingStripe(false);
         }
     }
