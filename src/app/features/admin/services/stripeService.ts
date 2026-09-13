@@ -1,6 +1,18 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../../shared/lib/firebase";
 
+/**
+ * Callable errors reach the UI as a bare message, which hides the Firebase
+ * error code — the part that says whether a Stripe connect failure was a
+ * permission problem, a precondition, or a genuine internal fault. Hosts ignore
+ * the suffix; whoever is helping them debug needs it.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function callableErrorText(e: any, fallback: string): string {
+    const msg = e?.message ?? fallback;
+    return e?.code ? `${msg} (${e.code})` : msg;
+}
+
 const call = <Req, Res>(name: string) =>
     async (data: Req): Promise<Res> => {
         const fn = httpsCallable<Req, Res>(functions, name);
@@ -11,6 +23,23 @@ export const createConnectAccount = call<
     Record<string, never>,
     { url: string }
 >("createConnectAccount");
+
+export type ConnectStatus = {
+    connected:        boolean;
+    accountId:        string | null;
+    onboarded:        boolean;
+    detailsSubmitted: boolean;
+    payoutsEnabled:   boolean;
+    chargesEnabled:   boolean;
+    disabledReason:   string | null;
+    currentlyDue:     string[];
+    pastDue:          string[];
+    checkedAt:        number;
+};
+
+export const refreshConnectStatus = call<Record<string, never>, ConnectStatus>(
+    "refreshConnectStatus"
+);
 
 export const cancelEvent = call<
     { eventId: string; reason: string },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../../shared/components/Navbar/Navbar";
-import { createConnectAccount } from "../services/stripeService";
+import { createConnectAccount, callableErrorText } from "../services/stripeService";
 
 export default function StripeConnectRefresh() {
     const [err, setErr] = useState<string | null>(null);
@@ -9,7 +9,7 @@ export default function StripeConnectRefresh() {
     useEffect(() => {
         createConnectAccount({})
             .then(({ url }) => { window.location.href = url; })
-            .catch((e: any) => setErr(e?.message ?? "Could not refresh Stripe link."));
+            .catch((e: any) => setErr(callableErrorText(e, "Could not refresh Stripe link.")));
     }, []);
 
     return (
