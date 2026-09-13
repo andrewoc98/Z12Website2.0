@@ -83,7 +83,7 @@ const CARDS: TypeCard[] = [
     {
         type: "open_water",
         icon: () => <WaterIcon />,
-        title: "Water Event",
+        title: "Rowing League",
         blurb: "Crews race a set course on the water.",
         specs: [
             ["Entries",  "Crews of one to four"],
@@ -331,7 +331,7 @@ export function EventTypeBanner({
                     textTransform: "uppercase",
                 }}
             >
-                {erg ? "Indoor Event" : "Water Event"}
+                {erg ? "Indoor Event" : "Rowing League"}
             </span>
 
             <span className="muted" style={{ fontSize: 12.5 }}>

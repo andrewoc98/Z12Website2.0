@@ -12,7 +12,7 @@ import InviteAdminModal from "../components/club/InviteAdminModal";
 import { useClubAdminData } from "../hooks/useClubAdminData";
 import { useAdminClaims } from "../hooks/useAdminClaims";
 import { useAuth } from "../../../providers/AuthProvider";
-import { createConnectAccount, refreshConnectStatus, callableErrorText } from "../services/stripeService";
+import { createConnectAccount, createConnectLoginLink, refreshConnectStatus, callableErrorText } from "../services/stripeService";
 import { STRIPE_SUPPORTED_COUNTRIES } from "../../events/types";
 
 type ToastState = { msg: string; type: "success" | "error" } | null;
@@ -197,6 +197,34 @@ function StripeSection({ notify }: { notify: (msg: string, type?: "success" | "e
         }
     }
 
+    // An onboarded account needs a login link, not another onboarding link —
+    // Stripe bounces the latter straight back without ever showing the
+    // dashboard. Opened in a new tab so the host keeps their place here.
+    async function handleOpenDashboard() {
+        // The tab is opened synchronously, before the callable: a window.open()
+        // that lands after a network round trip reads as a popup and is blocked.
+        // `noopener` is set on the handle rather than passed as a feature,
+        // because that feature makes window.open return null.
+        const tab = window.open("", "_blank");
+        if (tab) tab.opener = null;
+
+        setConnecting(true);
+        try {
+            const { url, kind } = await createConnectLoginLink({});
+            if (tab) tab.location.replace(url);
+            else window.location.href = url;   // popup blocked: fall back to this tab
+
+            if (kind === "onboarding") {
+                notify("Stripe needs a few more details before your dashboard opens.");
+            }
+        } catch (e: any) {
+            tab?.close();
+            notify(callableErrorText(e, "Could not open your Stripe dashboard."), "error");
+        } finally {
+            setConnecting(false);
+        }
+    }
+
     return (
         <section className="card pa-section" style={{ borderColor: "rgba(254,185,89,0.2)" }}>
             <div className="pa-section__header">
@@ -224,7 +252,7 @@ function StripeSection({ notify }: { notify: (msg: string, type?: "success" | "e
                     </p>
                     <button
                         className="pa-btn pa-btn--secondary"
-                        onClick={handleConnect}
+                        onClick={handleOpenDashboard}
                         disabled={connecting}
                     >
                         {connecting ? "Opening…" : "Open Stripe Dashboard"}

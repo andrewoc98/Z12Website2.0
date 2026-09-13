@@ -60,9 +60,6 @@ export default function FinancesTab({ event, boats = [] }: any) {
         // Per-payment rounding matches the backend transfer amount exactly.
         const grossFees  = active.reduce((s, p) => s + (p.eventFeeCents ?? 0), 0);
         const hostNet    = active.reduce((s, p) => s + Math.round((p.eventFeeCents ?? 0) * HOST_SHARE), 0);
-        const platformCut = active.reduce(
-            (s, p) => s + ((p.totalChargedCents ?? 0) - Math.round((p.eventFeeCents ?? 0) * HOST_SHARE)), 0
-        );
         const refundedTotal = refunded.reduce((s, p) => s + (p.totalChargedCents ?? 0), 0);
 
         // Pending crews auto-refund at the closing date if they never fill,
@@ -73,7 +70,7 @@ export default function FinancesTab({ event, boats = [] }: any) {
 
         const disputed = payments.some(p => p.status === "disputed");
 
-        return { grossFees, hostNet, platformCut, refundedTotal, pendingAtRisk, disputed };
+        return { grossFees, hostNet, refundedTotal, pendingAtRisk, disputed };
     }, [payments, boats, feeByCategoryId]);
 
     const categoryRows = useMemo(() => {
@@ -134,7 +131,6 @@ export default function FinancesTab({ event, boats = [] }: any) {
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-4">
                     <Stat label="Entry Fees Collected" value={fmtCents(summary.grossFees)} />
                     <Stat label={`Your Payout (${HOST_SHARE * 100}%)`} value={fmtCents(summary.hostNet)} highlight />
-                    <Stat label="Platform & Processing" value={fmtCents(summary.platformCut)} />
                     <Stat label="Refunded to Payers" value={fmtCents(summary.refundedTotal)} />
                 </div>
                 <p className="text-muted text-[12px] mt-3 mb-0">

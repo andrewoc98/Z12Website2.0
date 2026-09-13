@@ -61,7 +61,8 @@ export default function EventCreatePage() {
     const stripeOnboarded: boolean = profile?.roles?.clubAdmin?.stripeOnboarded ?? false;
     const stripeSupported: boolean = clubCountry !== null && STRIPE_SUPPORTED_COUNTRIES.has(clubCountry);
 
-    // Per-boat-class fees: globalFeeUsd applies to all; boatFees[boatClass] overrides a specific class
+    // Erg events take one flat fee (globalFeeUsd). Water events are priced per
+    // boat class instead — boatFees[boatClass] — with no across-the-board default.
     const [globalFeeUsd, setGlobalFeeUsd] = useState("");
     const [boatFees, setBoatFees] = useState<Partial<Record<BoatClass, string>>>({});
 
@@ -84,8 +85,8 @@ export default function EventCreatePage() {
         return BOAT_CLASS_ORDER.filter(bc => found.has(bc));
     }, [categories]);
 
-    const overrideCount = Object.values(boatFees).filter(v => v?.trim()).length;
-    const anyFeeSet = !!globalFeeUsd.trim() || overrideCount > 0;
+    const boatFeeCount = Object.values(boatFees).filter(v => v?.trim()).length;
+    const anyFeeSet = isErg ? !!globalFeeUsd.trim() : boatFeeCount > 0;
 
     const [autoAssignBowNumbers, setAutoAssignBowNumbers] = useState(false);
 
@@ -228,7 +229,7 @@ export default function EventCreatePage() {
             }
 
             if (!isErg && !noClosingDate && closeMillis > startMillis) {
-                throw new Error("Registration closing date must be before the start date.");
+                throw new Error("Registration close must be before the start date.");
             }
 
             const status = calculateInitialStatus(
@@ -245,7 +246,8 @@ export default function EventCreatePage() {
                     ? SERIES_LENGTH_METERS[seriesType]
                     : Number(lengthMeters);
 
-            const globalFeeCents = globalFeeUsd.trim()
+            // Only erg events carry a flat fee; water pricing is per boat class.
+            const globalFeeCents = isErg && globalFeeUsd.trim()
                 ? Math.round(parseFloat(globalFeeUsd) * 100)
                 : 0;
 
@@ -262,10 +264,8 @@ export default function EventCreatePage() {
 
                 if (clubCountry !== "US") return withLength; // entry fees only permitted for US clubs
                 const bc = parseBoatClassFromCategory(c.id);
-                const overrideStr = bc ? boatFees[bc] : undefined;
-                const feeCents = overrideStr?.trim()
-                    ? Math.round(parseFloat(overrideStr) * 100)
-                    : globalFeeCents;
+                const feeStr = bc ? boatFees[bc] : undefined;
+                const feeCents = feeStr?.trim() ? Math.round(parseFloat(feeStr) * 100) : 0;
                 return feeCents > 0 ? { ...withLength, feeCents } : withLength;
             });
 
@@ -329,7 +329,7 @@ export default function EventCreatePage() {
                 {confirmTypeChange && (
                     <Modal
                         title="Change event type?"
-                        message="Switching between a water event and an indoor event resets your selected categories and entry fees. Everything else you have filled in is kept."
+                        message="Switching between a rowing league and an indoor event resets your selected categories and entry fees. Everything else you have filled in is kept."
                         onClose={() => setConfirmTypeChange(false)}
                         actions={[
                             { label: "Keep current", onClick: () => setConfirmTypeChange(false) },
@@ -453,8 +453,8 @@ export default function EventCreatePage() {
                                 pointing at the date input. */}
                             <label>
                                 <span className="inline-flex items-center">
-                                    Closing Date
-                                    <InfoTooltip text="The last day athletes can register. Must be before the start date. Tick “No closing date” to keep entries open until you close them from the manage page." position="right" />
+                                    Registration Close
+                                    <InfoTooltip text="The last day athletes can register. Must be before the start date. Tick “No registration close” to keep entries open until you close them from the manage page." position="right" />
                                 </span>
                                 <input
                                     type="date"
@@ -477,7 +477,7 @@ export default function EventCreatePage() {
                                     }}
                                     style={{ width: 16, height: 16, margin: 0 }}
                                 />
-                                No closing date
+                                No registration close
                             </label>
 
                             <span className="muted" style={{ display: "block", fontSize: 12, marginTop: 4 }}>
@@ -568,7 +568,7 @@ export default function EventCreatePage() {
                         <span className="inline-flex items-center" style={{ fontWeight: 600, fontSize: 14 }}>
                             Auto-assign bow numbers
                             <InfoTooltip
-                                text="When enabled, bow numbers are assigned automatically once registration closes — on the closing date, or when you close registration yourself on the manage page. Numbers are allocated in category order (as listed below), with entries within each category ordered by registration time. Excluded bow numbers are always skipped. You can also assign or adjust numbers manually at any time in the Bow Numbers tab."
+                                text="When enabled, bow numbers are assigned automatically once registration closes — on the registration close date, or when you close registration yourself on the manage page. Numbers are allocated in category order (as listed below), with entries within each category ordered by registration time. Excluded bow numbers are always skipped. You can also assign or adjust numbers manually at any time in the Bow Numbers tab."
                                 position="right"
                             />
                         </span>
@@ -576,7 +576,7 @@ export default function EventCreatePage() {
 
                     {!isErg && noClosingDate && autoAssignBowNumbers && (
                         <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                            With no closing date, bow numbers are assigned when you close
+                            With no registration close, bow numbers are assigned when you close
                             registration on the manage page.
                         </p>
                     )}
@@ -632,38 +632,41 @@ export default function EventCreatePage() {
                     <p className="muted mt-1" style={{ fontSize: 13 }}>
                         {isErg
                             ? "One entry fee covers the whole event — an athlete may submit as many 2k attempts as they like. Leave blank for a free event."
-                            : "Set a default fee for all boat types, or override per boat class. Leave blank for a free event."}
+                            : "Set an entry fee for each boat class. Leave any blank to keep that class free."}
                     </p>
 
                     <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: "8px 12px" }}>
-                        {/* Default / apply-to-all row */}
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>
-                            {isErg ? "Entry fee" : "All boat types"}
-                            <InfoTooltip
-                                text={isErg
-                                    ? "Charged once per athlete, per category entered. Covers unlimited 2k attempts."
-                                    : "Default fee applied to every boat class that doesn't have its own override."}
-                                position="right"
-                            />
-                        </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span className="muted">$</span>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={globalFeeUsd}
-                                onChange={(e) => setGlobalFeeUsd(e.target.value)}
-                                style={{ width: 90, textAlign: "right" }}
-                            />
-                        </div>
+                        {/* Erg: a single flat fee, since there are no boat classes
+                            to price. Water events skip this row entirely. */}
+                        {isErg && (
+                            <>
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>
+                                    Entry fee
+                                    <InfoTooltip
+                                        text="Charged once per athlete, per category entered. Covers unlimited 2k attempts."
+                                        position="right"
+                                    />
+                                </span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span className="muted">$</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={globalFeeUsd}
+                                        onChange={(e) => setGlobalFeeUsd(e.target.value)}
+                                        style={{ width: 90, textAlign: "right" }}
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         {/* Per-boat-class rows — only for classes present in selected
-                            categories. Erg events have no boat classes to price. */}
+                            categories. Each class is priced on its own. */}
                         {!isErg && selectedBoatClasses.map((bc) => (
                             <>
-                                <span key={`label-${bc}`} style={{ fontSize: 13, color: "var(--muted)", paddingLeft: 10 }}>
+                                <span key={`label-${bc}`} style={{ fontSize: 13, fontWeight: 600 }}>
                                     {BOAT_CLASS_LABEL[bc]}
                                 </span>
                                 <div key={`input-${bc}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -672,7 +675,7 @@ export default function EventCreatePage() {
                                         type="number"
                                         min="0"
                                         step="0.01"
-                                        placeholder={globalFeeUsd || "0.00"}
+                                        placeholder="0.00"
                                         value={boatFees[bc] ?? ""}
                                         onChange={(e) => {
                                             const v = e.target.value;
@@ -769,7 +772,7 @@ export default function EventCreatePage() {
                 >
                     {busy
                         ? "Creating..."
-                        : isErg ? "Create Indoor Event" : "Create Water Event"}
+                        : isErg ? "Create Indoor Event" : "Create Rowing League"}
                 </button>
                 </>}
             </main>
