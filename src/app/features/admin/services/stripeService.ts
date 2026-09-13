@@ -24,6 +24,16 @@ export const createConnectAccount = call<
     { url: string }
 >("createConnectAccount");
 
+/**
+ * Express Dashboard link for an already-connected account. `kind` is
+ * "onboarding" when Stripe still wants details before it will open the
+ * dashboard, so the UI can say where the host is actually being sent.
+ */
+export const createConnectLoginLink = call<
+    Record<string, never>,
+    { url: string; kind: "dashboard" | "onboarding" }
+>("createConnectLoginLink");
+
 export type ConnectStatus = {
     connected:        boolean;
     accountId:        string | null;
