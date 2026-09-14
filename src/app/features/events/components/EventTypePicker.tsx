@@ -7,12 +7,11 @@ type Props = {
 };
 
 /**
- * Indoor (erg) events are built but not open to hosts yet — the Concept2
- * validation side is not live. Flip this to true to turn them back on; nothing
- * else needs changing. Callers use `isEventTypeAvailable` rather than testing
- * the flag directly.
+ * Indoor (erg) events. Flip this to false to pull them back out of the create
+ * flow without touching anything else — callers use `isEventTypeAvailable`
+ * rather than testing the flag directly.
  */
-export const ERG_EVENTS_ENABLED = false;
+export const ERG_EVENTS_ENABLED = true;
 
 export function isEventTypeAvailable(type: EventType): boolean {
     return type === "erg" ? ERG_EVENTS_ENABLED : true;
@@ -98,7 +97,7 @@ const CARDS: TypeCard[] = [
         blurb: "Athletes row a fixed piece on their own machine, anywhere.",
         specs: [
             ["Entries",  "Individual athletes"],
-            ["Distance", "2000m, fixed"],
+            ["Distance", "100m – 6km, your choice"],
             ["Results",  "Validated automatically via Concept2"],
         ],
     },
@@ -336,7 +335,7 @@ export function EventTypeBanner({
 
             <span className="muted" style={{ fontSize: 12.5 }}>
                 {erg
-                    ? "2000m · scores validated via Concept2 Logbook"
+                    ? "Concept2 RowErg · scores validated via Concept2 Logbook"
                     : "Course race · times recorded by the host"}
             </span>
 

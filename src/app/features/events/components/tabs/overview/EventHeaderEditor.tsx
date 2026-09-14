@@ -2,6 +2,8 @@ import {useState} from "react";
 import { dateInputToTimestampStartOfDay, dateInputToTimestampEndOfDay, updateEvent } from "../../../api/events";
 import { isErgEvent } from "../../../lib/categories";
 import { hasClosingDate } from "../../../lib/registration";
+import { DEFAULT_ERG_DISTANCE, ERG_DISTANCE_OPTIONS, ergDistanceLabel, isErgDistance } from "../../../types";
+import type { ErgConfig } from "../../../types";
 
 interface Props {
     event: any;
@@ -36,11 +38,19 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
     const [endDate, setEndDate] = useState(() => toDateInput(event.endDate));
     const [closingDate, setClosingDate] = useState(() => toDateInput(event.closingDate));
     const [noClosingDate, setNoClosingDate] = useState<boolean>(() => !hasClosingDate(event));
-    const [lengthMeters, setLengthMeters] = useState<number>(event.lengthMeters ?? 0);
-
     // Indoor events never have a deadline of their own — entering and posting a
     // score share one window — so the choice is not offered there.
     const erg = isErgEvent(event);
+
+    // For an indoor event the distance is the erg config, not a free number:
+    // scoring only ranks pieces rowed at exactly ergConfig.distanceMeters, so
+    // the two must move together.
+    const storedErgDistance = event.ergConfig?.distanceMeters ?? event.lengthMeters;
+    const [lengthMeters, setLengthMeters] = useState<number>(
+        erg
+            ? (isErgDistance(storedErgDistance) ? storedErgDistance : DEFAULT_ERG_DISTANCE)
+            : (event.lengthMeters ?? 0)
+    );
 
     const resetDraft = () => {
         setName(event.name ?? "");
@@ -50,7 +60,11 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
         setEndDate(toDateInput(event.endDate));
         setClosingDate(toDateInput(event.closingDate));
         setNoClosingDate(!hasClosingDate(event));
-        setLengthMeters(event.lengthMeters ?? 0);
+        setLengthMeters(
+            erg
+                ? (isErgDistance(storedErgDistance) ? storedErgDistance : DEFAULT_ERG_DISTANCE)
+                : (event.lengthMeters ?? 0)
+        );
     };
 
     const save = async () => {
@@ -87,6 +101,15 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
                 now > closeAt.toMillis()  ? "closed"   :
                                             "open";
 
+            // Keep the erg config in step with the shown distance, otherwise the
+            // event would go on ranking pieces at the distance it was created with.
+            const ergConfig: ErgConfig | null = erg
+                ? {
+                    machineType: "rower",
+                    distanceMeters: isErgDistance(Number(lengthMeters)) ? Number(lengthMeters) as ErgConfig["distanceMeters"] : DEFAULT_ERG_DISTANCE,
+                }
+                : null;
+
             const updates = {
                 name: name.trim(),
                 location: location.trim(),
@@ -96,6 +119,7 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
                 closeAt,
                 noClosingDate: deadlineless && !erg,
                 lengthMeters: Number(lengthMeters),
+                ...(ergConfig ? { ergConfig } : {}),
                 status,
             };
 
@@ -112,6 +136,7 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
                 closingDate: closeAt.toDate().toISOString(),
                 noClosingDate: updates.noClosingDate,
                 lengthMeters: updates.lengthMeters,
+                ...(ergConfig ? { ergConfig } : {}),
                 status,
             });
             setEdit(false);
@@ -193,10 +218,23 @@ export default function EventHeaderEditor({ event, onSaved }: Props) {
                         ))
                     : <span>{hasClosingDate(event) ? fmt(event.closingDate) : "No closing date"}</span>}
 
-                <label>Length (meters)</label>
+                <label>{erg ? "Distance" : "Length (meters)"}</label>
                 {edit
-                    ? <input type="number" value={lengthMeters} onChange={e => setLengthMeters(Number(e.target.value))} />
-                    : <span>{event.lengthMeters?.toLocaleString()} m</span>}
+                    ? (erg
+                        ? (
+                            <div className="flex flex-col gap-2">
+                                <select value={lengthMeters} onChange={e => setLengthMeters(Number(e.target.value))}>
+                                    {ERG_DISTANCE_OPTIONS.map(o => (
+                                        <option key={o.meters} value={o.meters}>{o.label}</option>
+                                    ))}
+                                </select>
+                                <span className="muted text-[12px]">
+                                    Changing this re-scores the event: only pieces at the new distance rank.
+                                </span>
+                            </div>
+                        )
+                        : <input type="number" value={lengthMeters} onChange={e => setLengthMeters(Number(e.target.value))} />)
+                    : <span>{erg ? ergDistanceLabel(storedErgDistance) : `${event.lengthMeters?.toLocaleString()} m`}</span>}
 
                 <label>Description</label>
                 {edit

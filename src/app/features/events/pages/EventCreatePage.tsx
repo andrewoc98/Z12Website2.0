@@ -11,7 +11,8 @@ import { buildDefaultCategories, getCategoryRaceMeters, parseBoatClassFromCatego
 import type { BoatClass } from "../lib/categories";
 import { categoriesFromIds, createEvent, dateInputToTimestampStartOfDay,dateInputToTimestampEndOfDay } from "../api/events";
 import type { EventStatus, EventSeriesType, EventType } from "../types";
-import { DEFAULT_ERG_CONFIG, SERIES_LENGTH_METERS, STRIPE_SUPPORTED_COUNTRIES } from "../types";
+import { DEFAULT_ERG_DISTANCE, ERG_DISTANCE_OPTIONS, isErgDistance, SERIES_LENGTH_METERS, STRIPE_SUPPORTED_COUNTRIES } from "../types";
+import type { ErgDistanceMeters } from "../types";
 import InfoTooltip from "../../../shared/components/Infotooltip/Infotooltip.tsx";
 import { Link } from "react-router-dom";
 import { createConnectAccount, callableErrorText } from "../../admin/services/stripeService";
@@ -50,6 +51,11 @@ export default function EventCreatePage() {
     const [noClosingDate, setNoClosingDate] = useState(false);
     const [lengthMeters, setLengthMeters] = useState<number>(3000);
     const [seriesType, setSeriesType] = useState<EventSeriesType | "">("");
+
+    // Indoor events reuse lengthMeters as their race distance, narrowed to one
+    // of the offered options so a stale draft can never write a distance the
+    // scoring rules would reject every piece against.
+    const ergDistance: ErgDistanceMeters = isErgDistance(lengthMeters) ? lengthMeters : DEFAULT_ERG_DISTANCE;
 
     // Open water starts with every category enabled; erg starts empty, because a
     // host runs a handful of erg classes rather than the full 200-odd taxonomy.
@@ -149,7 +155,7 @@ export default function EventCreatePage() {
             setSeriesType("");
             setAutoAssignBowNumbers(false);
             setNoClosingDate(false);
-            setLengthMeters(DEFAULT_ERG_CONFIG.distanceMeters);
+            setLengthMeters(DEFAULT_ERG_DISTANCE);
         } else {
             setLengthMeters(3000);
         }
@@ -238,10 +244,10 @@ export default function EventCreatePage() {
                 closeMillis
             );
 
-            // Erg events are always their configured distance; the series
+            // Erg events race the distance the host picked; the series
             // distance rules are an open-water concept.
             const resolvedLength = isErg
-                ? DEFAULT_ERG_CONFIG.distanceMeters
+                ? ergDistance
                 : seriesType
                     ? SERIES_LENGTH_METERS[seriesType]
                     : Number(lengthMeters);
@@ -277,7 +283,7 @@ export default function EventCreatePage() {
                 // open. An event with a real closing date leaves it unset, so
                 // that date governs until the host flips the switch themselves.
                 ...(!isErg && noClosingDate ? { noClosingDate: true, registrationOpen: true } : {}),
-                ...(isErg ? { ergConfig: DEFAULT_ERG_CONFIG } : {}),
+                ...(isErg ? { ergConfig: { machineType: "rower" as const, distanceMeters: ergDistance } } : {}),
                 // EventPage reads these capitalised values; see updateEventPublishMode.
                 resultsPublishMode: "Live",
                 name: name.trim(),
@@ -492,26 +498,19 @@ export default function EventCreatePage() {
                             <label>
                                 <span className="inline-flex items-center">
                                     Distance
-                                    <InfoTooltip text="Indoor erg events are 2000m. Other distances will be added later." position="right" />
+                                    <InfoTooltip text="Every entrant races this distance on a Concept2 RowErg. Only pieces at this exact distance can be ranked." position="right" />
                                 </span>
-                                <div
-                                    style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: 8,
-                                        marginTop: 6,
-                                        padding: "8px 14px",
-                                        borderRadius: "var(--radius-sm)",
-                                        background: "var(--surface-2)",
-                                        border: "1px solid var(--border)",
-                                        fontWeight: 700,
-                                    }}
+                                <select
+                                    value={ergDistance}
+                                    onChange={(e) => setLengthMeters(Number(e.target.value))}
                                 >
-                                    <span style={{ color: "var(--brand)" }}>2000m</span>
-                                    <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>
-                                        Concept2 RowErg
-                                    </span>
-                                </div>
+                                    {ERG_DISTANCE_OPTIONS.map(o => (
+                                        <option key={o.meters} value={o.meters}>{o.label}</option>
+                                    ))}
+                                </select>
+                                <p className="muted" style={{ fontSize: "0.8rem", marginTop: 4 }}>
+                                    Concept2 RowErg · scores are only ranked when the piece is exactly this distance.
+                                </p>
                             </label>
                         ) : (
                         <label>

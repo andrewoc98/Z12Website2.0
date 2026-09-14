@@ -9,14 +9,39 @@ export type EventSeriesType = "regional_series" | "national_series" | "national_
 // created before erg support existed reads correctly with no backfill.
 export type EventType = "open_water" | "erg";
 
+// The distances a host may run an indoor event over. Adding one here is the
+// only frontend change needed — the picker, validation and copy all read it.
+// Keep in step with ERG_DISTANCES in functions/src/types/erg.types.ts.
+export type ErgDistanceMeters = 100 | 500 | 1000 | 2000 | 6000;
+
+export const ERG_DISTANCE_OPTIONS: { meters: ErgDistanceMeters; label: string }[] = [
+    { meters: 100,  label: "100m" },
+    { meters: 500,  label: "500m" },
+    { meters: 1000, label: "1km"  },
+    { meters: 2000, label: "2km"  },
+    { meters: 6000, label: "6km"  },
+];
+
+export const DEFAULT_ERG_DISTANCE: ErgDistanceMeters = 2000;
+
+/** Narrows an arbitrary stored length to a distance the picker can show. */
+export function isErgDistance(meters: unknown): meters is ErgDistanceMeters {
+    return ERG_DISTANCE_OPTIONS.some(o => o.meters === meters);
+}
+
+/** "1km" rather than "1000m" for the round distances; falls back to raw meters. */
+export function ergDistanceLabel(meters: number): string {
+    return ERG_DISTANCE_OPTIONS.find(o => o.meters === meters)?.label ?? `${meters}m`;
+}
+
 // Per-event erg configuration. Kept as a nested object rather than loose fields
-// so adding 500m / 5k / 60min later widens these unions and touches nothing else.
+// so adding 5k / 60min later widens these unions and touches nothing else.
 export type ErgConfig = {
     machineType: "rower";     // matches Concept2 result.type; RowErg only for now
-    distanceMeters: 2000;
+    distanceMeters: ErgDistanceMeters;
 };
 
-export const DEFAULT_ERG_CONFIG: ErgConfig = { machineType: "rower", distanceMeters: 2000 };
+export const DEFAULT_ERG_CONFIG: ErgConfig = { machineType: "rower", distanceMeters: DEFAULT_ERG_DISTANCE };
 
 // Countries where Stripe Connect onboarding and paid events are supported.
 // Add new country codes here as support is rolled out.
