@@ -40,7 +40,7 @@ const ROWER_STEPS: TourStep[] = [
         element: '[data-tour="profile-performances"]',
         popover: {
             title: "Best Erg Scores",
-            description: "Log your best times for each distance. These benchmarks are used for rankings and selection.",
+            description: "Your fastest verified time at each distance, imported from the indoor virtual events you enter.",
             side: "top",
         },
     },

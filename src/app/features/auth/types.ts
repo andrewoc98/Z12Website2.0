@@ -10,6 +10,7 @@
  * common rendering scenarios while keeping the canonical source of truth in
  * /clubs/{clubId}/members/{uid}.
  */
+import type {Timestamp} from "firebase/firestore";
 import type {ClubMemberRole} from "./club.ts";
 
 
@@ -22,6 +23,24 @@ export type Role =
     | "federationAdmin"
     | "platformAdmin";
 export type Gender = "male" | "female" | "unknown";
+
+// ── Verified indoor erg bests (denormalised from event scores) ────────────────
+
+/** Mirrors the `performances` keys. Distances match ERG_DISTANCES on the backend. */
+export type ErgBestKey = "best100m" | "best500m" | "best1000m" | "best2000m" | "best6000m";
+
+/** One distance's lifetime best, taken from ranked indoor-event scores only. */
+export type ErgBest = {
+    timeMs: number;
+    distanceMeters: number;
+    eventId: string;
+    eventName: string;
+    scoreId: string;
+    achievedAt: Timestamp;
+};
+
+/** A missing key means the athlete has no ranked piece at that distance. */
+export type ErgBests = Partial<Record<ErgBestKey, ErgBest>>;
 
 // ── Guardian child reference ───────────────────────────────────────────────────
 export type LinkedChild = {
@@ -123,6 +142,11 @@ export type UserProfile = {
                 weightKg?: number;
             };
 
+            /**
+             * Self-reported times, in seconds. Edited in the profile editor and
+             * read by federation athlete selection — NOT what the profile's
+             * "Best Erg Scores" panel shows; that reads ergBests.
+             */
             performances: {
                 best100m?: number;
                 best500m?: number;
@@ -130,6 +154,13 @@ export type UserProfile = {
                 best6000m?: number;
                 best10000m?: number;
             };
+
+            /**
+             * Verified bests, denormalised by the Cloud Functions from every
+             * ranked indoor-event score the athlete holds. Read-only here —
+             * recomputeAthleteErgBests owns this field.
+             */
+            ergBests?: ErgBests;
         };
 
         coach?: {

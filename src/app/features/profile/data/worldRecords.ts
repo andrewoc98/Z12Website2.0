@@ -14,7 +14,13 @@
  *   masters: 27+
  */
 
-export type DistanceKey = "best100m" | "best500m" | "best2000m" | "best6000m" | "best10000m";
+export type DistanceKey =
+    | "best100m"
+    | "best500m"
+    | "best1000m"
+    | "best2000m"
+    | "best6000m"
+    | "best10000m";
 
 export interface WorldRecordEntry {
     /** Short display label shown in the tooltip header */
@@ -32,6 +38,7 @@ export const WORLD_RECORDS: Record<string, WorldRecordEntry> = {
         records: {
             best100m:   12.4,
             best500m:   69.8,
+            best1000m: null,   // TODO: fill in the Concept2 1,000m record for this category
             best2000m:  334.7,
             best6000m:  1084.7,
             best10000m: 1865.2,
@@ -43,6 +50,7 @@ export const WORLD_RECORDS: Record<string, WorldRecordEntry> = {
         records: {
             best100m:   13.4,
             best500m:   77.4,
+            best1000m: null,   // TODO: fill in the Concept2 1,000m record for this category
             best2000m:  356.7,
             best6000m:  1156,
             best10000m: 1969.6,
@@ -54,6 +62,7 @@ export const WORLD_RECORDS: Record<string, WorldRecordEntry> = {
         records: {
             best100m:   13.1,
             best500m:   73.5,
+            best1000m: null,   // TODO: fill in the Concept2 1,000m record for this category
             best2000m:  345.5,
             best6000m:  1124.5,
             best10000m: 1944.9,
@@ -65,6 +74,7 @@ export const WORLD_RECORDS: Record<string, WorldRecordEntry> = {
         records: {
             best100m:   14.6,
             best500m:   84.5,
+            best1000m: null,   // TODO: fill in the Concept2 1,000m record for this category
             best2000m:  381.1,
             best6000m:  1217.7,
             best10000m: 2133,
@@ -76,6 +86,7 @@ export const WORLD_RECORDS: Record<string, WorldRecordEntry> = {
         records: {
             best100m:   16.4,
             best500m:   93.2,
+            best1000m: null,   // TODO: fill in the Concept2 1,000m record for this category
             best2000m:  413.8,
             best6000m:  1304,
             best10000m: 2263.9,
@@ -87,6 +98,7 @@ export const WORLD_RECORDS: Record<string, WorldRecordEntry> = {
         records: {
             best100m:   16.1,
             best500m:   85.3,
+            best1000m: null,   // TODO: fill in the Concept2 1,000m record for this category
             best2000m:  388.2,
             best6000m:  1274.7,
             best10000m: 2201.2,

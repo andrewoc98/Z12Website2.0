@@ -134,7 +134,7 @@ export default function Concept2Card({ uid }: { uid: string }) {
                                 Connected as {link!.username}
                             </div>
                             <div className="muted" style={{ fontSize: 12.5 }}>
-                                Your 2k scores import automatically for any indoor erg event you enter.
+                                You can now import your scores for indoor virtual events
                             </div>
                         </div>
                         <button
